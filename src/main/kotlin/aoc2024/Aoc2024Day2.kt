@@ -1,5 +1,6 @@
 package aoc2024
 
+import aoc2024.Day2.Report
 import utils.Resource
 import kotlin.math.absoluteValue
 
@@ -11,11 +12,17 @@ fun main() {
 private fun solve(input: Resource) {
     println("input: $input")
 
-    val problem = Day2.from(input)
+    val problem = input.day2()
 
     input.assertResult("task1") { problem.safeReports }
     input.assertResult("task2") { problem.safeReportsWithDampener }
 }
+
+fun Resource.day2(): Day2 = Day2(
+    nonBlankLines()
+        .map { line -> line.split("\\s+".toRegex()) }
+        .map { line -> Report(line.map { it.toInt() }) }
+)
 
 data class Day2(val reports: List<Report>) {
 
@@ -57,16 +64,6 @@ data class Day2(val reports: List<Report>) {
 
             return false
         }
-
-    }
-
-    companion object {
-
-        fun from(input: Resource): Day2 = Day2(
-            input.nonBlankLines()
-                .map { line -> line.split("\\s+".toRegex()) }
-                .map { line -> Report(line.map { it.toInt() }) }
-        )
 
     }
 

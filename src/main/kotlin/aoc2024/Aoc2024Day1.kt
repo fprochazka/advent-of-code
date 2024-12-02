@@ -11,10 +11,23 @@ fun main() {
 private fun solve(input: Resource) {
     println("input: $input")
 
-    val problem = Day1.from(input).sorted()
+    val problem = input.day1().sorted()
 
     input.assertResult("task1") { problem.distancesSum }
     input.assertResult("task2") { problem.similaritiesSum }
+}
+
+fun Resource.day1(): Day1 {
+    val leftNumbers = mutableListOf<Int>();
+    val rightNumbers = mutableListOf<Int>();
+
+    nonBlankLines().forEach { line ->
+        val (left, right) = line.trim().split("\\s+".toRegex(), limit = 2)
+        leftNumbers.add(left.toInt())
+        rightNumbers.add(right.toInt())
+    }
+
+    return Day1(leftNumbers, rightNumbers)
 }
 
 data class Day1(
@@ -40,22 +53,5 @@ data class Day1(
     val similaritiesSum by lazy { similarities.sum() }
 
     fun sorted(): Day1 = Day1(leftNumbers.sorted(), rightNumbers.sorted())
-
-    companion object {
-
-        fun from(resource: Resource): Day1 {
-            val leftNumbers = mutableListOf<Int>();
-            val rightNumbers = mutableListOf<Int>();
-
-            resource.nonBlankLines().forEach { line ->
-                val (left, right) = line.trim().split("\\s+".toRegex(), limit = 2)
-                leftNumbers.add(left.toInt())
-                rightNumbers.add(right.toInt())
-            }
-
-            return Day1(leftNumbers, rightNumbers)
-        }
-
-    }
 
 }
