@@ -1,58 +1,73 @@
 package aoc2024
 
+import utils.Resource
 import kotlin.math.absoluteValue
 
 fun main() {
-    val inputStream = object {}.javaClass.getResourceAsStream("/aoc2024/day02/input.txt")!!
-    val lines = inputStream.bufferedReader().use { it.readText() }
-        .split("\n")
-        .filter { it.isNotBlank() }
-
-    val reports = lines.map { line -> line.split("\\s+".toRegex()) }
-        .map { line -> Report(line.map { it.toInt() }) }
-
-    var safeReports = 0
-    reports.forEach { report ->
-        println("${report}: safe=${report.isSafe}, increasing=${report.allIncreasing}, decreasing=${report.allDecreasing}, diffs=${report.allDiffs}")
-        if (report.isSafe) safeReports++
-    }
-
-    println("total reports: ${reports.size}")
-
-    println("safe reports: $safeReports")
-
-    println("safe with dampener reports: ${reports.count { it.isSafeWithDampener()}}")
+    solve(Resource.named("aoc2024/day02/example.txt"))
+    solve(Resource.named("aoc2024/day02/input.txt"))
 }
 
-data class Report(val levels: List<Int>) {
+private fun solve(input: Resource) {
+    println("input: $input")
 
-    val allDiffs = levels.zipWithNext { a, b -> (b - a) }
-    val allIncreasing = allDiffs.all { it > 0 }
-    val allDecreasing = allDiffs.all { it < 0 }
+    val problem = Day2.from(input)
 
-    /**
-     * The levels are either all increasing or all decreasing.
-     * Any two adjacent levels differ by at least one and at most three.
-     */
-    val isSafe by lazy {
-        (allIncreasing || allDecreasing)
-          && allDiffs.map { it.absoluteValue }.all { it >= 1 && it <= 3 }
+    input.assertResult("task1") { problem.safeReports }
+    input.assertResult("task2") { problem.safeReportsWithDampener }
+}
+
+data class Day2(val reports: List<Report>) {
+
+    val safeReports by lazy {
+        reports.count { it.isSafe }
     }
 
-    fun copyWithout(index: Int): Report = Report(levels.filterIndexed { i, _ -> i != index })
+    val safeReportsWithDampener by lazy {
+        reports.count { it.isSafeWithDampener() }
+    }
 
-    /**
-     * The same rules apply as before, except if removing a single level from an unsafe report would make it safe, the report instead counts as safe.
-     */
-    fun isSafeWithDampener(): Boolean {
-        if (isSafe) return true
+    data class Report(val levels: List<Int>) {
 
-        levels.indices.forEach { index ->
-            val copy = copyWithout(index)
-            if (copy.isSafe) return true
+        val allDiffs = levels.zipWithNext { a, b -> (b - a) }
+        val allIncreasing = allDiffs.all { it > 0 }
+        val allDecreasing = allDiffs.all { it < 0 }
+
+        /**
+         * The levels are either all increasing or all decreasing.
+         * Any two adjacent levels differ by at least one and at most three.
+         */
+        val isSafe by lazy {
+            (allIncreasing || allDecreasing)
+              && allDiffs.map { it.absoluteValue }.all { it in 1..3 }
         }
 
-        return false
+        fun copyWithout(index: Int): Report = Report(levels.filterIndexed { i, _ -> i != index })
+
+        /**
+         * The same rules apply as before, except if removing a single level from an unsafe report would make it safe, the report instead counts as safe.
+         */
+        fun isSafeWithDampener(): Boolean {
+            if (isSafe) return true
+
+            levels.indices.forEach { index ->
+                val copy = copyWithout(index)
+                if (copy.isSafe) return true
+            }
+
+            return false
+        }
+
+    }
+
+    companion object {
+
+        fun from(input: Resource): Day2 = Day2(
+            input.nonBlankLines()
+                .map { line -> line.split("\\s+".toRegex()) }
+                .map { line -> Report(line.map { it.toInt() }) }
+        )
+
     }
 
 }

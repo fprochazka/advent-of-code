@@ -1,41 +1,61 @@
 package aoc2024
 
+import utils.Resource
 import kotlin.math.absoluteValue
 
 fun main() {
-    val inputStream = object {}.javaClass.getResourceAsStream("/aoc2024/day01/input.txt")!!
-    val lines = inputStream.bufferedReader().use { it.readText() }
-        .split("\n")
-        .filter { it.isNotBlank() }
+    solve(Resource.named("aoc2024/day01/example.txt"))
+    solve(Resource.named("aoc2024/day01/input.txt"))
+}
 
-    val leftNumbers = mutableListOf<Int>();
-    val rightNumbers = mutableListOf<Int>();
+private fun solve(input: Resource) {
+    println("input: $input")
 
-    lines.forEach { line ->
-        val (left, right) = line.trim().split("\\s+".toRegex(), limit = 2)
-        leftNumbers.add(left.toInt())
-        rightNumbers.add(right.toInt())
+    val problem = Day1.from(input).sorted()
+
+    input.assertResult("task1") { problem.distancesSum }
+    input.assertResult("task2") { problem.similaritiesSum }
+}
+
+data class Day1(
+    val leftNumbers: List<Int>,
+    val rightNumbers: List<Int>,
+) {
+
+    val distances: List<Int> by lazy {
+        leftNumbers.zip(rightNumbers)
+            .map { (left, right) -> (left - right).absoluteValue }
     }
 
-    leftNumbers.sort()
-    rightNumbers.sort()
+    val distancesSum by lazy { distances.sum() }
 
-    println(leftNumbers.toString())
-    println(rightNumbers.toString())
+    val rightNumbersOccurrences by lazy {
+        rightNumbers.groupingBy { it }.eachCount()
+    }
 
-    val paired = leftNumbers.zip(rightNumbers)
+    val similarities by lazy {
+        leftNumbers.map { left -> left * (rightNumbersOccurrences[left] ?: 0) }
+    }
 
-    val distances = paired.map { (left, right) -> (left - right).absoluteValue }
+    val similaritiesSum by lazy { similarities.sum() }
 
-    println(distances.toString())
+    fun sorted(): Day1 = Day1(leftNumbers.sorted(), rightNumbers.sorted())
 
-    println("total: ${distances.sum()}")
+    companion object {
 
-    val rightNumbersOccurrences = rightNumbers.groupingBy { it }.eachCount()
-    println(rightNumbersOccurrences.toString())
+        fun from(resource: Resource): Day1 {
+            val leftNumbers = mutableListOf<Int>();
+            val rightNumbers = mutableListOf<Int>();
 
-    val similarities = leftNumbers.map { left -> left * (rightNumbersOccurrences[left] ?: 0) }
-    println(similarities.toString())
+            resource.nonBlankLines().forEach { line ->
+                val (left, right) = line.trim().split("\\s+".toRegex(), limit = 2)
+                leftNumbers.add(left.toInt())
+                rightNumbers.add(right.toInt())
+            }
 
-    println("similarity score: ${similarities.sum()}")
+            return Day1(leftNumbers, rightNumbers)
+        }
+
+    }
+
 }
