@@ -11,7 +11,7 @@ fun main() {
 private fun solve(input: Resource) {
     println("input: $input")
 
-    val problem = input.day1().sorted()
+    val problem = input.day1()
 
     input.assertResult("task1") { problem.distancesSum }
     input.assertResult("task2") { problem.similaritiesSum }
@@ -27,7 +27,7 @@ fun Resource.day1(): Day1 {
         rightNumbers.add(right.toInt())
     }
 
-    return Day1(leftNumbers, rightNumbers)
+    return Day1(leftNumbers.sorted(), rightNumbers.sorted())
 }
 
 data class Day1(
@@ -51,7 +51,5 @@ data class Day1(
     }
 
     val similaritiesSum by lazy { similarities.sum() }
-
-    fun sorted(): Day1 = Day1(leftNumbers.sorted(), rightNumbers.sorted())
 
 }
