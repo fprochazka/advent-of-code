@@ -11,6 +11,8 @@ kotlinxCoroutines = "1.8.1"
 kotlinxDatetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
 kotlinxSerialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJSON" }
 kotlinxCoroutines = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+apacheCommons-text = { module = "org.apache.commons:commons-text", version = "1.12.0" }
+javaDiffUtils = { module = "io.github.java-diff-utils:java-diff-utils", version = "4.12" }
 
 # Libraries can be bundled together for easier import
 [bundles]

@@ -12,7 +12,8 @@ kotlin {
 }
 
 dependencies {
-
+    implementation(libs.apacheCommons.text)
+    implementation(libs.javaDiffUtils)
 }
 
 tasks.withType<Test>().configureEach {
