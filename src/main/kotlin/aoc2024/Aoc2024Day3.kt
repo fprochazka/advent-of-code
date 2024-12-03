@@ -18,7 +18,7 @@ private fun solve(input: Resource) {
 }
 
 fun Resource.day3(): Day3 = Day3(
-    content().trim().replace("\\s+".toRegex(), "")
+    content().replace("\\s+".toRegex(), "")
 )
 
 data class Day3(val memoryDump: String) {
@@ -27,9 +27,9 @@ data class Day3(val memoryDump: String) {
         "mul\\(\\d+,\\d+\\)".toRegex()
             .findAll(memoryDump)
             .map { it.value }
-            .toList()
             .map(::parseInstruction)
             .map { it as Instruction.Mul }
+            .toList()
     }
 
     val mulInstructionEval by lazy {
@@ -41,8 +41,8 @@ data class Day3(val memoryDump: String) {
         "(mul\\(\\d+,\\d+\\)|do\\(\\)|don't\\(\\))".toRegex()
             .findAll(memoryDump)
             .map { it.value }
-            .toList()
             .map(::parseInstruction)
+            .toList()
     }
 
     val mulOrDoInstructionEval by lazy {
@@ -61,14 +61,14 @@ data class Day3(val memoryDump: String) {
         return@lazy eval
     }
 
-    fun parseInstruction(instruction: String): Instruction = when {
-        instruction.startsWith("mul(") -> instruction.replace("mul(", "").replace(")", "").split(",").let { (a, b) -> Instruction.Mul(a.toInt(), b.toInt()) }
-        instruction.startsWith("do(") -> Instruction.DoOrDont(true)
-        instruction.startsWith("don't(") -> Instruction.DoOrDont(false)
-        else -> throw IllegalStateException("Unknown instruction: '$instruction'")
+    fun parseInstruction(raw: String): Instruction = when {
+        raw.startsWith("mul(") -> raw.replace("mul(", "").replace(")", "").split(",").let { (a, b) -> Instruction.Mul(a.toInt(), b.toInt()) }
+        raw.startsWith("do(") -> Instruction.DoOrDont(true)
+        raw.startsWith("don't(") -> Instruction.DoOrDont(false)
+        else -> throw IllegalStateException("Unknown instruction: '$raw'")
     }
 
-    interface Instruction {
+    sealed interface Instruction {
         data class Mul(val a: Int, val b: Int) : Instruction {
             fun eval() = a * b
         }
