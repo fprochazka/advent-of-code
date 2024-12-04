@@ -10,17 +10,17 @@ fun main() {
 private fun solve(input: Resource) {
     println("input: $input")
 
-    val problem = input.day6()
+    val problem = input.day99()
 
     input.assertResult("task1") { problem.result1 }
     input.assertResult("task2") { problem.result2 }
 }
 
-fun Resource.day6(): Day6 = Day6(
+fun Resource.day99(): Day99 = Day99(
     content()
 )
 
-data class Day6(val data: String) {
+data class Day99(val data: String) {
 
     val result1: String by lazy { TODO() }
     val result2: String by lazy { TODO() }
