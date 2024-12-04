@@ -16,6 +16,14 @@ data class Resource(val name: String) {
 
     fun nonBlankLines(): List<String> = allLines().filter { it.isNotBlank() }
 
+    fun charMatrix(): Map<Pair<Int, Int>, Char> {
+        return nonBlankLines()
+            .flatMapIndexed { y, line ->
+                line.mapIndexed { x, char -> (x to y) to char }
+            }
+            .toMap()
+    }
+
     fun assertResult(name: String, compute: () -> Any) {
         this.resultNamed(name)
             .snapshotResult(compute)
