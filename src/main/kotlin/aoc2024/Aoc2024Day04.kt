@@ -85,7 +85,7 @@ data class Day4(val matrix: Matrix) {
         }
 
         fun getWord(startFrom: Position, direction: Move, length: Int): String? =
-            getWord(*(1 until length).scan(startFrom) { pos, _ -> pos + direction }.toTypedArray())
+            getWord(*startFrom.vectorInDirection(direction, length).toTypedArray())
 
         fun getWord(vararg positions: Position): String? =
             positions
@@ -122,3 +122,5 @@ typealias Position = Pair<Int, Int>
 operator fun Position.plus(other: Position): Position = (this.first + other.first) to (this.second + other.second)
 
 operator fun Position.plus(other: Move): Position = this + other.vector
+
+fun Position.vectorInDirection(direction: Move, length: Int): List<Position> = (1 until length).scan(this) { pos, _ -> pos + direction }
