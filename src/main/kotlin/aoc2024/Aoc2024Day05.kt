@@ -12,17 +12,91 @@ private fun solve(input: Resource) {
 
     val problem = input.day5()
 
-    input.assertResult("task1") { problem.result1 }
-    input.assertResult("task2") { problem.result2 }
+    input.assertResult("task1") { problem.middleNumbersOfCorrectlyOrderedUpdates }
+    input.assertResult("task2") { problem.middleNumbersOfIncorrectlyOrderedUpdatesAfterFixing }
 }
 
 fun Resource.day5(): Day5 = Day5(
-    content()
+    nonBlankLines()
+        .filter { it.contains("|") }
+        .map { it.split("|", limit = 2).let { it[0].toInt() to it[1].toInt() } }
+        .toSet(),
+    nonBlankLines()
+        .filter { !it.contains("|") }
+        .map { it.split(",").map { it.toInt() } }
+        .toList()
 )
 
-data class Day5(val data: String) {
+data class Day5(
+    val rules: Set<Pair<Int, Int>>,
+    val updates: List<List<Int>>
+) {
 
-    val result1: String by lazy { TODO() }
-    val result2: String by lazy { TODO() }
+    val updatesInTheRightOrder by lazy {
+        updates
+            .filter { conformsToRules(it) }
+    }
 
+    val middleNumbersOfCorrectlyOrderedUpdates: Int by lazy {
+        updatesInTheRightOrder.sumOf { it[it.size / 2] }
+    }
+
+    val incorrectUpdatesInTheRightOrder: List<List<Int>> by lazy {
+        updates
+            .filter { !conformsToRules(it) }
+            .map { fixUpdateOrdering(it) }
+    }
+
+    val middleNumbersOfIncorrectlyOrderedUpdatesAfterFixing: Int by lazy {
+        incorrectUpdatesInTheRightOrder.sumOf { it[it.size / 2] }
+    }
+
+    fun conformsToRules(update: List<Int>): Boolean {
+        for ((i, j) in update.uniqueOrderedIndexPairs()) {
+            val reversed = update[j] to update[i]
+            if (reversed in rules) return false
+        }
+        return true
+    }
+
+    fun fixUpdateOrdering(update: List<Int>): List<Int> {
+        val updateNumbers = update.toSet()
+        val relevantRules = rules.filter { (from, to) -> from in updateNumbers || to in updateNumbers }.toSet()
+
+        var fixedUpdate = update.toMutableList()
+
+        var changes = true
+        while (changes) {
+            changes = false
+
+            for ((i, j) in update.uniqueOrderedIndexPairs()) {
+                val reversed = fixedUpdate[j] to fixedUpdate[i]
+                if (reversed in relevantRules) {
+                    fixedUpdate[i] = reversed.first
+                    fixedUpdate[j] = reversed.second
+                    changes = true
+                }
+            }
+        }
+
+        return fixedUpdate
+    }
+
+}
+
+operator fun <T> List<T>.plus(other: Pair<T, T>): List<T> = this + other.toList()
+
+operator fun <T> Pair<T, T>.plus(other: List<T>): List<T> = this.toList() + other
+
+fun <A, B> Pair<A, B>.reversed(): Pair<B, A> = second to first
+
+fun <T> List<T>.uniqueOrderedIndexPairs(): Sequence<Pair<Int, Int>> {
+    val list = this
+    return sequence {
+        for (i in list.indices) {
+            for (j in i + 1 until list.size) {
+                yield(i to j)
+            }
+        }
+    }
 }
