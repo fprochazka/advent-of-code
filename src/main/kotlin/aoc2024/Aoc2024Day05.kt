@@ -60,9 +60,6 @@ data class Day5(
     }
 
     fun fixUpdateOrdering(update: List<Int>): List<Int> {
-        val updateNumbers = update.toSet()
-        val relevantRules = rules.filter { (from, to) -> from in updateNumbers || to in updateNumbers }.toSet()
-
         var fixedUpdate = update.toMutableList()
 
         var changes = true
@@ -71,7 +68,7 @@ data class Day5(
 
             for ((i, j) in update.uniqueOrderedIndexPairs()) {
                 val reversed = fixedUpdate[j] to fixedUpdate[i]
-                if (reversed in relevantRules) {
+                if (reversed in rules) {
                     fixedUpdate[i] = reversed.first
                     fixedUpdate[j] = reversed.second
                     changes = true
