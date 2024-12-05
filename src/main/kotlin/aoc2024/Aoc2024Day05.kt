@@ -16,16 +16,20 @@ private fun solve(input: Resource) {
     input.assertResult("task2") { problem.middleNumbersOfIncorrectlyOrderedUpdatesAfterFixing }
 }
 
-fun Resource.day5(): Day5 = Day5(
-    nonBlankLines()
-        .filter { it.contains("|") }
-        .map { it.split("|", limit = 2).let { it[0].toInt() to it[1].toInt() } }
-        .toSet(),
-    nonBlankLines()
-        .filter { !it.contains("|") }
-        .map { it.split(",").map { it.toInt() } }
-        .toList()
-)
+fun Resource.day5(): Day5 {
+    val rules = mutableSetOf<Pair<Int, Int>>()
+    val updates = mutableListOf<List<Int>>()
+
+    nonBlankLines().forEach { line ->
+        if (line.contains("|")) {
+            rules.add(line.split("|", limit = 2).let { it[0].toInt() to it[1].toInt() })
+        } else {
+            updates.add(line.split(",").map { it.toInt() })
+        }
+    }
+
+    return Day5(rules, updates)
+}
 
 data class Day5(
     val rules: Set<Pair<Int, Int>>,
