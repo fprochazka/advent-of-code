@@ -41,14 +41,14 @@ data class Day5(
         updatesInTheRightOrder.sumOf { it[it.size / 2] }
     }
 
-    val incorrectUpdatesInTheRightOrder: List<List<Int>> by lazy {
+    val incorrectlyOrderedUpdatesAfterFixing: List<List<Int>> by lazy {
         updates
             .filter { !conformsToRules(it) }
             .map { fixUpdateOrdering(it) }
     }
 
     val middleNumbersOfIncorrectlyOrderedUpdatesAfterFixing: Int by lazy {
-        incorrectUpdatesInTheRightOrder.sumOf { it[it.size / 2] }
+        incorrectlyOrderedUpdatesAfterFixing.sumOf { it[it.size / 2] }
     }
 
     fun conformsToRules(update: List<Int>): Boolean {
