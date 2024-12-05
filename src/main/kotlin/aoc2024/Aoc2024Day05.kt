@@ -42,7 +42,7 @@ data class Day5(
     }
 
     val middleNumbersOfCorrectlyOrderedUpdates: Int by lazy {
-        updatesInTheRightOrder.sumOf { it[it.size / 2] }
+        updatesInTheRightOrder.sumOf { it.middle() }
     }
 
     val incorrectlyOrderedUpdatesAfterFixing: List<List<Int>> by lazy {
@@ -52,7 +52,7 @@ data class Day5(
     }
 
     val middleNumbersOfIncorrectlyOrderedUpdatesAfterFixing: Int by lazy {
-        incorrectlyOrderedUpdatesAfterFixing.sumOf { it[it.size / 2] }
+        incorrectlyOrderedUpdatesAfterFixing.sumOf { it.middle() }
     }
 
     fun conformsToRules(update: List<Int>): Boolean {
@@ -84,6 +84,8 @@ data class Day5(
     }
 
 }
+
+fun <T> List<T>.middle(): T = this[this.size / 2]
 
 operator fun <T> List<T>.plus(other: Pair<T, T>): List<T> = this + other.toList()
 
