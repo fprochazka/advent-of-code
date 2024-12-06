@@ -76,22 +76,22 @@ data class Day06(
         val simulatedFloorPlanData = floorPlan.cells.toMutableMap()
         val simulatedFloorPlan = Matrix<Char>(simulatedFloorPlanData)
 
-        for (nextPosition in originalPatrol) {
-            val originalCellData = simulatedFloorPlanData[nextPosition.position]!!
+        for ((nextPosition, _) in originalPatrol) {
+            val originalCellData = simulatedFloorPlanData[nextPosition]!!
             if (isObstacle(originalCellData)) {
                 continue // no point in replacing existing obstacles
             }
 
             try {
-                simulatedFloorPlanData[nextPosition.position] = EXTRA_OBSTACLE
+                simulatedFloorPlanData[nextPosition] = EXTRA_OBSTACLE
 
                 val (_, simulatedPatrolEnd) = simulatedFloorPlan.predictPatrol(startingPoint)
                 if (simulatedPatrolEnd == PatrolEnd.LOOP_DETECTED) {
-                    result += nextPosition.position
+                    result += nextPosition
                 }
 
             } finally {
-                simulatedFloorPlanData[nextPosition.position] = originalCellData
+                simulatedFloorPlanData[nextPosition] = originalCellData
             }
         }
 
