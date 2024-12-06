@@ -127,9 +127,11 @@ data class Day06(
                     else -> entry.value
                 }
             })
-            val startingPos = matrix.entries.single { isGuard(it.value) }
+            val startingPos = matrix.entries
+                .single { isGuard(it.value) }
+                .let { PositionWithDirection(it.key, guardDirection(it.value)) }
 
-            return floorPlan to PositionWithDirection(startingPos.key, guardDirection(startingPos.value))
+            return floorPlan to startingPos
         }
 
         fun isObstacle(char: Char?): Boolean = char == OBSTACLE || char == EXTRA_OBSTACLE
