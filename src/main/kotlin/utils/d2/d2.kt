@@ -1,9 +1,9 @@
 package utils.d2
 
-data class Matrix<V : Any>(val cells: Map<Position, V>) {
+class Matrix<V : Any>(val cells: Map<Position, V>) {
 
-    val maxX: Int = cells.keys.maxOf { it.first }
-    val maxY: Int = cells.keys.maxOf { it.second }
+    val maxX: Int = cells.keys.maxOf { it.x }
+    val maxY: Int = cells.keys.maxOf { it.y }
 
     fun allPositionsOfValue(value: V): Sequence<Position> =
         allPositions().filter { cells[it] == value }
@@ -11,7 +11,7 @@ data class Matrix<V : Any>(val cells: Map<Position, V>) {
     fun allPositions(): Sequence<Position> = sequence {
         for (y in 0..maxY) {
             for (x in 0..maxX) {
-                yield(x to y)
+                yield(Position(x, y))
             }
         }
     }
@@ -26,29 +26,39 @@ data class Matrix<V : Any>(val cells: Map<Position, V>) {
 
     override fun toString(): String =
         allPositions()
-            .map { "${cells[it]}" + (if (it.first == maxX) "\n" else "") }
+            .map { "${cells[it]}" + (if (it.x == maxX) "\n" else "") }
             .joinToString("")
 
 }
 
 enum class Direction(val vector: Position) {
-    RIGHT(1 to 0),
-    LEFT(-1 to 0),
-    UP(0 to -1),
-    DOWN(0 to 1),
+    RIGHT(Position(1, 0)),
+    LEFT(Position(-1, 0)),
+    UP(Position(0, -1)),
+    DOWN(Position(0, 1)),
 
-    RIGHT_UP(1 to -1),
-    RIGHT_DOWN(1 to 1),
-    LEFT_UP(-1 to -1),
-    LEFT_DOWN(-1 to 1),
+    RIGHT_UP(Position(1, -1)),
+    RIGHT_DOWN(Position(1, 1)),
+    LEFT_UP(Position(-1, -1)),
+    LEFT_DOWN(Position(-1, 1)),
 }
 
-typealias Position = Pair<Int, Int>
+data class Position(val x: Int, val y: Int) {
+    override fun toString(): String = "(x=$x, y=$y)"
+}
 
-operator fun Position.plus(other: Position): Position = (this.first + other.first) to (this.second + other.second)
+operator fun Position.plus(other: Position): Position = Position(this.x + other.x, this.y + other.y)
 
 operator fun Position.plus(other: Direction): Position = this + other.vector
 
 fun Position.vectorInDirection(direction: Direction, length: Int): List<Position> = (1 until length).scan(this) { pos, _ -> pos + direction }
 
-data class PositionWithDirection(var position: Position, var direction: Direction)
+data class OrientedPosition(var position: Position, var direction: Direction) {
+
+    override fun toString(): String = "$position -> $direction"
+}
+
+fun OrientedPosition.step(count: Int = 1): OrientedPosition = OrientedPosition(
+    position.vectorInDirection(direction, count + 1).last(),
+    direction
+)

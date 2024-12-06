@@ -21,7 +21,7 @@ fun Resource.day06(): Day06 = Day06.toMatrix(charMatrix()).let { (floorPlan, sta
 
 data class Day06(
     val floorPlan: Matrix<Char>,
-    val startingPoint: PositionWithDirection,
+    val startingPoint: OrientedPosition,
 ) {
 
     val patrolPrediction by lazy { floorPlan.predictPatrol(startingPoint) }
@@ -29,46 +29,42 @@ data class Day06(
     val result1 by lazy { patrolPrediction.first.map { it.position }.toSet().size }
     val result2 by lazy { findObstaclePlacementToCreateLoops().size }
 
-    fun Matrix<Char>.predictPatrol(patrolStart: PositionWithDirection): Pair<MutableList<PositionWithDirection>, PatrolEnd> {
-        val fullPatrolPath = mutableListOf<PositionWithDirection>()
-        val uniqueVisited = mutableSetOf<PositionWithDirection>()
-
-        var currentPosition = patrolStart.position
-        var currentDirection = patrolStart.direction
+    fun Matrix<Char>.predictPatrol(patrolStart: OrientedPosition): Pair<List<OrientedPosition>, PatrolEnd> {
+        val patrolPath = LinkedHashSet<OrientedPosition>()
         var patrolEnd = PatrolEnd.OUT_OF_LAB
 
+        var current = patrolStart
         while (true) {
-            val visited = PositionWithDirection(currentPosition, currentDirection)
+            val visited = current
             try {
-                val facingPosition = currentPosition + currentDirection
+                val next = current.step()
 
                 when {
-                    visited in uniqueVisited -> {
+                    visited in patrolPath -> {
                         patrolEnd = PatrolEnd.LOOP_DETECTED
                         break
                     }
 
-                    facingPosition !in this -> {
+                    next.position !in this -> {
                         patrolEnd = PatrolEnd.OUT_OF_LAB
                         break
                     }
 
-                    isObstacle(this[facingPosition]) -> {
-                        currentDirection = currentDirection.turnRight()
+                    isObstacle(this[next.position]) -> {
+                        current = current.turnRight()
                     }
 
                     else -> {
-                        currentPosition = facingPosition
+                        current = next
                     }
                 }
 
             } finally {
-                fullPatrolPath.add(visited)
-                uniqueVisited.add(visited)
+                patrolPath.add(visited)
             }
         }
 
-        return fullPatrolPath to patrolEnd
+        return patrolPath.toList() to patrolEnd
     }
 
     fun findObstaclePlacementToCreateLoops(): Set<Position> {
@@ -102,6 +98,8 @@ data class Day06(
         return result
     }
 
+    fun OrientedPosition.turnRight(): OrientedPosition = OrientedPosition(position, direction.turnRight())
+
     fun Direction.turnRight(): Direction = when (this) {
         Direction.UP -> Direction.RIGHT
         Direction.RIGHT -> Direction.DOWN
@@ -120,7 +118,7 @@ data class Day06(
         const val OBSTACLE = '#'
         const val EXTRA_OBSTACLE = 'O'
 
-        fun toMatrix(matrix: Map<Pair<Int, Int>, Char>): Pair<Matrix<Char>, PositionWithDirection> {
+        fun toMatrix(matrix: Map<Position, Char>): Pair<Matrix<Char>, OrientedPosition> {
             val floorPlan = Matrix(matrix.mapValues { entry ->
                 when {
                     isGuard(entry.value) -> '.'
@@ -129,7 +127,7 @@ data class Day06(
             })
             val startingPos = matrix.entries
                 .single { isGuard(it.value) }
-                .let { PositionWithDirection(it.key, guardDirection(it.value)) }
+                .let { OrientedPosition(it.key, guardDirection(it.value)) }
 
             return floorPlan to startingPos
         }

@@ -16,10 +16,10 @@ data class Resource(val name: String) {
 
     fun nonBlankLines(): List<String> = allLines().filter { it.isNotBlank() }
 
-    fun charMatrix(): Map<Pair<Int, Int>, Char> {
+    fun charMatrix(): Map<utils.d2.Position, Char> {
         return nonBlankLines()
             .flatMapIndexed { y, line ->
-                line.mapIndexed { x, char -> (x to y) to char }
+                line.mapIndexed { x, char -> utils.d2.Position(x, y) to char }
             }
             .toMap()
     }
