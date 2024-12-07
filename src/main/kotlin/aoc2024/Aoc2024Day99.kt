@@ -3,8 +3,8 @@ package aoc2024
 import utils.Resource
 
 fun main() {
-    solve(Resource.named("aoc2024/day05/example1.txt"))
-    solve(Resource.named("aoc2024/day05/input.txt"))
+    solve(Resource.named("aoc2024/day99/example1.txt"))
+    solve(Resource.named("aoc2024/day99/input.txt"))
 }
 
 private fun solve(input: Resource) {
