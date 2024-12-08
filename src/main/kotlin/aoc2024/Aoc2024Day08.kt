@@ -30,11 +30,8 @@ data class Day08(
     val antennasMap: Matrix<Char>
 ) {
 
-    val antennasByFrequency: Map<Char, Set<Position>> by lazy {
-        antennasMap.cells.entries
-            .filter { it.value != '.' }
-            .groupBy({ it.value }, { it.key })
-            .mapValues { entry -> entry.value.toSet() }
+    val antennasByFrequency by lazy {
+        antennasMap.allPositionsByValues { it != '.' }
     }
 
     val result1 by lazy {
@@ -53,17 +50,17 @@ data class Day08(
             .let { distance -> generateSequence(posA) { it + distance } }
 
     fun allAntennaAntinodes(antinodes: (Position, Position) -> Sequence<Position>): Set<Position> {
-        val result = mutableSetOf<Pair<Position, Char>>()
+        val result = mutableSetOf<Position>()
 
-        for ((frequency, antennas) in antennasByFrequency) {
+        for ((_, antennas) in antennasByFrequency) {
             for ((posA, posB) in antennas.variationsWithoutRepetition(2)) {
                 antinodes(posA, posB)
                     .takeWhile { it in antennasMap }
-                    .forEach { result.add(it to frequency) }
+                    .forEach(result::add)
             }
         }
 
-        return result.map { it.first }.toSet()
+        return result
     }
 
 }
