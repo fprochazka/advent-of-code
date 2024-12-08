@@ -9,7 +9,7 @@ package utils.combinatorics
  * Example: For elements [A, B], it produces sequences [[A, A], [A, B], [B, A], [B, B]].
  * Example: For elements [A, B, C], it produces sequences [[A, A, A], [A, A, B], [A, A, C], [A, B, A], [A, B, B], [A, B, C], [A, C, A], [A, C, B], [A, C, C], [B, A, A], [B, A, B], [B, A, C], [B, B, A], [B, B, B], [B, B, C], [B, C, A], [B, C, B], [B, C, C], [C, A, A], [C, A, B], [C, A, C], [C, B, A], [C, B, B], [C, B, C], [C, C, A], [C, C, B], [C, C, C]].
  */
-fun <T> List<T>.permutationsWithRepetition(): Sequence<List<T>> = this.variationsWithRepetition(this.size)
+fun <T> Collection<T>.permutationsWithRepetition(): Sequence<List<T>> = this.variationsWithRepetition(this.size)
 
 /**
  * Permutations are based on element positions in the list, the function does not deduplicate equal values.
@@ -20,7 +20,7 @@ fun <T> List<T>.permutationsWithRepetition(): Sequence<List<T>> = this.variation
  * For elements [A, B], it produces sequences [[A, B], [B, A]].
  * For elements [A, B, C], it produces sequences [[A, B, C], [A, C, B], [B, A, C], [B, C, A], [C, A, B], [C, B, A]].
  */
-fun <T> List<T>.permutationsWithoutRepetition(): Sequence<List<T>> = this.variationsWithoutRepetition(this.size)
+fun <T> Collection<T>.permutationsWithoutRepetition(): Sequence<List<T>> = this.variationsWithoutRepetition(this.size)
 
 /**
  * Combinations are based on element positions in the list, the function does not deduplicate equal values.
@@ -32,8 +32,8 @@ fun <T> List<T>.permutationsWithoutRepetition(): Sequence<List<T>> = this.variat
  * For elements [A, B, C] and size 2, it produces sequences [[A, A], [A, B], [A, C], [B, B], [B, C], [C, C]].
  * For elements [A, B, C, D] and size 2, it produces sequences [[A, A], [A, B], [A, C], [A, D], [B, B], [B, C], [B, D], [C, C], [C, D], [D, D]].
  */
-fun <T> List<T>.combinationsWithRepetition(size: Int): Sequence<List<T>> {
-    val elements = this
+fun <T> Collection<T>.combinationsWithRepetition(size: Int): Sequence<List<T>> {
+    val elements = this as? List ?: this.toList()
     return sequence {
         require(size >= 0) { "Combination size must be non-negative." }
 
@@ -63,8 +63,8 @@ fun <T> List<T>.combinationsWithRepetition(size: Int): Sequence<List<T>> {
  * For elements [A, B, C] and size 2, it produces sequences [[B, A], [C, A], [C, B]].
  * For elements [A, B, C, D] and size 2, it produces sequences [[B, A], [C, A], [D, A], [C, B], [D, B], [D, C]].
  */
-fun <T> List<T>.combinationsWithoutRepetition(size: Int): Sequence<List<T>> {
-    val elements = this
+fun <T> Collection<T>.combinationsWithoutRepetition(size: Int): Sequence<List<T>> {
+    val elements = this as? List ?: this.toList()
     return sequence {
         require(size >= 0) { "Combination size must be non-negative." }
 
@@ -98,8 +98,8 @@ fun <T> List<T>.combinationsWithoutRepetition(size: Int): Sequence<List<T>> {
  * For elements [A, B, C] and size 2, it produces sequences [[A, A], [A, B], [A, C], [B, A], [B, B], [B, C], [C, A], [C, B], [C, C]].
  * For elements [A, B, C, D] and size 2, it produces sequences [[A, A], [A, B], [A, C], [A, D], [B, A], [B, B], [B, C], [B, D], [C, A], [C, B], [C, C], [C, D], [D, A], [D, B], [D, C], [D, D]].
  */
-fun <T> List<T>.variationsWithRepetition(size: Int): Sequence<List<T>> {
-    val elements = this
+fun <T> Collection<T>.variationsWithRepetition(size: Int): Sequence<List<T>> {
+    val elements = this as? List ?: this.toList()
     return sequence {
         require(size >= 0) { "Variation size must be non-negative." }
 
@@ -126,8 +126,8 @@ fun <T> List<T>.variationsWithRepetition(size: Int): Sequence<List<T>> {
  * For elements [A, B, C] and size 2, it produces sequences [[A, B], [A, C], [B, A], [B, C], [C, A], [C, B]].
  * For elements [A, B, C, D] and size 2, it produces sequences [[A, B], [A, C], [A, D], [B, A], [B, C], [B, D], [C, A], [C, B], [C, D], [D, A], [D, B], [D, C]].
  */
-fun <T> List<T>.variationsWithoutRepetition(size: Int): Sequence<List<T>> {
-    val elements = this
+fun <T> Collection<T>.variationsWithoutRepetition(size: Int): Sequence<List<T>> {
+    val elements = this as? List ?: this.toList()
     return sequence {
         require(size >= 0) { "Combination size must be non-negative." }
 
