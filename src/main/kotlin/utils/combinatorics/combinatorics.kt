@@ -1,4 +1,4 @@
-package utils
+package utils.combinatorics
 
 /**
  * Permutations are based on element positions in the list, the function does not deduplicate equal values.

@@ -1,7 +1,7 @@
 package aoc2024
 
 import utils.Resource
-import utils.combinationsWithoutRepetition
+import utils.combinatorics.combinationsWithoutRepetition
 import utils.d2.Matrix
 import utils.d2.Position
 import utils.d2.distanceTo

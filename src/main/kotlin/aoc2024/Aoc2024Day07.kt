@@ -1,7 +1,7 @@
 package aoc2024
 
 import utils.Resource
-import utils.variationsWithRepetition
+import utils.combinatorics.variationsWithRepetition
 
 fun main() {
     solve(Resource.named("aoc2024/day07/example1.txt"))
