@@ -14,6 +14,7 @@ kotlin {
 dependencies {
     implementation(libs.apacheCommons.text)
     implementation(libs.javaDiffUtils)
+    implementation(libs.guava)
 }
 
 tasks.withType<Test>().configureEach {

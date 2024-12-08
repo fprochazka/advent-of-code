@@ -1,5 +1,7 @@
 package utils.d2
 
+import kotlin.math.absoluteValue
+
 class Matrix<V : Any>(val cells: Map<Position, V>) {
 
     val maxX: Int = cells.keys.maxOf { it.x }
@@ -47,9 +49,17 @@ data class Position(val x: Int, val y: Int) {
     override fun toString(): String = "(x=$x, y=$y)"
 }
 
+data class Distance(val xDiff: Int, val yDiff: Int) {
+    override fun toString(): String = "(x=$xDiff, y=$yDiff)"
+}
+
 operator fun Position.plus(other: Position): Position = Position(this.x + other.x, this.y + other.y)
 
 operator fun Position.plus(other: Direction): Position = this + other.vector
+
+operator fun Position.plus(other: Distance): Position = Position(this.x + other.xDiff, this.y + other.yDiff)
+
+fun Position.distanceTo(other: Position): Distance = Distance((x - other.x), (y - other.y))
 
 fun Position.vectorInDirection(direction: Direction, length: Int): List<Position> = (1 until length).scan(this) { pos, _ -> pos + direction }
 
