@@ -32,8 +32,9 @@ data class Day08(
 
     val antennasByFrequency: Map<Char, Set<Position>> by lazy {
         antennasMap.cells.entries
-            .groupBy { entry -> entry.value }
-            .mapValues { entry -> entry.value.map { it.key }.toSet() }
+            .filter { it.value != '.' }
+            .groupBy({ it.value }, { it.key })
+            .mapValues { entry -> entry.value.toSet() }
     }
 
     val result1 by lazy {
@@ -44,22 +45,18 @@ data class Day08(
         allAntennaAntinodes(::gridAntinodes).size
     }
 
-    fun basicRadiusAntinodes(posA: Position, posB: Position): Sequence<Position> {
-        val distance = posA.distanceTo(posB)
-        return generateSequence(posA) { it + distance }.drop(1).take(1)
-    }
+    fun basicRadiusAntinodes(posA: Position, posB: Position): Sequence<Position> =
+        sequenceOf(posA + posA.distanceTo(posB))
 
-    fun gridAntinodes(posA: Position, posB: Position): Sequence<Position> {
-        val distance = posA.distanceTo(posB)
-        return generateSequence(posA) { it + distance }
-    }
+    fun gridAntinodes(posA: Position, posB: Position): Sequence<Position> =
+        posA.distanceTo(posB)
+            .let { distance -> generateSequence(posA) { it + distance } }
 
     fun allAntennaAntinodes(antinodes: (Position, Position) -> Sequence<Position>): Set<Position> {
         val result = mutableSetOf<Pair<Position, Char>>()
 
-        for (frequency in antennasByFrequency.keys) {
-            if (frequency == '.') continue
-            for ((posA, posB) in allAntennaPairs(frequency)) {
+        for ((frequency, antennas) in antennasByFrequency) {
+            for ((posA, posB) in antennas.variationsWithoutRepetition(2)) {
                 antinodes(posA, posB)
                     .takeWhile { it in antennasMap }
                     .forEach { result.add(it to frequency) }
@@ -68,10 +65,5 @@ data class Day08(
 
         return result.map { it.first }.toSet()
     }
-
-    fun allAntennaPairs(frequency: Char): Sequence<Pair<Position, Position>> =
-        antennasByFrequency[frequency]!!.toList()
-            .variationsWithoutRepetition(2)
-            .map { it[0] to it[1] }
 
 }
