@@ -1,7 +1,7 @@
 package aoc2024
 
-import utils.Combinatorics
 import utils.Resource
+import utils.combinationsWithoutRepetition
 import utils.d2.Matrix
 import utils.d2.Position
 import utils.d2.distanceTo
@@ -74,7 +74,7 @@ data class Day08(
     }
 
     fun allAntennaPairs(frequency: Char): Sequence<Pair<Position, Position>> =
-        Combinatorics.combinationsWithoutRepetition(antennasByFrequency[frequency]!!.toList(), 2)
+        antennasByFrequency[frequency]!!.toList().combinationsWithoutRepetition(2)
             .map { it[0] to it[1] }
 
 }

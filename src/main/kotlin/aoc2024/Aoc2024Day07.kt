@@ -1,7 +1,7 @@
 package aoc2024
 
-import utils.Combinatorics
 import utils.Resource
+import utils.variationsWithRepetition
 
 fun main() {
     solve(Resource.named("aoc2024/day07/example1.txt"))
@@ -74,7 +74,7 @@ data class Day07(val equations: List<Equation>) {
     }
 
     fun findOperatorsThatSolveEquation(equation: Equation, operators: List<Operator>): List<Operator>? =
-        Combinatorics.variationsWithRepetition(operators, equation.components.size - 1)
+        operators.variationsWithRepetition(equation.components.size - 1)
             .firstOrNull { operators -> equation.solvableWithOperators(operators) }
 
     enum class Operator {
