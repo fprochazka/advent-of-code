@@ -1,7 +1,7 @@
 package aoc2024
 
 import utils.Resource
-import utils.combinatorics.combinationsWithoutRepetition
+import utils.combinatorics.variationsWithoutRepetition
 import utils.d2.Matrix
 import utils.d2.Position
 import utils.d2.distanceTo
@@ -63,10 +63,6 @@ data class Day08(
                 antinodes(posA, posB)
                     .takeWhile { it in antennasMap }
                     .forEach { result.add(it to frequency) }
-
-                antinodes(posB, posA)
-                    .takeWhile { it in antennasMap }
-                    .forEach { result.add(it to frequency) }
             }
         }
 
@@ -74,7 +70,8 @@ data class Day08(
     }
 
     fun allAntennaPairs(frequency: Char): Sequence<Pair<Position, Position>> =
-        antennasByFrequency[frequency]!!.toList().combinationsWithoutRepetition(2)
+        antennasByFrequency[frequency]!!.toList()
+            .variationsWithoutRepetition(2)
             .map { it[0] to it[1] }
 
 }
