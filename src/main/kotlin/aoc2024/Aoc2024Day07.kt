@@ -74,7 +74,7 @@ data class Day07(val equations: List<Equation>) {
     }
 
     fun findOperatorsThatSolveEquation(equation: Equation, operators: List<Operator>): List<Operator>? =
-        Combinatorics.everyCombination(operators, equation.components.size - 1)
+        Combinatorics.permutationsWithRepetition(operators, equation.components.size - 1)
             .firstOrNull { operators -> equation.solvableWithOperators(operators) }
 
     enum class Operator {
