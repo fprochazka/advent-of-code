@@ -1,6 +1,5 @@
 package aoc2024
 
-import aoc2024.Day09.DiskMap
 import utils.Resource
 import java.util.*
 
@@ -19,13 +18,13 @@ private fun solve(input: Resource) {
 }
 
 fun Resource.day09(): Day09 = Day09(
-    DiskMap(content())
+    content()
 )
 
-data class Day09(val diskMap: DiskMap) {
+data class Day09(val diskMap: String) {
 
     val unpacked by lazy {
-        diskMap.unpack()
+        unpack(diskMap)
     }
 
     val result1 by lazy {
@@ -40,40 +39,36 @@ data class Day09(val diskMap: DiskMap) {
             .sum()
     }
 
-    data class DiskMap(val data: String) {
+    /**
+     * left => [list of fileIds, indexes are positions]
+     * right => [fileId => length to position]
+     */
+    fun unpack(data: String): Pair<List<Long?>, Map<Long, Pair<Int, Int>>> {
+        val layout = mutableListOf<Long?>()
+        val metadata = mutableMapOf<Long, Pair<Int, Int>>()
 
-        /**
-         * left => [list of fileIds, indexes are positions]
-         * right => [fileId => length to position]
-         */
-        fun unpack(): Pair<List<Long?>, Map<Long, Pair<Int, Int>>> {
-            val layout = mutableListOf<Long?>()
-            val metadata = mutableMapOf<Long, Pair<Int, Int>>()
+        var fileId = 0L
+        var fileBlock = true
+        for (blockSize in data.trim().asSequence().map { it.digitToInt() }) {
+            if (fileBlock) {
+                metadata[fileId] = blockSize to layout.size
 
-            var fileId = 0L
-            var fileBlock = true
-            for (char in data.trim()) {
-                val repeat = char.toString().toInt()
-
-                val insertPosition = layout.size
-                repeat(repeat) {
-                    if (fileBlock) {
-                        layout.add(fileId)
-                    } else {
-                        layout.add(null)
-                    }
+                repeat(blockSize) {
+                    layout.add(fileId)
                 }
 
-                if (fileBlock) {
-                    metadata[fileId] = repeat to insertPosition
-                    fileId++
+                fileId++
+
+            } else {
+                repeat(blockSize) {
+                    layout.add(null)
                 }
-                fileBlock = !fileBlock
             }
 
-            return layout to metadata
+            fileBlock = !fileBlock
         }
 
+        return layout to metadata
     }
 
     fun fragmentByFileSegments(layout: List<Long?>): List<Long> = buildList {
@@ -82,9 +77,7 @@ data class Day09(val diskMap: DiskMap) {
 
         var maxResultIndex = layout.size - 1
         for (i in fromStart) {
-            if (i >= maxResultIndex) {
-                break
-            }
+            if (i >= maxResultIndex) break
 
             if (layout[i] != null) {
                 add(layout[i]!!)
