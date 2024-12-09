@@ -94,28 +94,6 @@ data class Day09(val diskMap: String) {
     }
 
     fun moveWholeFiles(layout: List<Long?>, metadata: Map<Long, Pair<Int, Int>>): List<Long?> {
-
-        /**
-         * Creates a lazy sequence of (indexIncluding, indexExcluding) gaps in O(n)
-         */
-        fun List<Long?>.gapsSequence(fromIndex: Int, toIndex: Int): Sequence<Pair<Int, Int>> {
-            val list = this
-            return sequence {
-                val iterator = (fromIndex..toIndex).iterator()
-                for (gapStartIncl in iterator) {
-                    if (list[gapStartIncl] != null) continue
-
-                    var gapEndExcl = gapStartIncl + 1;
-                    for (j in iterator) {
-                        gapEndExcl = j
-                        if (list[j] != null) break
-                    }
-
-                    yield(gapStartIncl to gapEndExcl)
-                }
-            }
-        }
-
         // [position => fileId]
         val result = layout.toMutableList()
 
@@ -133,14 +111,13 @@ data class Day09(val diskMap: String) {
                 break // cannot move files before the leftmost gap
             }
 
-            for ((gapStartIncl, gapEndExcl) in result.gapsSequence(leftMostGap, originalFilePosition)) {
-                val gapSize = gapEndExcl - gapStartIncl
-                if (fileSize > gapSize) {
+            for (gap in result.gapsSequence(leftMostGap, originalFilePosition)) {
+                if (fileSize > gap.length()) {
                     continue
                 }
 
                 for (i in 0 until fileSize) {
-                    result[gapStartIncl + i] = fileId
+                    result[gap.start + i] = fileId
                     result[originalFilePosition + i] = null
                 }
 
@@ -150,5 +127,28 @@ data class Day09(val diskMap: String) {
 
         return result
     }
+
+    /**
+     * Creates a lazy sequence of gap index ranges in O(n)
+     */
+    fun List<Long?>.gapsSequence(fromIndex: Int, toIndex: Int): Sequence<IntRange> {
+        val list = this
+        return sequence {
+            val iterator = (fromIndex..toIndex).iterator()
+            for (gapStartIncl in iterator) {
+                if (list[gapStartIncl] != null) continue
+
+                var gapEndExcl = gapStartIncl + 1;
+                for (j in iterator) {
+                    gapEndExcl = j
+                    if (list[j] != null) break
+                }
+
+                yield(gapStartIncl until gapEndExcl)
+            }
+        }
+    }
+
+    fun IntRange.length() = last - first + 1
 
 }
