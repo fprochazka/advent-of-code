@@ -47,9 +47,8 @@ data class Day09(val diskMap: String) {
         val metadata = mutableMapOf<Long, Pair<Int, Int>>()
 
         var fileId = 0L
-        var fileBlock = true
-        for (blockSize in data.trim().asSequence().map { it.digitToInt() }) {
-            if (fileBlock) {
+        for ((isFileBlock, blockSize) in data.trim().asSequence().map { it.digitToInt() }.mapIndexed { index, value -> (index.mod(2) == 0) to value }) {
+            if (isFileBlock) {
                 metadata[fileId] = blockSize to layout.size
 
                 repeat(blockSize) {
@@ -63,8 +62,6 @@ data class Day09(val diskMap: String) {
                     layout.add(null)
                 }
             }
-
-            fileBlock = !fileBlock
         }
 
         return layout to metadata
