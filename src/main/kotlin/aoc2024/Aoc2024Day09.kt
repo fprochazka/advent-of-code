@@ -1,7 +1,6 @@
 package aoc2024
 
 import utils.Resource
-import java.util.*
 
 fun main() {
     solve(Resource.named("aoc2024/day09/example1.txt"))
@@ -34,7 +33,7 @@ data class Day09(val diskMap: String) {
     }
 
     val result2 by lazy {
-        moveWholeFiles(unpacked)
+        moveWholeFiles(unpacked.first, unpacked.second)
             .mapIndexed { position, fileId -> position * (fileId ?: 0) }
             .sum()
     }
@@ -94,8 +93,11 @@ data class Day09(val diskMap: String) {
         }
     }
 
-    fun moveWholeFiles(unpacked: Pair<List<Long?>, Map<Long, Pair<Int, Int>>>): List<Long?> {
+    fun moveWholeFiles(layout: List<Long?>, metadata: Map<Long, Pair<Int, Int>>): List<Long?> {
 
+        /**
+         * Creates a lazy sequence of (indexIncluding, indexExcluding) gaps in O(n)
+         */
         fun List<Long?>.gapsSequence(fromIndex: Int, toIndex: Int): Sequence<Pair<Int, Int>> {
             val list = this
             return sequence {
@@ -114,24 +116,18 @@ data class Day09(val diskMap: String) {
             }
         }
 
-        val result = unpacked.first.toMutableList()
+        // [position => fileId]
+        val result = layout.toMutableList()
 
         // [fileId => length to position]
-        val availableFilesByMaxId = unpacked.second.toSortedMap(Comparator.naturalOrder<Long>().reversed()) as TreeMap<Long, Pair<Int, Int>>
-        val movableFiles = availableFilesByMaxId.entries.iterator()
+        val fileMetadataByMaxId = metadata.toSortedMap(Comparator.naturalOrder<Long>().reversed())
 
         var leftMostGap = 0
-        while (movableFiles.hasNext()) {
-
-            for (i in leftMostGap until result.size) {
-                if (result[i] != null) continue
-
-                leftMostGap = i
-                break
-            }
-
-            val (fileId, fileMetadata) = movableFiles.next()
+        for ((fileId, fileMetadata) in fileMetadataByMaxId.entries) {
             val (fileSize, originalFilePosition) = fileMetadata
+
+            // leftmost gap can only move right
+            leftMostGap = (leftMostGap until result.size).firstOrNull { result[it] == null } ?: leftMostGap
 
             if (leftMostGap > originalFilePosition) {
                 break // cannot move files before the leftmost gap
@@ -143,12 +139,9 @@ data class Day09(val diskMap: String) {
                     continue
                 }
 
-                for (i in gapStartIncl until (gapStartIncl + fileSize)) {
-                    result[i] = fileId
-                }
-
-                for (i in originalFilePosition until (originalFilePosition + fileSize)) {
-                    result[i] = null
+                for (i in 0 until fileSize) {
+                    result[gapStartIncl + i] = fileId
+                    result[originalFilePosition + i] = null
                 }
 
                 break; // move done, attempt next file
