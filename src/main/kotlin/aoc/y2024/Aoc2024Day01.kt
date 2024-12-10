@@ -1,4 +1,4 @@
-package aoc2024
+package aoc.y2024
 
 import utils.Resource
 import kotlin.math.absoluteValue
@@ -11,13 +11,13 @@ fun main() {
 private fun solve(input: Resource) {
     println("input: $input")
 
-    val problem = input.day1()
+    val problem = input.day01()
 
-    input.assertResult("task1") { problem.distancesSum }
-    input.assertResult("task2") { problem.similaritiesSum }
+    input.assertResult("task1") { problem.result1 }
+    input.assertResult("task2") { problem.result2 }
 }
 
-fun Resource.day1(): Day1 {
+fun Resource.day01(): Day01 {
     val leftNumbers = mutableListOf<Int>();
     val rightNumbers = mutableListOf<Int>();
 
@@ -27,10 +27,10 @@ fun Resource.day1(): Day1 {
         rightNumbers.add(right.toInt())
     }
 
-    return Day1(leftNumbers.sorted(), rightNumbers.sorted())
+    return Day01(leftNumbers.sorted(), rightNumbers.sorted())
 }
 
-data class Day1(
+data class Day01(
     val leftNumbers: List<Int>,
     val rightNumbers: List<Int>,
 ) {
@@ -40,7 +40,7 @@ data class Day1(
             .map { (left, right) -> (left - right).absoluteValue }
     }
 
-    val distancesSum by lazy { distances.sum() }
+    val result1 by lazy { distances.sum() }
 
     val rightNumbersOccurrences by lazy {
         rightNumbers.groupingBy { it }.eachCount()
@@ -50,6 +50,6 @@ data class Day1(
         leftNumbers.map { left -> left * (rightNumbersOccurrences[left] ?: 0) }
     }
 
-    val similaritiesSum by lazy { similarities.sum() }
+    val result2 by lazy { similarities.sum() }
 
 }

@@ -1,6 +1,6 @@
-package aoc2024
+package aoc.y2024
 
-import aoc2024.Day2.Report
+import aoc.y2024.Day02.Report
 import utils.Resource
 import kotlin.math.absoluteValue
 
@@ -12,25 +12,25 @@ fun main() {
 private fun solve(input: Resource) {
     println("input: $input")
 
-    val problem = input.day2()
+    val problem = input.day02()
 
-    input.assertResult("task1") { problem.safeReports }
-    input.assertResult("task2") { problem.safeReportsWithDampener }
+    input.assertResult("task1") { problem.result1 }
+    input.assertResult("task2") { problem.result2 }
 }
 
-fun Resource.day2(): Day2 = Day2(
+fun Resource.day02(): Day02 = Day02(
     nonBlankLines()
         .map { line -> line.split("\\s+".toRegex()) }
         .map { line -> Report(line.map { it.toInt() }) }
 )
 
-data class Day2(val reports: List<Report>) {
+data class Day02(val reports: List<Report>) {
 
-    val safeReports by lazy {
+    val result1 by lazy {
         reports.count { it.isSafe }
     }
 
-    val safeReportsWithDampener by lazy {
+    val result2 by lazy {
         reports.count { it.isSafeWithDampener() }
     }
 

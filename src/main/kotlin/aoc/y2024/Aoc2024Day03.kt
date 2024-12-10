@@ -1,4 +1,4 @@
-package aoc2024
+package aoc.y2024
 
 import utils.Resource
 
@@ -11,17 +11,17 @@ fun main() {
 private fun solve(input: Resource) {
     println("input: $input")
 
-    val problem = input.day3()
+    val problem = input.day03()
 
-    input.assertResult("task1") { problem.mulInstructionEval }
-    input.assertResult("task2") { problem.mulOrDoInstructionEval }
+    input.assertResult("task1") { problem.result1 }
+    input.assertResult("task2") { problem.result2 }
 }
 
-fun Resource.day3(): Day3 = Day3(
+fun Resource.day03(): Day03 = Day03(
     content().replace("\\s+".toRegex(), "")
 )
 
-data class Day3(val memoryDump: String) {
+data class Day03(val memoryDump: String) {
 
     val mulInstructions by lazy {
         "mul\\(\\d+,\\d+\\)".toRegex()
@@ -32,7 +32,7 @@ data class Day3(val memoryDump: String) {
             .toList()
     }
 
-    val mulInstructionEval by lazy {
+    val result1 by lazy {
         mulInstructions
             .sumOf { it.eval() }
     }
@@ -45,7 +45,7 @@ data class Day3(val memoryDump: String) {
             .toList()
     }
 
-    val mulOrDoInstructionEval by lazy {
+    val result2 by lazy {
         var eval = 0
         var doIt = true
         for (instruction in mulOrDoInstructions) {

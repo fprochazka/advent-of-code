@@ -1,4 +1,4 @@
-package aoc2024
+package aoc.y2024
 
 import utils.Resource
 import utils.d2.*
@@ -11,27 +11,27 @@ fun main() {
 private fun solve(input: Resource) {
     println("input: $input")
 
-    val problem = input.day4()
+    val problem = input.day04()
 
-    input.assertResult("task1") { problem.xmasWordOccurrences }
-    input.assertResult("task2") { problem.xmasCrossShapeOccurrences }
+    input.assertResult("task1") { problem.result1 }
+    input.assertResult("task2") { problem.result2 }
 }
 
-fun Resource.day4(): Day4 = Day4(
+fun Resource.day04(): Day04 = Day04(
     Matrix(
         charMatrix()
     )
 )
 
-data class Day4(val matrix: Matrix<Char>) {
+data class Day04(val matrix: Matrix<Char>) {
 
-    val xmasWordOccurrences by lazy {
+    val result1 by lazy {
         matrix
             .allWordsOfLength("XMAS".length)
             .count { "XMAS" == it }
     }
 
-    val xmasCrossShapeOccurrences by lazy {
+    val result2 by lazy {
         matrix
             .allPositionsOfValue('A')
             .count { aPos ->

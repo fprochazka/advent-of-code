@@ -1,4 +1,4 @@
-package aoc2024
+package aoc.y2024
 
 import utils.Resource
 
@@ -10,13 +10,13 @@ fun main() {
 private fun solve(input: Resource) {
     println("input: $input")
 
-    val problem = input.day5()
+    val problem = input.day05()
 
-    input.assertResult("task1") { problem.middleNumbersOfCorrectlyOrderedUpdates }
-    input.assertResult("task2") { problem.middleNumbersOfIncorrectlyOrderedUpdatesAfterFixing }
+    input.assertResult("task1") { problem.result1 }
+    input.assertResult("task2") { problem.result2 }
 }
 
-fun Resource.day5(): Day5 {
+fun Resource.day05(): Day05 {
     val rules = mutableSetOf<Pair<Int, Int>>()
     val updates = mutableListOf<List<Int>>()
 
@@ -28,10 +28,10 @@ fun Resource.day5(): Day5 {
         }
     }
 
-    return Day5(rules, updates)
+    return Day05(rules, updates)
 }
 
-data class Day5(
+data class Day05(
     val rules: Set<Pair<Int, Int>>,
     val updates: List<List<Int>>
 ) {
@@ -41,7 +41,7 @@ data class Day5(
             .filter { conformsToRules(it) }
     }
 
-    val middleNumbersOfCorrectlyOrderedUpdates: Int by lazy {
+    val result1: Int by lazy {
         updatesInTheRightOrder.sumOf { it.middle() }
     }
 
@@ -51,7 +51,7 @@ data class Day5(
             .map { fixUpdateOrdering(it) }
     }
 
-    val middleNumbersOfIncorrectlyOrderedUpdatesAfterFixing: Int by lazy {
+    val result2: Int by lazy {
         incorrectlyOrderedUpdatesAfterFixing.sumOf { it.middle() }
     }
 

@@ -1,4 +1,4 @@
-package aoc2024
+package aoc.y2024
 
 import utils.Resource
 import utils.combinatorics.variationsWithRepetition
