@@ -132,6 +132,10 @@ data class Day09(val diskMap: String) {
             return layout
         }
 
+        val filesToMove: Sequence<File> =
+            fileMetadataByMaxId.values.asSequence()
+                .takeWhile { file -> (leftMostGap?.start ?: 0) < file.originalPosition }
+
         val gaps: Sequence<IntRange>
             get() = sequence {
                 val iterator = layout.indices.iterator()
@@ -162,10 +166,6 @@ data class Day09(val diskMap: String) {
 
             return@lazy result
         }
-
-        val filesToMove: Sequence<File> =
-            fileMetadataByMaxId.values.asSequence()
-                .takeWhile { file -> (leftMostGap?.start ?: 0) < file.originalPosition }
 
         val leftMostGap: IntRange?
             get() = getLeftMostGapForSize(1)
@@ -218,11 +218,7 @@ data class Day09(val diskMap: String) {
 
         fun IntRange.length() = last - first + 1
 
-        data class File(
-            val id: Long,
-            val size: Int,
-            val originalPosition: Int,
-        )
+        data class File(val id: Long, val size: Int, val originalPosition: Int)
 
     }
 
