@@ -1,6 +1,6 @@
 # advent-of-code
 
-Snapshot of `aoc.measure.Aoc2024` output:
+Snapshot of `aoc.measure.Aoc2024` output, executed on i7-7820X @ 3.60GHz
 
 ```
  day  task                   [average]          [min]          [max]
