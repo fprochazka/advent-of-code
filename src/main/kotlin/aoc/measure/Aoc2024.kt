@@ -103,7 +103,11 @@ object Aoc2024 {
         }
     }
 
-    val resultsByConfig = mutableMapOf<SolverConfig, MutableList<Pair<String, Duration>>>()
+    val resultsByConfig = sortedMapOf<SolverConfig, Runs>(
+        Comparator.comparing<SolverConfig, Int> { it.day }
+            .thenComparing(Comparator.comparing<SolverConfig, String> { it.taskName })
+            .thenComparing(Comparator.comparing<SolverConfig, String> { it.inputName })
+    )
 
     @OptIn(DelicateCoroutinesApi::class)
     fun measureAll() {
@@ -113,7 +117,7 @@ object Aoc2024 {
             print("Iteration $i: ")
 
             for (config in runConfigs) {
-                val solverRuns = resultsByConfig.getOrPut(config) { mutableListOf() }
+                val solverRuns = resultsByConfig.getOrPut(config) { Runs() }
 
                 var result: Any? = null
                 var duration = Duration.INFINITE
@@ -129,13 +133,13 @@ object Aoc2024 {
                 try {
                     task.get(10, TimeUnit.SECONDS)
 
-                    solverRuns += "$result" to duration
+                    solverRuns.record(result, duration)
                     print(".")
 
                 } catch (_: TimeoutException) {
                     task.cancel(true)
 
-                    solverRuns += "timeout" to Duration.INFINITE
+                    solverRuns.record("timeout", Duration.INFINITE)
                     print("x")
                 }
             }
@@ -150,34 +154,26 @@ object Aoc2024 {
         val taskColumnWidth = resultsByConfig.keys.map { it.taskName }.maxOf { it.length }.coerceAtLeast(4)
         val inputColumnWidth = resultsByConfig.keys.map { it.inputName.toString() }.maxOf { it.length }.coerceAtLeast(5)
         println()
-        println(" day ${"input".padStart(inputColumnWidth)} ${"task".padStart(taskColumnWidth)}:      [average]          [min]          [max]")
+        println(" day  ${"task".padStart(taskColumnWidth)} ${"".padStart(inputColumnWidth)}       [average]          [min]          [max]")
 
         fun Duration.toFormattedString(): String = when {
             this.toInt(DurationUnit.MINUTES) > 0 -> "TIMEOUT"
             else -> String.format("%.2fms", this.toDouble(DurationUnit.MILLISECONDS))
         }
 
-        for ((config, runDurations) in resultsByConfig) {
-            val runMs = runDurations
-                .map { it.second }
-                .map { it.toLong(DurationUnit.MICROSECONDS) }
-
-            val avgTime = runMs.average().roundToLong().toDuration(DurationUnit.MICROSECONDS)
-            val minTime = runMs.min().toDuration(DurationUnit.MICROSECONDS)
-            val maxTime = runMs.max().toDuration(DurationUnit.MICROSECONDS)
-
+        for ((config, runs) in resultsByConfig) {
             var line = ""
             line += "${config.day.toString().padStart(3)}."
+            line += " ${config.taskName.padStart(taskColumnWidth)}."
             line += " ${config.inputName.padStart(inputColumnWidth)}"
-            line += " ${config.taskName.padStart(taskColumnWidth)}"
             line += ":"
-            line += avgTime.toFormattedString().padStart(15)
-            line += minTime.toFormattedString().padStart(15)
-            line += maxTime.toFormattedString().padStart(15)
+            line += runs.avgTime.toFormattedString().padStart(15)
+            line += runs.minTime.toFormattedString().padStart(15)
+            line += runs.maxTime.toFormattedString().padStart(15)
             println(line)
 
             if (config.addUpInTotal) {
-                totalOfFastestRuntimes += minTime
+                totalOfFastestRuntimes += runs.minTime
             }
         }
 
@@ -234,6 +230,30 @@ object Aoc2024 {
                 addUpInTotal = addUpInTotal,
                 solver = solver,
             )
+        }
+
+    }
+
+    data class Runs(
+        val runs: MutableList<Pair<String, Duration>> = mutableListOf(),
+    ) {
+
+        val runMs: List<Long>
+            get() = runs
+                .map { it.second }
+                .map { it.toLong(DurationUnit.MICROSECONDS) }
+
+        val avgTime: Duration
+            get() = runMs.average().roundToLong().toDuration(DurationUnit.MICROSECONDS)
+
+        val minTime: Duration
+            get() = runMs.min().toDuration(DurationUnit.MICROSECONDS)
+
+        val maxTime: Duration
+            get() = runMs.max().toDuration(DurationUnit.MICROSECONDS)
+
+        fun record(result: Any?, duration: Duration) {
+            runs += "$result" to duration
         }
 
     }
