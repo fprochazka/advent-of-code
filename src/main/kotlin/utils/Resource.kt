@@ -24,6 +24,11 @@ data class Resource(val name: String) {
             .toMap()
     }
 
+    fun intMatrix(): Map<utils.d2.Position, Int> {
+        return charMatrix()
+            .mapValues { it.value.digitToInt() }
+    }
+
     fun assertResult(name: String, compute: () -> Any) {
         this.resultNamed(name)
             .snapshotResult(compute)
@@ -62,6 +67,7 @@ data class Resource(val name: String) {
 
     companion object {
 
+        @JvmStatic
         fun named(filename: String): Resource = Resource(filename)
 
         private val projectRoot by lazy { findProjectRoot() }
