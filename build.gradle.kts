@@ -3,6 +3,8 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 plugins {
     kotlin("jvm") version "2.1.0"
+//    kotlin("kapt") version "2.1.0"
+//    kotlin("plugin.allopen") version "2.1.0"
 }
 
 kotlin {
@@ -10,6 +12,8 @@ kotlin {
 }
 
 dependencies {
+    implementation(libs.kotlinxCoroutines)
+
     implementation(libs.apacheCommons.text)
     implementation(libs.javaDiffUtils)
     implementation(libs.guava)
