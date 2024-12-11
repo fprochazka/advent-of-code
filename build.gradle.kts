@@ -62,9 +62,9 @@ graalvmNative {
 
     binaries {
         named("main") {
-            imageName.set("my-app")
+            imageName.set("aoc")
             mainClass.set("aoc.measure.Aoc2024Kt")
-            buildArgs.add("-O4")
+            buildArgs.addAll(listOf("-O4", "-march=native", "--link-at-build-time"))
 
             javaLauncher.set(javaToolchains.launcherFor {
                 languageVersion.set(JavaLanguageVersion.of(23))

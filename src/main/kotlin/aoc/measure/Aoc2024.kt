@@ -156,12 +156,12 @@ object Aoc2024 {
     }
 
     fun printResults() {
-        var totalOfFastestRuntimes = Duration.ZERO
+        var totalOfLastRuntimes = Duration.ZERO
 
         val taskColumnWidth = resultsByConfig.keys.map { it.taskName }.maxOf { it.length }.coerceAtLeast(4)
         val inputColumnWidth = resultsByConfig.keys.map { it.inputName.toString() }.maxOf { it.length }.coerceAtLeast(5)
         println()
-        println(" day  ${"task".padStart(taskColumnWidth)} ${"".padStart(inputColumnWidth)}       [average]          [min]          [max]")
+        println(" day  ${"task".padStart(taskColumnWidth)} ${"".padStart(inputColumnWidth)}       [average]          [max]         [last]")
 
         fun Duration.toFormattedString(): String = when {
             this.toInt(DurationUnit.MINUTES) > 0 -> "TIMEOUT"
@@ -175,21 +175,21 @@ object Aoc2024 {
             line += " ${config.inputName.padStart(inputColumnWidth)}"
             line += ":"
             line += runs.avgTime.toFormattedString().padStart(15)
-            line += runs.minTime.toFormattedString().padStart(15)
             line += runs.maxTime.toFormattedString().padStart(15)
+            line += runs.lastTime.toFormattedString().padStart(15)
             println(line)
 
             if (config.addUpInTotal) {
-                totalOfFastestRuntimes += runs.minTime
+                totalOfLastRuntimes += runs.lastTime
             }
         }
 
         println()
-        println("Sum of min for normal inputs: $totalOfFastestRuntimes")
+        println("Sum of last for normal inputs: $totalOfLastRuntimes")
 
         val second = 1.toDuration(DurationUnit.SECONDS)
-        if (totalOfFastestRuntimes > second) {
-            println("To get under 1s you have to shave off another ${totalOfFastestRuntimes - second}")
+        if (totalOfLastRuntimes > second) {
+            println("To get under 1s you have to shave off another ${totalOfLastRuntimes - second}")
         }
     }
 
@@ -253,11 +253,11 @@ object Aoc2024 {
         val avgTime: Duration
             get() = runMs.average().roundToLong().toDuration(DurationUnit.MICROSECONDS)
 
-        val minTime: Duration
-            get() = runMs.min().toDuration(DurationUnit.MICROSECONDS)
-
         val maxTime: Duration
             get() = runMs.max().toDuration(DurationUnit.MICROSECONDS)
+
+        val lastTime: Duration
+            get() = runs.last().second
 
         fun record(result: Any?, duration: Duration) {
             runs += "$result" to duration
