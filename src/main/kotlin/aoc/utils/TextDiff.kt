@@ -1,4 +1,4 @@
-package utils
+package aoc.utils
 
 import com.github.difflib.DiffUtils
 import com.github.difflib.patch.*

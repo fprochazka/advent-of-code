@@ -1,6 +1,6 @@
 package aoc.y2024
 
-import utils.Resource
+import aoc.utils.Resource
 import kotlin.math.absoluteValue
 
 fun main() {

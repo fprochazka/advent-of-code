@@ -1,6 +1,6 @@
 package aoc.y2024
 
-import utils.Resource
+import aoc.utils.Resource
 
 fun main() {
     solve(Resource.named("aoc2024/day99/example1.txt"))

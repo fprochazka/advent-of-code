@@ -1,4 +1,4 @@
-package utils.d2
+package aoc.utils.d2
 
 open class Matrix<V : Any> protected constructor(
     val width: Int,

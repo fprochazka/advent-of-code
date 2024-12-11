@@ -1,8 +1,8 @@
 package aoc.measure
 
+import aoc.utils.Resource
 import aoc.y2024.*
 import kotlinx.coroutines.DelicateCoroutinesApi
-import utils.Resource
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException

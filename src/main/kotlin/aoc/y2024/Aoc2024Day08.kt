@@ -1,9 +1,9 @@
 package aoc.y2024
 
-import utils.Resource
-import utils.combinatorics.variationsWithoutRepetition
-import utils.d2.Matrix
-import utils.d2.Position
+import aoc.utils.Resource
+import aoc.utils.combinatorics.variationsWithoutRepetition
+import aoc.utils.d2.Matrix
+import aoc.utils.d2.Position
 
 fun main() {
     solve(Resource.named("aoc2024/day08/example1.txt"))

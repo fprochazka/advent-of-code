@@ -1,7 +1,9 @@
 package aoc.y2024
 
-import utils.Resource
-import utils.d2.*
+import aoc.utils.Resource
+import aoc.utils.d2.Direction
+import aoc.utils.d2.Matrix
+import aoc.utils.d2.Position
 
 fun main() {
     solve(Resource.named("aoc2024/day04/example1.txt"))

@@ -1,7 +1,7 @@
 package aoc.y2024
 
+import aoc.utils.Resource
 import aoc.y2024.Day02.Report
-import utils.Resource
 import kotlin.math.absoluteValue
 
 fun main() {

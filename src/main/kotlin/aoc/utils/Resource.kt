@@ -1,4 +1,4 @@
-package utils
+package aoc.utils
 
 import java.io.InputStream
 import java.nio.file.Path
@@ -16,15 +16,15 @@ data class Resource(val name: String) {
 
     fun nonBlankLines(): List<String> = allLines().filter { it.isNotBlank() }
 
-    fun charMatrix(): Map<utils.d2.Position, Char> {
+    fun charMatrix(): Map<aoc.utils.d2.Position, Char> {
         return nonBlankLines()
             .flatMapIndexed { y, line ->
-                line.mapIndexed { x, char -> utils.d2.Position(x, y) to char }
+                line.mapIndexed { x, char -> aoc.utils.d2.Position(x, y) to char }
             }
             .toMap()
     }
 
-    fun intMatrix(): Map<utils.d2.Position, Int> {
+    fun intMatrix(): Map<aoc.utils.d2.Position, Int> {
         return charMatrix()
             .mapValues { it.value.digitToInt() }
     }
