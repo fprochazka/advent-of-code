@@ -14,9 +14,11 @@ kotlin {
 dependencies {
     implementation(libs.kotlinxCoroutines)
 
-    implementation(libs.apacheCommons.text)
+    implementation(platform("io.arrow-kt:arrow-stack:${libs.versions.arrow.get()}"))
+    implementation("io.arrow-kt:arrow-core")
+    implementation("io.arrow-kt:arrow-fx-coroutines")
+
     implementation(libs.javaDiffUtils)
-    implementation(libs.guava)
 }
 
 tasks.withType<Test>().configureEach {
