@@ -1,7 +1,6 @@
 package aoc.y2024
 
 import utils.Resource
-import utils.combinatorics.variationsWithRepetition
 
 fun main() {
     solve(Resource.named("aoc2024/day07/example1.txt"))
@@ -34,7 +33,7 @@ data class Day07(val equations: List<Equation>) {
             val allowedOperators = listOf(Operator.PLUS, Operator.TIMES)
 
             for (equation in equations) {
-                findOperatorsThatSolveEquation(equation, allowedOperators)?.let { add(equation to it) }
+                equation.findFirstSolution(allowedOperators)?.let { add(equation to it) }
             }
         }
     }
@@ -52,7 +51,7 @@ data class Day07(val equations: List<Equation>) {
             val allowedOperators = listOf(Operator.PLUS, Operator.TIMES, Operator.CONCATENATE)
 
             for (equation in equationsUnsolvableByFirstMethod) {
-                findOperatorsThatSolveEquation(equation, allowedOperators)?.let { add(equation to it) }
+                equation.findFirstSolution(allowedOperators)?.let { add(equation to it) }
             }
         }
     }
@@ -63,19 +62,55 @@ data class Day07(val equations: List<Equation>) {
 
     data class Equation(val result: Long, val components: List<Long>) {
 
-        fun solvableWithOperators(operators: List<Operator>): Boolean =
-            result == evaluateWith(operators)
+        fun findFirstSolution(allowedOperators: List<Operator>) =
+            dfsOperatorVariants(
+                allowedOperators,
+                components.first(),
+                { componentIndex, leftValue, operator ->
+                    operator.eval(leftValue, components[componentIndex]).let { operationResult ->
+                        when {
+                            operationResult > result -> State.ELIMINATE_BRANCH to operationResult
 
-        fun evaluateWith(operators: List<Operator>): Long {
-            var operatorsIndex = 0
-            return components.reduce { acc, lng -> operators[operatorsIndex].eval(acc, lng).also { operatorsIndex += 1 } }
+                            components.size == (componentIndex + 1) -> when {
+                                operationResult == result -> State.DONE to operationResult
+                                else -> State.ELIMINATE_BRANCH to operationResult
+                            }
+
+                            else -> State.CONTINUE to operationResult
+                        }
+                    }
+                }
+            )
+
+        fun dfsOperatorVariants(
+            allowedOperators: List<Operator>,
+            value: Long,
+            compute: (Int, Long, Operator) -> Pair<State, Long>,
+            operators: ArrayDeque<Operator> = ArrayDeque<Operator>()
+        ): List<Operator>? {
+            for (operator in allowedOperators) {
+                operators.addLast(operator)
+
+                val (state, newValue) = compute.invoke(operators.size, value, operator)
+                when (state) {
+                    State.ELIMINATE_BRANCH -> {}
+                    State.DONE -> return operators.toList()
+                    State.CONTINUE -> dfsOperatorVariants(allowedOperators, newValue, compute, operators)?.let { return it }
+                }
+
+                operators.removeLast()
+            }
+
+            return null
+        }
+
+        enum class State {
+            ELIMINATE_BRANCH,
+            DONE,
+            CONTINUE,
         }
 
     }
-
-    fun findOperatorsThatSolveEquation(equation: Equation, operators: List<Operator>): List<Operator>? =
-        operators.variationsWithRepetition(equation.components.size - 1)
-            .firstOrNull { operators -> equation.solvableWithOperators(operators) }
 
     enum class Operator {
         PLUS,
