@@ -99,22 +99,43 @@ open class Matrix<V : Any> protected constructor(
     }
 }
 
-enum class Direction(val vector: Position) {
-    RIGHT(Position(1, 0)),
-    LEFT(Position(-1, 0)),
-    UP(Position(0, -1)),
-    DOWN(Position(0, 1)),
+enum class Direction(val vector: Distance) {
+    RIGHT(Distance(1, 0)),
+    LEFT(Distance(-1, 0)),
+    UP(Distance(0, -1)),
+    DOWN(Distance(0, 1)),
 
-    RIGHT_UP(Position(1, -1)),
-    RIGHT_DOWN(Position(1, 1)),
-    LEFT_UP(Position(-1, -1)),
-    LEFT_DOWN(Position(-1, 1)),
+    RIGHT_UP(Distance(1, -1)),
+    RIGHT_DOWN(Distance(1, 1)),
+    LEFT_UP(Distance(-1, -1)),
+    LEFT_DOWN(Distance(-1, 1)),
+    ;
+
 }
 
 /**
  * zero indexed
  */
 data class Position(val x: Int, val y: Int) {
+
+    operator fun plus(other: Position): Position =
+        Position(this.x + other.x, this.y + other.y)
+
+    operator fun plus(other: Direction): Position =
+        this.plus(other.vector)
+
+    operator fun plus(other: Distance): Position =
+        Position(this.x + other.xDiff, this.y + other.yDiff)
+
+    fun distanceTo(other: Position): Distance =
+        Distance((x - other.x), (y - other.y))
+
+    fun vectorInDirection(direction: Direction, length: Int): List<Position> =
+        List(length) { if (it == 0) this else stepInDirection(direction, it) }
+
+    fun stepInDirection(direction: Direction, length: Int): Position =
+        plus(direction.vector * length)
+
 
     override fun toString(): String = "(x=$x, y=$y)"
 
@@ -134,32 +155,21 @@ data class Position(val x: Int, val y: Int) {
 
 data class Distance(val xDiff: Int, val yDiff: Int) {
 
+    operator fun times(length: Int): Distance =
+        Distance(xDiff * length, yDiff * length)
+
     override fun toString(): String = "(x=$xDiff, y=$yDiff)"
 
 }
 
-operator fun Position.plus(other: Position): Position =
-    Position(this.x + other.x, this.y + other.y)
-
-operator fun Position.plus(other: Direction): Position =
-    this + other.vector
-
-operator fun Position.plus(other: Distance): Position =
-    Position(this.x + other.xDiff, this.y + other.yDiff)
-
-fun Position.distanceTo(other: Position): Distance =
-    Distance((x - other.x), (y - other.y))
-
-fun Position.vectorInDirection(direction: Direction, length: Int): List<Position> =
-    (1 until length).scan(this) { pos, _ -> pos + direction }
-
 data class OrientedPosition(var position: Position, var direction: Direction) {
 
-    override fun toString(): String = "$position -> $direction"
-}
+    fun step(count: Int = 1): OrientedPosition =
+        OrientedPosition(
+            position.stepInDirection(direction, count),
+            direction
+        )
 
-fun OrientedPosition.step(count: Int = 1): OrientedPosition =
-    OrientedPosition(
-        position.vectorInDirection(direction, count + 1).last(),
-        direction
-    )
+    override fun toString(): String = "$position -> $direction"
+
+}

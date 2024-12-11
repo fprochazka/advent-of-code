@@ -4,7 +4,6 @@ import utils.Resource
 import utils.d2.Direction
 import utils.d2.Matrix
 import utils.d2.Position
-import utils.d2.plus
 
 fun main() {
     solve(Resource.named("aoc2024/day10/example1.txt"))

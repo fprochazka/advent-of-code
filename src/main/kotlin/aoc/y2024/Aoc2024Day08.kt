@@ -4,8 +4,6 @@ import utils.Resource
 import utils.combinatorics.variationsWithoutRepetition
 import utils.d2.Matrix
 import utils.d2.Position
-import utils.d2.distanceTo
-import utils.d2.plus
 
 fun main() {
     solve(Resource.named("aoc2024/day08/example1.txt"))

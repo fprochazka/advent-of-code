@@ -1,7 +1,10 @@
 package aoc.y2024
 
 import utils.Resource
-import utils.d2.*
+import utils.d2.Direction
+import utils.d2.Matrix
+import utils.d2.OrientedPosition
+import utils.d2.Position
 
 fun main() {
     solve(Resource.named("aoc2024/day06/example1.txt"))
@@ -30,7 +33,7 @@ data class Day06(
     val result2 by lazy { findObstaclePlacementToCreateLoops().size }
 
     fun Matrix<Char>.predictPatrol(patrolStart: OrientedPosition): List<OrientedPosition> {
-        val patrolPath = LinkedHashSet<OrientedPosition>()
+        val patrolPath = mutableSetOf<OrientedPosition>()
 
         var current = patrolStart
         while (true) {
@@ -38,18 +41,10 @@ data class Day06(
             try {
                 val next = current.step()
 
-                when {
-                    next.position !in this -> {
-                        break
-                    }
-
-                    isObstacle(this[next.position]) -> {
-                        current = current.turnRight()
-                    }
-
-                    else -> {
-                        current = next
-                    }
+                current = when {
+                    next.position !in this -> break
+                    isObstacle(this[next.position]) -> current.turnRight()
+                    else -> next
                 }
 
             } finally {
@@ -61,7 +56,7 @@ data class Day06(
     }
 
     fun Matrix<Char>.isPatrolLooping(patrolStart: OrientedPosition): Boolean {
-        val patrolPath = LinkedHashSet<OrientedPosition>()
+        val patrolPath = HashSet<OrientedPosition>()
 
         var current = patrolStart
         while (true) {
@@ -102,7 +97,7 @@ data class Day06(
             }
 
             try {
-                floorPlan[nextPosition] = EXTRA_OBSTACLE
+                floorPlan[nextPosition] = OBSTACLE
 
                 if (floorPlan.isPatrolLooping(startingPoint)) {
                     result += nextPosition
@@ -129,7 +124,6 @@ data class Day06(
     companion object {
 
         const val OBSTACLE = '#'
-        const val EXTRA_OBSTACLE = 'O'
         const val GUARD_UP = '^'
 
         fun toMatrix(matrix: Map<Position, Char>): Pair<Matrix<Char>, OrientedPosition> {
@@ -141,7 +135,7 @@ data class Day06(
             return floorPlan to startingPos
         }
 
-        fun isObstacle(char: Char?): Boolean = char == OBSTACLE || char == EXTRA_OBSTACLE
+        fun isObstacle(char: Char?): Boolean = char == OBSTACLE
 
     }
 
