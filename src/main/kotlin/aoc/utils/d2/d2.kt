@@ -46,6 +46,12 @@ open class Matrix<V : Any> protected constructor(
         position.x > -1 && position.y > -1
           && position.x <= maxX && position.y <= maxY
 
+    fun copy(): Matrix<V> =
+        Matrix<V>(width, height).also {
+            it.matrix.clear()
+            it.matrix.addAll(this.matrix)
+        }
+
     fun withValuesIndex(): WithValuesIndex<V> =
         WithValuesIndex<V>(width, height).apply { putAll(this@apply) }
 

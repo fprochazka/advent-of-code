@@ -5,6 +5,7 @@ import aoc.utils.d2.Direction
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.OrientedPosition
 import aoc.utils.d2.Position
+import kotlinx.coroutines.*
 
 fun main() {
     solve(Resource.named("aoc2024/day06/example1.txt"))
@@ -82,31 +83,46 @@ data class Day06(
         return false
     }
 
-    fun findObstaclePlacementToCreateLoops(): Set<Position> {
-        val result = mutableSetOf<Position>()
-
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun findObstaclePlacementToCreateLoops(): Set<Position> = runBlocking {
         // we can't place an obstacle on were the guard is standing
         val originalPatrol = patrolPrediction.let { it.subList(1, it.size) }
 
-        for ((nextPosition, _) in originalPatrol) {
-            val originalCellData = floorPlan[nextPosition]!!
-            if (isObstacle(originalCellData)) {
-                continue // no point in replacing existing obstacles
-            }
+        val parallelism = 8
+        val workloads = originalPatrol.chunked(originalPatrol.size / parallelism)
 
-            try {
-                floorPlan[nextPosition] = OBSTACLE
+        return@runBlocking withContext(Dispatchers.Default.limitedParallelism(parallelism)) {
+            val chunkResults = workloads.map { workChunk ->
+                async {
+                    val taskSpecificFloorPlan = floorPlan.copy()
 
-                if (floorPlan.isPatrolLooping(startingPoint)) {
-                    result += nextPosition
+                    return@async workChunk
+                        .map { (nextPosition, _) ->
+                            val originalCellData = taskSpecificFloorPlan[nextPosition]!!
+                            if (isObstacle(originalCellData)) {
+                                return@map null // no point in replacing existing obstacles
+                            }
+
+                            try {
+                                taskSpecificFloorPlan[nextPosition] = OBSTACLE
+
+                                return@map if (taskSpecificFloorPlan.isPatrolLooping(startingPoint)) nextPosition else null
+
+                            } finally {
+                                taskSpecificFloorPlan[nextPosition] = originalCellData
+                            }
+                        }
+                        .filterNotNull()
+                        .toSet()
                 }
-
-            } finally {
-                floorPlan[nextPosition] = originalCellData
             }
-        }
 
-        return result
+            // Await all results and add to the thread-safe set
+            chunkResults
+                .map { it.await() }
+                .flatten()
+                .toSet()
+        }
     }
 
     fun OrientedPosition.turnRight(): OrientedPosition = OrientedPosition(position, direction.turnRight())
