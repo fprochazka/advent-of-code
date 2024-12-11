@@ -41,29 +41,30 @@ data class Day11(
         //       The left half of the digits are engraved on the new left stone, and the right half of the digits are engraved on the new right stone.
         //       (The new numbers don't keep extra leading zeroes: 1000 would become stones 10 and 0.)
         // If none of the other rules apply, the stone is replaced by a new stone; the old stone's number multiplied by 2024 is engraved on the new stone.
-        fun countAfterExpansion(number: Long, remainingIterations: Int): Long {
-            if (remainingIterations == 0) return 1
-            numberExpandsToItems[number to remainingIterations]?.let { return it }
+        fun countAfterExpansion(number: Long, remaining: Int): Long {
+            if (remaining == 0) return 1
+            numberExpandsToItems[number to remaining]?.let { return it }
 
-            val numberDigits = number.toString()
             val result = when {
-                number == 0L -> countAfterExpansion(1L, remainingIterations - 1)
-                numberDigits.length % 2 == 0 -> {
-                    val half = numberDigits.length / 2
-                    val left = countAfterExpansion(numberDigits.substring(0, half).toLong(), remainingIterations - 1)
-                    val right = countAfterExpansion(numberDigits.substring(half, numberDigits.length).trimStart('0').padStart(1, '0').toLong(), remainingIterations - 1)
-                    left + right
-                }
-
-                else -> countAfterExpansion(number * 2024, remainingIterations - 1)
+                number == 0L -> countAfterExpansion(1L, remaining - 1)
+                number.toString().length % 2 == 0 -> number.halfDigits().let { (left, right) -> countAfterExpansion(left, remaining - 1) + countAfterExpansion(right, remaining - 1) }
+                else -> countAfterExpansion(number * 2024, remaining - 1)
             }
 
-            numberExpandsToItems[number to remainingIterations] = result
+            numberExpandsToItems[number to remaining] = result
 
             return result
         }
 
         return numbers.sumOf { countAfterExpansion(it, iterations) }
     }
+
+    fun Long.halfDigits(): Pair<Long, Long> =
+        toString().half()
+            .let { (left, right) -> left.toLong() to right.toLong() }
+
+    fun String.half(): Pair<String, String> =
+        (length / 2)
+            .let { halfLength -> substring(0, halfLength) to substring(halfLength, length) }
 
 }
