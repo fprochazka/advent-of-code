@@ -26,12 +26,11 @@ data class Day06(
 
     val patrolPrediction by lazy { floorPlan.predictPatrol(startingPoint) }
 
-    val result1 by lazy { patrolPrediction.first.map { it.position }.toSet().size }
+    val result1 by lazy { patrolPrediction.map { it.position }.toSet().size }
     val result2 by lazy { findObstaclePlacementToCreateLoops().size }
 
-    fun Matrix<Char>.predictPatrol(patrolStart: OrientedPosition): Pair<List<OrientedPosition>, PatrolEnd> {
+    fun Matrix<Char>.predictPatrol(patrolStart: OrientedPosition): List<OrientedPosition> {
         val patrolPath = LinkedHashSet<OrientedPosition>()
-        var patrolEnd = PatrolEnd.OUT_OF_LAB
 
         var current = patrolStart
         while (true) {
@@ -40,13 +39,7 @@ data class Day06(
                 val next = current.step()
 
                 when {
-                    visited in patrolPath -> {
-                        patrolEnd = PatrolEnd.LOOP_DETECTED
-                        break
-                    }
-
                     next.position !in this -> {
-                        patrolEnd = PatrolEnd.OUT_OF_LAB
                         break
                     }
 
@@ -64,14 +57,43 @@ data class Day06(
             }
         }
 
-        return patrolPath.toList() to patrolEnd
+        return patrolPath.toList()
+    }
+
+    fun Matrix<Char>.isPatrolLooping(patrolStart: OrientedPosition): Boolean {
+        val patrolPath = LinkedHashSet<OrientedPosition>()
+
+        var current = patrolStart
+        while (true) {
+            val visited = current
+            val next = current.step()
+
+            when {
+                next.position !in this -> {
+                    return false
+                }
+
+                isObstacle(this[next.position]) -> {
+                    if (!patrolPath.add(visited)) {
+                        return true
+                    }
+                    current = current.turnRight()
+                }
+
+                else -> {
+                    current = next
+                }
+            }
+        }
+
+        return false
     }
 
     fun findObstaclePlacementToCreateLoops(): Set<Position> {
         val result = mutableSetOf<Position>()
 
         // we can't place an obstacle on were the guard is standing
-        val originalPatrol = patrolPrediction.first.let { it.subList(1, it.size) }
+        val originalPatrol = patrolPrediction.let { it.subList(1, it.size) }
 
         for ((nextPosition, _) in originalPatrol) {
             val originalCellData = floorPlan[nextPosition]!!
@@ -82,8 +104,7 @@ data class Day06(
             try {
                 floorPlan[nextPosition] = EXTRA_OBSTACLE
 
-                val (_, simulatedPatrolEnd) = floorPlan.predictPatrol(startingPoint)
-                if (simulatedPatrolEnd == PatrolEnd.LOOP_DETECTED) {
+                if (floorPlan.isPatrolLooping(startingPoint)) {
                     result += nextPosition
                 }
 
@@ -105,11 +126,6 @@ data class Day06(
         else -> throw IllegalArgumentException("Invalid direction: $this")
     }
 
-    enum class PatrolEnd {
-        OUT_OF_LAB,
-        LOOP_DETECTED,
-    }
-
     companion object {
 
         const val OBSTACLE = '#'
@@ -118,8 +134,10 @@ data class Day06(
 
         fun toMatrix(matrix: Map<Position, Char>): Pair<Matrix<Char>, OrientedPosition> {
             val floorPlan = Matrix.from(matrix)
-            val startingPos = OrientedPosition(floorPlan.allPositionsOfValue(GUARD_UP).first(), Direction.UP)
+
+            val startingPos = OrientedPosition(floorPlan.allPositionsOfValue(GUARD_UP).single(), Direction.UP)
             floorPlan[startingPos.position] = '.'
+
             return floorPlan to startingPos
         }
 
