@@ -1,6 +1,6 @@
 package utils.d2
 
-class Matrix<V : Any> private constructor(
+open class Matrix<V : Any> protected constructor(
     val width: Int,
     val height: Int
 ) {
@@ -9,16 +9,18 @@ class Matrix<V : Any> private constructor(
     val maxY = height - 1
 
     private val matrix: MutableList<V?> = MutableList(width * height) { null }
-    private val positionsByValue: MutableMap<V, MutableSet<Position>> = mutableMapOf()
 
-    val uniqueValues: Set<V>
-        get() = positionsByValue.keys.toSet()
+    open fun allPositionsOfValue(value: V): Set<Position> =
+        matrix.withIndex()
+            .filter { it.value == value }
+            .map { indexToPosition(it.index) }
+            .toSet()
 
-    fun allPositionsOfValue(value: V): Set<Position> =
-        positionsByValue[value] ?: emptySet()
-
-    fun allPositionsByValues(valueFilter: (V) -> Boolean): Map<V, Set<Position>> =
-        positionsByValue.filterKeys(valueFilter)
+    open fun allPositionsByValues(valueFilter: (V) -> Boolean): Map<V, Set<Position>> =
+        matrix.withIndex()
+            .filter { (_, value) -> value?.let(valueFilter) == true }
+            .groupBy({ it.value!! }, { it.index })
+            .mapValues { (_, indices) -> indices.map { indexToPosition(it) }.toSet() }
 
     fun allEntries(): Sequence<Pair<Position, V>> =
         allPositions().map { it to this[it]!! }
@@ -26,17 +28,15 @@ class Matrix<V : Any> private constructor(
     fun allPositions(): Sequence<Position> =
         allPositions(maxY, maxX)
 
+    fun putAll(other: Matrix<V>) =
+        other.allEntries().forEach { (position, value) -> this[position] = value }
+
     fun putAll(cells: Map<Position, V>) =
         cells.forEach { (position, value) -> this[position] = value }
 
-    operator fun set(position: Position, value: V) {
+    open operator fun set(position: Position, value: V) {
         require(position in this) { "$position is not in matrix($width x $height)" }
-
-        val oldValue = matrix[position.matrixIndex()]
         matrix[position.matrixIndex()] = value
-
-        positionsByValue[oldValue]?.remove(position)
-        positionsByValue.getOrPut(value) { mutableSetOf() }.add(position)
     }
 
     operator fun get(position: Position): V? =
@@ -46,14 +46,21 @@ class Matrix<V : Any> private constructor(
         position.x > -1 && position.y > -1
           && position.x <= maxX && position.y <= maxY
 
+    fun withValuesIndex(): WithValuesIndex<V> =
+        WithValuesIndex<V>(width, height).apply { putAll(this@apply) }
+
     override fun toString(): String =
         allPositions()
             .map { "${this[it]}" + (if (it.x == maxX) "\n" else "") }
             .joinToString("")
 
+
     fun Position.matrixIndex(): Int = y * width + x
 
+    protected fun indexToPosition(index: Int): Position = Position(index % width, index / width)
+
     companion object {
+
         fun <V : Any> from(cells: Map<Position, V>): Matrix<V> =
             Matrix<V>(cells.keys.maxOf { it.x } + 1, cells.keys.maxOf { it.y } + 1)
                 .apply { putAll(cells) }
@@ -65,8 +72,31 @@ class Matrix<V : Any> private constructor(
                 }
             }
         }
+
     }
 
+    class WithValuesIndex<V : Any> internal constructor(width: Int, height: Int) : Matrix<V>(width, height) {
+
+        private val positionsByValue: MutableMap<V, MutableSet<Position>> = mutableMapOf()
+
+        val uniqueValues: Set<V>
+            get() = positionsByValue.keys.toSet()
+
+        override fun allPositionsOfValue(value: V): Set<Position> =
+            positionsByValue[value] ?: emptySet()
+
+        override fun allPositionsByValues(valueFilter: (V) -> Boolean): Map<V, Set<Position>> =
+            positionsByValue.filterKeys(valueFilter)
+
+        override fun set(position: Position, value: V) {
+            val oldValue = this[position]
+
+            super.set(position, value)
+
+            positionsByValue[oldValue]?.remove(position)
+            positionsByValue.getOrPut(value) { mutableSetOf() }.add(position)
+        }
+    }
 }
 
 enum class Direction(val vector: Position) {
