@@ -4,32 +4,32 @@ Snapshot of `aoc.measure.Aoc2024` output, executed on i7-7820X @ 3.60GHz
 
 ```
  day  task                   [average]          [min]          [max]
-  1.    1.       input:         6.49ms         1.57ms        35.80ms
-  1.    2.       input:         2.90ms         1.60ms         6.90ms
-  2.    1.       input:         2.64ms         0.83ms         7.89ms
-  2.    2.       input:         3.64ms         1.47ms        13.08ms
-  3.    1.       input:         2.75ms         0.70ms        18.71ms
-  3.    2.       input:         2.01ms         0.84ms         7.14ms
-  4.    1.       input:        37.70ms        20.08ms       132.85ms
-  4.    2.       input:         7.11ms         3.56ms        23.70ms
-  5.    1.       input:         2.98ms         1.13ms        13.27ms
-  5.    2.       input:         3.41ms         1.66ms         7.89ms
-  6.    1.       input:         4.05ms         1.90ms        18.52ms
-  6.    2.       input:       220.21ms       157.31ms       363.93ms
-  7.    1.       input:        14.18ms         7.31ms        58.63ms
-  7.    2.       input:       269.71ms       217.38ms       416.45ms
-  8.    1.       input:         2.13ms         0.75ms        12.22ms
-  8.    2.       input:         1.31ms         0.81ms         2.84ms
-  9.    1.       input:         5.18ms         2.05ms        25.31ms
-  9.    1. perf_test_1:         5.31ms         3.54ms        10.52ms
-  9.    1. perf_test_2:        24.61ms        19.36ms        37.84ms
-  9.    2.       input:        22.61ms        15.30ms        56.74ms
-  9.    2. perf_test_1:        39.00ms        32.62ms        55.82ms
-  9.    2. perf_test_2:       200.38ms       181.27ms       239.14ms
- 10.    1.       input:         3.05ms         1.62ms        13.15ms
- 10.    2.       input:         2.13ms         1.53ms         5.41ms
- 11.    1.       input:         1.02ms         0.56ms         4.32ms
- 11.    2.       input:        35.68ms        28.53ms        71.11ms
+  1.    1.       input:         5.46ms         1.50ms        35.32ms
+  1.    2.       input:         2.62ms         1.58ms         7.81ms
+  2.    1.       input:         2.46ms         0.86ms         9.97ms
+  2.    2.       input:         3.93ms         1.45ms        18.56ms
+  3.    1.       input:         2.76ms         0.69ms        18.23ms
+  3.    2.       input:         1.48ms         0.84ms         4.89ms
+  4.    1.       input:        32.87ms        20.09ms       114.10ms
+  4.    2.       input:         5.73ms         3.55ms        22.10ms
+  5.    1.       input:         3.41ms         1.19ms         9.55ms
+  5.    2.       input:         3.76ms         1.75ms         8.24ms
+  6.    1.       input:         4.93ms         1.93ms        24.16ms
+  6.    2.       input:       246.31ms       169.91ms       534.64ms
+  7.    1.       input:        14.62ms         7.54ms        58.44ms
+  7.    2.       input:       262.46ms       222.03ms       415.59ms
+  8.    1.       input:         1.95ms         0.76ms        10.95ms
+  8.    2.       input:         1.56ms         0.83ms         6.35ms
+  9.    1.       input:         4.61ms         2.03ms        23.66ms
+  9.    1. perf_test_1:         4.93ms         3.49ms        11.21ms
+  9.    1. perf_test_2:        21.74ms        18.88ms        39.52ms
+  9.    2.       input:        23.20ms        16.61ms        63.36ms
+  9.    2. perf_test_1:        38.01ms        33.26ms        58.29ms
+  9.    2. perf_test_2:       195.94ms       183.76ms       233.11ms
+ 10.    1.       input:         3.42ms         1.62ms        11.90ms
+ 10.    2.       input:         3.01ms         1.60ms         8.48ms
+ 11.    1.       input:         1.08ms         0.58ms         3.51ms
+ 11.    2.       input:        37.74ms        29.91ms        77.78ms
 
-Sum of min for normal inputs: 468.492ms
+Sum of min for normal inputs: 488.84ms
 ```

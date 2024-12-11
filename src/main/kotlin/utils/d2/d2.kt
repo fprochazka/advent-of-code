@@ -54,7 +54,6 @@ open class Matrix<V : Any> protected constructor(
             .map { "${this[it]}" + (if (it.x == maxX) "\n" else "") }
             .joinToString("")
 
-
     fun Position.matrixIndex(): Int = y * width + x
 
     protected fun indexToPosition(index: Int): Position = Position(index % width, index / width)
@@ -128,14 +127,13 @@ data class Position(val x: Int, val y: Int) {
         Position(this.x + other.xDiff, this.y + other.yDiff)
 
     fun distanceTo(other: Position): Distance =
-        Distance((x - other.x), (y - other.y))
+        Distance(this.x - other.x, this.y - other.y)
 
     fun vectorInDirection(direction: Direction, length: Int): List<Position> =
         List(length) { if (it == 0) this else stepInDirection(direction, it) }
 
     fun stepInDirection(direction: Direction, length: Int): Position =
-        plus(direction.vector * length)
-
+        Position(this.x + (direction.vector.xDiff * length), this.y + (direction.vector.yDiff * length))
 
     override fun toString(): String = "(x=$x, y=$y)"
 
