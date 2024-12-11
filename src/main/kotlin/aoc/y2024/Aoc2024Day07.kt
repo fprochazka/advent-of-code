@@ -66,17 +66,17 @@ data class Day07(val equations: List<Equation>) {
             dfsOperatorVariants(
                 allowedOperators,
                 components.first(),
-                { componentIndex, leftValue, operator ->
-                    operator.eval(leftValue, components[componentIndex]).let { operationResult ->
+                { componentIndex, beforeOperatorValue, op ->
+                    op.eval(beforeOperatorValue, components[componentIndex]).let { newValue ->
                         when {
-                            operationResult > result -> State.ELIMINATE_BRANCH to operationResult
+                            newValue > result -> State.ELIMINATE_BRANCH to newValue
 
                             components.size == (componentIndex + 1) -> when {
-                                operationResult == result -> State.DONE to operationResult
-                                else -> State.ELIMINATE_BRANCH to operationResult
+                                newValue == result -> State.DONE to newValue
+                                else -> State.ELIMINATE_BRANCH to newValue
                             }
 
-                            else -> State.CONTINUE to operationResult
+                            else -> State.CONTINUE to newValue
                         }
                     }
                 }
@@ -88,10 +88,10 @@ data class Day07(val equations: List<Equation>) {
             compute: (Int, Long, Operator) -> Pair<State, Long>,
             operators: ArrayDeque<Operator> = ArrayDeque<Operator>()
         ): List<Operator>? {
-            for (operator in allowedOperators) {
-                operators.addLast(operator)
+            for (op in allowedOperators) {
+                operators.addLast(op)
 
-                val (state, newValue) = compute.invoke(operators.size, value, operator)
+                val (state, newValue) = compute.invoke(operators.size, value, op)
                 when (state) {
                     State.ELIMINATE_BRANCH -> {}
                     State.DONE -> return operators.toList()
