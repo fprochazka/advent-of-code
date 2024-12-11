@@ -120,7 +120,7 @@ object Aoc2024 {
     fun measureAll() {
         val executor = Executors.newVirtualThreadPerTaskExecutor();
 
-        for (i in 1..3) {
+        for (i in 1..5) {
             print("Iteration $i: ")
 
             for (config in runConfigs) {

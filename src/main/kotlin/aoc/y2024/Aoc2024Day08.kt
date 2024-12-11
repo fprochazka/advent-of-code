@@ -23,7 +23,7 @@ private fun solve(input: Resource) {
 }
 
 fun Resource.day08(): Day08 = Day08(
-    Matrix(charMatrix())
+    Matrix.from(charMatrix())
 )
 
 data class Day08(

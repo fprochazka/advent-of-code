@@ -73,25 +73,22 @@ data class Day06(
         // we can't place an obstacle on were the guard is standing
         val originalPatrol = patrolPrediction.first.let { it.subList(1, it.size) }
 
-        val simulatedFloorPlanData = floorPlan.cells.toMutableMap()
-        val simulatedFloorPlan = Matrix<Char>(simulatedFloorPlanData)
-
         for ((nextPosition, _) in originalPatrol) {
-            val originalCellData = simulatedFloorPlanData[nextPosition]!!
+            val originalCellData = floorPlan[nextPosition]!!
             if (isObstacle(originalCellData)) {
                 continue // no point in replacing existing obstacles
             }
 
             try {
-                simulatedFloorPlanData[nextPosition] = EXTRA_OBSTACLE
+                floorPlan[nextPosition] = EXTRA_OBSTACLE
 
-                val (_, simulatedPatrolEnd) = simulatedFloorPlan.predictPatrol(startingPoint)
+                val (_, simulatedPatrolEnd) = floorPlan.predictPatrol(startingPoint)
                 if (simulatedPatrolEnd == PatrolEnd.LOOP_DETECTED) {
                     result += nextPosition
                 }
 
             } finally {
-                simulatedFloorPlanData[nextPosition] = originalCellData
+                floorPlan[nextPosition] = originalCellData
             }
         }
 
@@ -117,32 +114,16 @@ data class Day06(
 
         const val OBSTACLE = '#'
         const val EXTRA_OBSTACLE = 'O'
+        const val GUARD_UP = '^'
 
         fun toMatrix(matrix: Map<Position, Char>): Pair<Matrix<Char>, OrientedPosition> {
-            val floorPlan = Matrix(matrix.mapValues { entry ->
-                when {
-                    isGuard(entry.value) -> '.'
-                    else -> entry.value
-                }
-            })
-            val startingPos = matrix.entries
-                .single { isGuard(it.value) }
-                .let { OrientedPosition(it.key, guardDirection(it.value)) }
-
+            val floorPlan = Matrix.from(matrix)
+            val startingPos = OrientedPosition(floorPlan.allPositionsOfValue(GUARD_UP).first(), Direction.UP)
+            floorPlan[startingPos.position] = '.'
             return floorPlan to startingPos
         }
 
         fun isObstacle(char: Char?): Boolean = char == OBSTACLE || char == EXTRA_OBSTACLE
-
-        fun isGuard(char: Char?): Boolean = char == '^' || char == '>' || char == '<' || char == 'v'
-
-        fun guardDirection(char: Char): Direction = when (char) {
-            '^' -> Direction.UP
-            'v' -> Direction.DOWN
-            '>' -> Direction.RIGHT
-            '<' -> Direction.LEFT
-            else -> throw IllegalArgumentException("Invalid guard position: $char")
-        }
 
     }
 

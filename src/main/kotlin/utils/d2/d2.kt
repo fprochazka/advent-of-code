@@ -1,19 +1,18 @@
 package utils.d2
 
-class Matrix<V : Any>(val cells: Map<Position, V>) {
+class Matrix<V : Any> private constructor(
+    val width: Int,
+    val height: Int
+) {
 
-    val maxX: Int = cells.keys.maxOf { it.x }
-    val maxY: Int = cells.keys.maxOf { it.y }
+    val maxX = width - 1
+    val maxY = height - 1
 
-    val positionsByValue: Map<V, Set<Position>> by lazy {
-        cells.entries
-            .groupBy({ it.value }, { it.key })
-            .mapValues { entry -> entry.value.toSet() }
-    }
+    private val matrix: MutableList<V?> = MutableList(width * height) { null }
+    private val positionsByValue: MutableMap<V, MutableSet<Position>> = mutableMapOf()
 
-    val uniqueValues by lazy {
-        positionsByValue.keys.toSet()
-    }
+    val uniqueValues: Set<V>
+        get() = positionsByValue.keys.toSet()
 
     fun allPositionsOfValue(value: V): Set<Position> =
         positionsByValue[value] ?: emptySet()
@@ -21,26 +20,52 @@ class Matrix<V : Any>(val cells: Map<Position, V>) {
     fun allPositionsByValues(valueFilter: (V) -> Boolean): Map<V, Set<Position>> =
         positionsByValue.filterKeys(valueFilter)
 
-    fun allPositions(): Sequence<Position> = sequence {
-        for (y in 0..maxY) {
-            for (x in 0..maxX) {
-                yield(Position(x, y))
-            }
-        }
+    fun allEntries(): Sequence<Pair<Position, V>> =
+        allPositions().map { it to this[it]!! }
+
+    fun allPositions(): Sequence<Position> =
+        allPositions(maxY, maxX)
+
+    fun putAll(cells: Map<Position, V>) =
+        cells.forEach { (position, value) -> this[position] = value }
+
+    operator fun set(position: Position, value: V) {
+        require(position in this) { "$position is not in matrix($width x $height)" }
+
+        val oldValue = matrix[position.matrixIndex()]
+        matrix[position.matrixIndex()] = value
+
+        positionsByValue[oldValue]?.remove(position)
+        positionsByValue.getOrPut(value) { mutableSetOf() }.add(position)
     }
 
-    operator fun get(position: Position): V? {
-        return cells[position]
-    }
+    operator fun get(position: Position): V? =
+        if (position in this) matrix[position.matrixIndex()] else null
 
-    operator fun contains(position: Position): Boolean {
-        return position in cells
-    }
+    operator fun contains(position: Position): Boolean =
+        position.x > -1 && position.y > -1
+          && position.x <= maxX && position.y <= maxY
 
     override fun toString(): String =
         allPositions()
-            .map { "${cells[it]}" + (if (it.x == maxX) "\n" else "") }
+            .map { "${this[it]}" + (if (it.x == maxX) "\n" else "") }
             .joinToString("")
+
+    fun Position.matrixIndex(): Int = y * width + x
+
+    companion object {
+        fun <V : Any> from(cells: Map<Position, V>): Matrix<V> =
+            Matrix<V>(cells.keys.maxOf { it.x } + 1, cells.keys.maxOf { it.y } + 1)
+                .apply { putAll(cells) }
+
+        private fun allPositions(maxY: Int, maxX: Int): Sequence<Position> = sequence {
+            for (y in 0..maxY) {
+                for (x in 0..maxX) {
+                    yield(Position(x, y))
+                }
+            }
+        }
+    }
 
 }
 
@@ -56,6 +81,9 @@ enum class Direction(val vector: Position) {
     LEFT_DOWN(Position(-1, 1)),
 }
 
+/**
+ * zero indexed
+ */
 data class Position(val x: Int, val y: Int) {
 
     override fun toString(): String = "(x=$x, y=$y)"

@@ -18,9 +18,7 @@ private fun solve(input: Resource) {
 }
 
 fun Resource.day04(): Day04 = Day04(
-    Matrix(
-        charMatrix()
-    )
+    Matrix.from(charMatrix())
 )
 
 data class Day04(val matrix: Matrix<Char>) {
@@ -73,7 +71,7 @@ data class Day04(val matrix: Matrix<Char>) {
 
     fun Matrix<Char>.getWord(vararg positions: Position): String? =
         positions
-            .mapNotNull { cells[it] }
+            .mapNotNull { this[it] }
             .takeIf { it.size == positions.size }
             ?.joinToString("")
 

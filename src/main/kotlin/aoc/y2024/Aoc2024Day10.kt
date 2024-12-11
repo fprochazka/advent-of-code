@@ -21,7 +21,7 @@ private fun solve(input: Resource) {
 }
 
 fun Resource.day10(): Day10 = Day10(
-    Day10.TerrainMap(Matrix(intMatrix()))
+    Day10.TerrainMap(Matrix.from(intMatrix()))
 )
 
 data class Day10(val data: TerrainMap) {
