@@ -132,8 +132,10 @@ data class Position(val x: Int, val y: Int) {
     fun vectorInDirection(direction: Direction, length: Int): List<Position> =
         List(length) { if (it == 0) this else stepInDirection(direction, it) }
 
-    fun stepInDirection(direction: Direction, length: Int): Position =
-        Position(this.x + (direction.vector.xDiff * length), this.y + (direction.vector.yDiff * length))
+    fun stepInDirection(direction: Direction, length: Int): Position = when (length) {
+        1 -> this.plus(direction)
+        else -> Position(this.x + (direction.vector.xDiff * length), this.y + (direction.vector.yDiff * length))
+    }
 
     override fun toString(): String = "(x=$x, y=$y)"
 
