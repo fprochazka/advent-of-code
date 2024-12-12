@@ -43,7 +43,7 @@ data class Day12(val rawField: Matrix<Char>) {
 
         val remainingPositions = fieldGraph.nodes.allPositions().toMutableSet()
         while (remainingPositions.isNotEmpty()) {
-            val nodePositionsForFencing = mutableMapOf<Position, Int>()
+            val fenceBetweenPositions = mutableSetOf<Pair<Position, Direction>>()
             val uniquePositionsInArea = mutableSetOf<Position>()
 
             val startingNode = fieldGraph[remainingPositions.popFirst()]!!
@@ -51,7 +51,7 @@ data class Day12(val rawField: Matrix<Char>) {
             val neighboursQueue = ArrayDeque<Graph<Char>.Node>()
             neighboursQueue.add(startingNode)
 
-            while (neighboursQueue.isNotEmpty()) {
+            while (neighboursQueue.isNotEmpty()) { // O(n + n*4 + n*4 + n*4) for subset of the graph, there are no overlaps with the other subsets
                 val node = neighboursQueue.removeFirst()
 
                 // remove from candidates to find separate areas
@@ -61,26 +61,19 @@ data class Day12(val rawField: Matrix<Char>) {
                     continue // already visited
                 }
 
-                val neighbours = node.connections()
-                neighbours.forEach { neighbour ->
-                    if (neighbour.position !in uniquePositionsInArea) {
-                        neighboursQueue.addLast(neighbour)
-                    }
-                }
+                val neighbours = node.connections() // O(4)
+                neighbours // O(4)
+                    .filter { neighbour -> neighbour.position !in uniquePositionsInArea }
+                    .forEach { neighbour -> neighboursQueue.addLast(neighbour) }
 
                 if (neighbours.size < 4) {
-                    nodePositionsForFencing[node.position] = 4 - neighbours.size
+                    for (vacantSide in node.vacantSidesIncludingOutOfMatrix()) { // O(4)
+                        fenceBetweenPositions.add(node.position to vacantSide.direction)
+                    }
                 }
             }
 
-            totalFencingCostTask1 += (uniquePositionsInArea.size * nodePositionsForFencing.values.sum()).toLong()
-
-            val fenceBetweenPositions = nodePositionsForFencing.keys
-                .flatMap { nodePosition ->
-                    fieldGraph[nodePosition]!!.vacantSidesIncludingOutOfMatrix()
-                        .map { side -> nodePosition to side.direction }
-                }
-                .toMutableSet()
+            totalFencingCostTask1 += (uniquePositionsInArea.size * fenceBetweenPositions.size).toLong()
 
             var uniqueFenceSides = 0
             while (fenceBetweenPositions.isNotEmpty()) {
@@ -106,16 +99,14 @@ data class Day12(val rawField: Matrix<Char>) {
         return totalFencingCostTask1 to totalFencingCostTask2;
     }
 
-    fun OrientedPosition.turnRight90(): OrientedPosition = OrientedPosition(position, direction.turnRight90())
-
     fun rawFieldToGraph(): Graph<Char> {
         val graph = Graph<Char>(rawField.width, rawField.height)
 
-        for ((position, value) in rawField.allEntries()) {
+        for ((position, value) in rawField.allEntries()) { // O(n)
             graph[position] = value
         }
 
-        for (position in rawField.allPositions()) {
+        for (position in rawField.allPositions()) { // O(n*4)
             val node = graph[position]!!
 
             for (neighbourPosition in node.neighbourPositionsValid()) {
@@ -149,14 +140,14 @@ data class Day12(val rawField: Matrix<Char>) {
             val position: Position,
         ) {
 
-            fun connections(): Set<Node> =
+            fun connections(): Set<Node> = // O(1)
                 edges[this] ?: emptySet()
 
-            fun vacantSidesIncludingOutOfMatrix(): Iterable<OrientedPosition> {
+            fun vacantSidesIncludingOutOfMatrix(): Iterable<OrientedPosition> { // O(4 + 4)
                 val result = mutableSetOf<OrientedPosition>()
-                val neighbours = connections().map { it.position }
+                val neighbours = connections().map { it.position }.toSet()  // O(4)
 
-                for (neighbourPosition in neighbourPositionsIncludingOutOfMatrix()) {
+                for (neighbourPosition in neighbourPositionsIncludingOutOfMatrix()) {  // O(4)
                     if (neighbourPosition.position !in neighbours) {
                         result.add(neighbourPosition)
                     }
@@ -165,13 +156,13 @@ data class Day12(val rawField: Matrix<Char>) {
                 return result
             }
 
-            fun vacantSidesValid(): Iterable<OrientedPosition> =
+            fun vacantSidesValid(): Iterable<OrientedPosition> = // O(4)
                 vacantSidesIncludingOutOfMatrix().filter { it.position in nodes }
 
-            fun neighbourPositionsIncludingOutOfMatrix(): Iterable<OrientedPosition> =
+            fun neighbourPositionsIncludingOutOfMatrix(): Iterable<OrientedPosition> = // O(4)
                 neighbourSides.map { OrientedPosition(position + it, it) }
 
-            fun neighbourPositionsValid(): Iterable<OrientedPosition> =
+            fun neighbourPositionsValid(): Iterable<OrientedPosition> = // O(4)
                 neighbourPositionsIncludingOutOfMatrix().filter { it.position in nodes }
 
             override fun toString(): String = "'$value' at $position"
