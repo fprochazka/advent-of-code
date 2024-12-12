@@ -23,116 +23,115 @@ private fun solve(input: Resource) {
 }
 
 fun Resource.day12(): Day12 = Day12(
-    Matrix.from(charMatrix())
+    Day12.Graph.from(charMatrix()) { a, b -> a.value == b.value }
 )
 
-data class Day12(val rawField: Matrix<Char>) {
+data class Day12(val fieldGraph: Graph<Char>) {
 
-    val cost by lazy { costOfFence() }
+    val areasByCrop by lazy { fieldGraph.groupToConnectedComponents() }
 
-    val result1 by lazy { cost.first }
-    val result2 by lazy { cost.second }
-
-    fun costOfFence(): Pair<Long, Long> {
-        val fieldGraph = rawFieldToGraph()
-
-        fun <V> MutableSet<V>.popFirst(): V = first().also { remove(it) }
-
-        var totalFencingCostTask1 = 0L
-        var totalFencingCostTask2 = 0L
-
-        val remainingPositions = fieldGraph.nodes.allPositions().toMutableSet()
-        while (remainingPositions.isNotEmpty()) {
-            val fenceBetweenPositions = mutableSetOf<Pair<Position, Direction>>()
-            val uniquePositionsInArea = mutableSetOf<Position>()
-
-            val startingNode = fieldGraph[remainingPositions.popFirst()]!!
-
-            val neighboursQueue = ArrayDeque<Graph<Char>.Node>()
-            neighboursQueue.add(startingNode)
-
-            while (neighboursQueue.isNotEmpty()) { // O(n + n*4 + n*4 + n*4) for subset of the graph, there are no overlaps with the other subsets
-                val node = neighboursQueue.removeFirst()
-
-                // remove from candidates to find separate areas
-                remainingPositions.remove(node.position)
-
-                if (!uniquePositionsInArea.add(node.position)) {
-                    continue // already visited
-                }
-
-                val neighbours = node.connections() // O(4)
-                neighbours // O(4)
-                    .filter { neighbour -> neighbour.position !in uniquePositionsInArea }
-                    .forEach { neighbour -> neighboursQueue.addLast(neighbour) }
-
-                if (neighbours.size < 4) {
-                    for (vacantSide in node.vacantSidesIncludingOutOfMatrix()) { // O(4)
-                        fenceBetweenPositions.add(node.position to vacantSide.direction)
+    val fencedAreas by lazy {
+        buildList {
+            for (area in areasByCrop) {
+                val fenceBetweenPositions = area.nodes
+                    .flatMap { node ->
+                        node.vacantSidesIncludingOutOfMatrix()
+                            .map { vacantSide -> node.position to vacantSide.direction }
                     }
-                }
+                    .toSet()
+
+                add(area to fenceBetweenPositions)
             }
-
-            totalFencingCostTask1 += (uniquePositionsInArea.size * fenceBetweenPositions.size).toLong()
-
-            var uniqueFenceSides = 0
-            while (fenceBetweenPositions.isNotEmpty()) {
-                for (fence in fenceBetweenPositions) {
-                    uniqueFenceSides++
-                    fenceBetweenPositions.remove(fence)
-
-                    val (nodePosition, fenceSide) = fence
-                    for (directionAlongTheFence in listOf(fenceSide.turnRight90(), fenceSide.turnLeft90())) {
-                        var siblingNode = nodePosition + directionAlongTheFence
-                        while (fenceBetweenPositions.remove(siblingNode to fenceSide)) {
-                            siblingNode = siblingNode + directionAlongTheFence
-                        }
-                    }
-
-                    break; // fresh iterator
-                }
-            }
-
-            totalFencingCostTask2 += uniquePositionsInArea.size * uniqueFenceSides
         }
-
-        return totalFencingCostTask1 to totalFencingCostTask2;
     }
 
-    fun rawFieldToGraph(): Graph<Char> {
-        val graph = Graph<Char>(rawField.width, rawField.height)
-
-        for ((position, value) in rawField.allEntries()) { // O(n)
-            graph[position] = value
+    val result1 by lazy {
+        fencedAreas.sumOf { (area, fenceBetweenPositions) ->
+            (area.size * fenceBetweenPositions.size).toLong()
         }
+    }
 
-        for (position in rawField.allPositions()) { // O(n*4)
-            val node = graph[position]!!
+    val result2 by lazy {
+        fencedAreas.sumOf { (area, fenceBetweenPositions) ->
+            (area.size * uniqueFenceSides(fenceBetweenPositions)).toLong()
+        }
+    }
 
-            for (neighbourPosition in node.neighbourPositionsValid()) {
-                val candidateNode = graph[neighbourPosition.position]!!
-                if (candidateNode.value == node.value) {
-                    graph.edges.getOrPut(node) { mutableSetOf() }.add(candidateNode)
+    fun uniqueFenceSides(fenceBetweenPositions: Set<Pair<Position, Direction>>): Int {
+        var fences = fenceBetweenPositions.toMutableSet()
+
+        var uniqueFenceSides = 0
+        while (fences.isNotEmpty()) {
+            for (fence in fences) {
+                uniqueFenceSides++
+                fences.remove(fence)
+
+                val (nodePosition, fenceSide) = fence
+                for (directionAlongTheFence in listOf(fenceSide.turnRight90(), fenceSide.turnLeft90())) {
+                    var siblingNode = nodePosition + directionAlongTheFence
+                    while (fences.remove(siblingNode to fenceSide)) {
+                        siblingNode = siblingNode + directionAlongTheFence
+                    }
                 }
+
+                break; // fresh iterator
             }
         }
 
-        return graph
+        return uniqueFenceSides
     }
 
     class Graph<V : Any>(width: Int, height: Int) {
 
         val nodes = Matrix.empty<Node>(width, height)
 
-        // without direction
-        val edges = mutableMapOf<Node, MutableSet<Node>>()
-
         operator fun set(position: Position, value: V) {
             nodes[position] = Node(value, position)
         }
 
-        operator fun get(position: Position): Node? {
-            return nodes[position]
+        operator fun get(position: Position): Node? =
+            nodes[position]
+
+        fun groupToConnectedComponents(): List<Component> {
+            fun <V> MutableSet<V>.popFirst(): V = first().also { remove(it) }
+
+            val result = mutableListOf<Component>()
+
+            val remainingPositions = nodes.allPositions().toMutableSet()
+            while (remainingPositions.isNotEmpty()) {
+                val connectedComponent = mutableSetOf<Position>()
+
+                val neighboursQueue = ArrayDeque<Position>()
+                neighboursQueue.add(remainingPositions.popFirst())
+
+                while (neighboursQueue.isNotEmpty()) {
+                    val position = neighboursQueue.removeFirst()
+
+                    remainingPositions.remove(position) // remove from candidates to find separate areas
+
+                    if (!connectedComponent.add(position)) {
+                        continue // already visited
+                    }
+
+                    nodes[position]!!.connections
+                        .filter { it !in connectedComponent }
+                        .forEach { neighboursQueue.addLast(it) }
+                }
+
+                result.add(Component(connectedComponent))
+            }
+
+            return result
+        }
+
+        inner class Component(val positions: Set<Position>) {
+
+            val nodes: List<Node>
+                get() = positions.map { this@Graph.nodes[it]!! }
+
+            val size: Int
+                get() = positions.size
+
         }
 
         inner class Node(
@@ -140,15 +139,16 @@ data class Day12(val rawField: Matrix<Char>) {
             val position: Position,
         ) {
 
-            fun connections(): Set<Node> = // O(1)
-                edges[this] ?: emptySet()
+            val connections = mutableSetOf<Position>()
+
+            val connectedNodes: List<Node>
+                get() = connections.map { nodes[it]!! }
 
             fun vacantSidesIncludingOutOfMatrix(): Iterable<OrientedPosition> { // O(4 + 4)
                 val result = mutableSetOf<OrientedPosition>()
-                val neighbours = connections().map { it.position }.toSet()  // O(4)
 
                 for (neighbourPosition in neighbourPositionsIncludingOutOfMatrix()) {  // O(4)
-                    if (neighbourPosition.position !in neighbours) {
+                    if (neighbourPosition.position !in connections) {
                         result.add(neighbourPosition)
                     }
                 }
@@ -173,9 +173,32 @@ data class Day12(val rawField: Matrix<Char>) {
 
             val neighbourSides = listOf(Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT)
 
+            fun <R : Any> from(cells: Map<Position, R>, edgeFilter: (Graph<R>.Node, Graph<R>.Node) -> Boolean): Graph<R> {
+                val width = cells.keys.maxOf { it.x } + 1
+                val height = cells.keys.maxOf { it.y } + 1
+
+                val graph = Graph<R>(width, height)
+
+                for ((position, value) in cells.entries) {
+                    graph[position] = value
+                }
+
+                for (position in graph.nodes.allPositions()) {
+                    val node = graph[position]!!
+
+                    for (neighbourPosition in node.neighbourPositionsValid()) {
+                        val candidate = graph[neighbourPosition.position]!!
+                        if (edgeFilter(node, candidate)) {
+                            node.connections.add(candidate.position)
+                        }
+                    }
+                }
+
+                return graph
+            }
+
         }
 
     }
 
 }
-
