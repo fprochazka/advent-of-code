@@ -44,7 +44,7 @@ data class Day06(
 
                 current = when {
                     next.position !in this -> break
-                    isObstacle(this[next.position]) -> current.turnRight()
+                    isObstacle(this[next.position]) -> current.turnRight90()
                     else -> next
                 }
 
@@ -71,7 +71,7 @@ data class Day06(
                     if (!patrolPath.add(currentPosition to direction)) {
                         return true
                     }
-                    direction = direction.turnRight()
+                    direction = direction.turnRight90()
                 }
 
                 else -> {
@@ -123,16 +123,6 @@ data class Day06(
                 .flatten()
                 .toSet()
         }
-    }
-
-    fun OrientedPosition.turnRight(): OrientedPosition = OrientedPosition(position, direction.turnRight())
-
-    fun Direction.turnRight(): Direction = when (this) {
-        Direction.UP -> Direction.RIGHT
-        Direction.RIGHT -> Direction.DOWN
-        Direction.DOWN -> Direction.LEFT
-        Direction.LEFT -> Direction.UP
-        else -> throw IllegalArgumentException("Invalid direction: $this")
     }
 
     companion object {

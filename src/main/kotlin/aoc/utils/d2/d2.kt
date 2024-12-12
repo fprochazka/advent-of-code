@@ -66,6 +66,12 @@ open class Matrix<V : Any> protected constructor(
 
     companion object {
 
+        fun <V : Any> empty(template: Matrix<*>): Matrix<V> =
+            Matrix<V>(template.width, template.height)
+
+        fun <V : Any> empty(width: Int, height: Int): Matrix<V> =
+            Matrix<V>(width, height)
+
         fun <V : Any> from(cells: Map<Position, V>): Matrix<V> =
             Matrix<V>(cells.keys.maxOf { it.x } + 1, cells.keys.maxOf { it.y } + 1)
                 .apply { putAll(cells) }
@@ -115,6 +121,52 @@ enum class Direction(val vector: Distance) {
     LEFT_UP(Distance(-1, -1)),
     LEFT_DOWN(Distance(-1, 1)),
     ;
+
+    fun turnRight90(): Direction = when (this) {
+        UP -> RIGHT
+        RIGHT -> DOWN
+        DOWN -> LEFT
+        LEFT -> UP
+
+        RIGHT_UP -> RIGHT_DOWN
+        RIGHT_DOWN -> LEFT_DOWN
+        LEFT_DOWN -> LEFT_UP
+        LEFT_UP -> RIGHT_UP
+    }
+
+    fun turnLeft90(): Direction = when (this) {
+        UP -> LEFT
+        LEFT -> DOWN
+        DOWN -> RIGHT
+        RIGHT -> UP
+
+        RIGHT_UP -> LEFT_UP
+        LEFT_UP -> LEFT_DOWN
+        LEFT_DOWN -> RIGHT_DOWN
+        RIGHT_DOWN -> RIGHT_UP
+    }
+
+    fun turnRight45(): Direction = when (this) {
+        UP -> RIGHT_UP
+        RIGHT_UP -> RIGHT
+        RIGHT -> RIGHT_DOWN
+        RIGHT_DOWN -> DOWN
+        DOWN -> LEFT_DOWN
+        LEFT_DOWN -> LEFT
+        LEFT -> LEFT_UP
+        LEFT_UP -> UP
+    }
+
+    fun turnLeft45(): Direction = when (this) {
+        UP -> LEFT_UP
+        LEFT_UP -> LEFT
+        LEFT -> LEFT_DOWN
+        LEFT_DOWN -> DOWN
+        DOWN -> RIGHT_DOWN
+        RIGHT_DOWN -> RIGHT
+        RIGHT -> RIGHT_UP
+        RIGHT_UP -> UP
+    }
 
 }
 
@@ -169,6 +221,18 @@ data class Distance(val xDiff: Int, val yDiff: Int) {
 }
 
 data class OrientedPosition(var position: Position, var direction: Direction) {
+
+    fun turnRight90(): OrientedPosition =
+        OrientedPosition(position, direction.turnRight90())
+
+    fun turnLeft90(): OrientedPosition =
+        OrientedPosition(position, direction.turnLeft90())
+
+    fun turnRight45(): OrientedPosition =
+        OrientedPosition(position, direction.turnRight45())
+
+    fun turnLeft45(): OrientedPosition =
+        OrientedPosition(position, direction.turnLeft45())
 
     fun step(count: Int = 1): OrientedPosition =
         OrientedPosition(
