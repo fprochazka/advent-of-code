@@ -28,8 +28,11 @@ tasks.register<JavaExec>("benchmarkJvm") {
     description = "Runs the benchmark on JVM"
 
     dependsOn("assemble")
+
     classpath = sourceSets.main.get().runtimeClasspath
     mainClass.set("aoc.measure.Aoc2024Kt")
+//    jvmArgs = listOf("-server", "-Xms2g", "-Xmx2g")
+    jvmArgs = listOf("-server", "-Xms2g", "-Xmx2g", "-XX:+UseSerialGC")
 
     outputs.upToDateWhen { false }
 }

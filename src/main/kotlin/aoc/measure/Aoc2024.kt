@@ -127,53 +127,51 @@ object Aoc2024 {
     fun measureAll() {
         val executor = Executors.newVirtualThreadPerTaskExecutor();
 
-        for (i in 1..10) {
-            print("Iteration $i: ")
+        for (i in 1..20) {
+            print("Iteration ${i.toString().padStart(2, ' ')}: ")
 
-            for (config in runConfigs) {
-                val solverRuns = resultsByConfig.getOrPut(config) { Runs() }
+            val iterationDuration = measureTime {
+                for (config in runConfigs) {
+                    val solverRuns = resultsByConfig.getOrPut(config) { Runs() }
 
-                var result: Any? = null
-                var duration = Duration.INFINITE
+                    var result: Any? = null
+                    var taskDuration = Duration.INFINITE
 
-                // this doesn't really kill the solver,
-                // but it enables us to continue with the other solvers after the timeout
-                val task = executor.submit {
-                    duration = measureTime {
-                        result = config.solver()
+                    // this doesn't really kill the solver,
+                    // but it enables us to continue with the other solvers after the timeout
+                    val task = executor.submit {
+                        taskDuration = measureTime {
+                            result = config.solver()
+                        }
                     }
-                }
 
-                try {
-                    task.get(10, TimeUnit.SECONDS)
+                    try {
+                        task.get(10, TimeUnit.SECONDS)
 
-                    solverRuns.record(result, duration)
-                    print(".")
+                        solverRuns.record(result, taskDuration)
+                        print(".")
 
-                } catch (_: TimeoutException) {
-                    task.cancel(true)
+                    } catch (_: TimeoutException) {
+                        task.cancel(true)
 
-                    solverRuns.record("timeout", Duration.INFINITE)
-                    print("x")
+                        solverRuns.record("timeout", Duration.INFINITE)
+                        print("x")
+                    }
                 }
             }
 
+            print(" ${iterationDuration.toFormattedString().padStart(15)}")
             println()
         }
     }
 
     fun printResults() {
-        var totalOfLastRuntimes = Duration.ZERO
+        var totalRuntime = Duration.ZERO
 
         val taskColumnWidth = resultsByConfig.keys.map { it.taskName }.maxOf { it.length }.coerceAtLeast(4)
         val inputColumnWidth = resultsByConfig.keys.map { it.inputName.toString() }.maxOf { it.length }.coerceAtLeast(5)
         println()
-        println(" day  ${"task".padStart(taskColumnWidth)} ${"".padStart(inputColumnWidth)}       [average]          [max]         [last]")
-
-        fun Duration.toFormattedString(): String = when {
-            this.toInt(DurationUnit.MINUTES) > 0 -> "TIMEOUT"
-            else -> String.format("%.2fms", this.toDouble(DurationUnit.MILLISECONDS))
-        }
+        println(" day  ${"task".padStart(taskColumnWidth)} ${"".padStart(inputColumnWidth)}       [average]        [worst]         [best]")
 
         for ((config, runs) in resultsByConfig) {
             var line = ""
@@ -181,27 +179,33 @@ object Aoc2024 {
             line += " ${config.taskName.padStart(taskColumnWidth)}."
             line += " ${config.inputName.padStart(inputColumnWidth)}"
             line += ":"
-            line += runs.avgTime.toFormattedString().padStart(15)
-            line += runs.maxTime.toFormattedString().padStart(15)
-            line += runs.lastTime.toFormattedString().padStart(15)
+            line += runs.avgTimeOfSecondHalf.toFormattedString().padStart(15)
+            line += runs.worstTimeOfSecondHalf.toFormattedString().padStart(15)
+            line += runs.bestTimeOfSecondHalf.toFormattedString().padStart(15)
             println(line)
 
             if (config.addUpInTotal) {
-                totalOfLastRuntimes += runs.lastTime
+                totalRuntime += runs.avgTimeOfSecondHalf
             }
         }
 
         println()
-        println("Sum of last for normal inputs: $totalOfLastRuntimes")
+        println("Sum of average times for normal inputs: $totalRuntime")
+        println("(first half of runs is considered warmup and skipped)")
 
         val second = 1.toDuration(DurationUnit.SECONDS)
-        if (totalOfLastRuntimes > second) {
-            println("To get under 1s you have to shave off another ${totalOfLastRuntimes - second}")
+        if (totalRuntime > second) {
+            println("To get under 1s you have to shave off another ${totalRuntime - second}")
         }
     }
 
     fun day(day: Int, config: SolverConfigBuilder.() -> Unit) {
         config.invoke(SolverConfigBuilder(day))
+    }
+
+    fun Duration.toFormattedString(): String = when {
+        this.toInt(DurationUnit.MINUTES) > 0 -> "TIMEOUT"
+        else -> String.format("%.2fms", this.toDouble(DurationUnit.MILLISECONDS))
     }
 
     val runConfigs = mutableListOf<SolverConfig>()
@@ -252,24 +256,27 @@ object Aoc2024 {
         val runs: MutableList<Pair<String, Duration>> = mutableListOf(),
     ) {
 
-        val runMs: List<Long>
-            get() = runs
-                .map { it.second }
-                .map { it.toLong(DurationUnit.MICROSECONDS) }
+        val secondHalfOfRunTimes: List<Duration>
+            get() = runs.subList(runs.size / 2, runs.size - 1).map { it.second }
 
-        val avgTime: Duration
-            get() = runMs.average().roundToLong().toDuration(DurationUnit.MICROSECONDS)
+        val avgTimeOfSecondHalf: Duration
+            get() = secondHalfOfRunTimes.map { it.toMicroseconds() }.average().toDuration()
 
-        val maxTime: Duration
-            get() = runMs.max().toDuration(DurationUnit.MICROSECONDS)
+        val worstTimeOfSecondHalf: Duration
+            get() = secondHalfOfRunTimes.maxBy { it.toMicroseconds() }
 
-        val lastTime: Duration
-            get() = runs.last().second
+        val bestTimeOfSecondHalf: Duration
+            get() = secondHalfOfRunTimes.minBy { it.toMicroseconds() }
 
         fun record(result: Any?, duration: Duration) {
             runs += "$result" to duration
         }
 
+        fun Duration.toMicroseconds(): Long =
+            toLong(DurationUnit.MICROSECONDS)
+
+        fun Double.toDuration(): Duration =
+            roundToLong().toDuration(DurationUnit.MICROSECONDS)
     }
 
 }
