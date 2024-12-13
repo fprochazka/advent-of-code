@@ -47,11 +47,9 @@ data class Day13(val arcades: List<SlotMachine>) {
         //  cost = (a * 3) + b
         //  a >= 0
         //  b >= 0
-        //
+
         // Task: search for "a" and "b" and return minimal cost
 
-        // The following is also true:
-        //
         // extract a from first equation:
         // pX = (a * aX) + (b * bX)
         // pX - (b * bX) = (a * aX)
@@ -73,13 +71,9 @@ data class Day13(val arcades: List<SlotMachine>) {
         val b = ((pX * aY) - (pY * aX)) / ((bX * aY) - (bY * aX))
         val a = (pX - (b * bX)) / aX
 
-        val arrivedTo = PositionL(
-            a * aX + b * bX,
-            a * aY + b * bY,
-        )
-
         return when {
-            arrivedTo == machine.prize -> a * 3 + b
+            a < 0 || b < 0 -> 0L
+            machine.prize == PositionL(a * aX + b * bX, a * aY + b * bY) -> a * 3 + b
             else -> 0L
         }
     }
