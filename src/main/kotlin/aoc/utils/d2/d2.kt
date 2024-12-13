@@ -1,14 +1,14 @@
 package aoc.utils.d2
 
 open class Matrix<V : Any> protected constructor(
-    val width: Int,
-    val height: Int
+    val width: Long,
+    val height: Long
 ) {
 
     val maxX = width - 1
     val maxY = height - 1
 
-    private val matrix: MutableList<V?> = MutableList(width * height) { null }
+    private val matrix: MutableList<V?> = MutableList(Math.toIntExact(width * height)) { null }
 
     open fun allPositionsOfValue(value: V): Set<Position> =
         matrix.withIndex()
@@ -60,7 +60,7 @@ open class Matrix<V : Any> protected constructor(
             .map { "${this[it]}" + (if (it.x == maxX) "\n" else "") }
             .joinToString("")
 
-    fun Position.matrixIndex(): Int = y * width + x
+    fun Position.matrixIndex(): Int = Math.toIntExact(y * width + x)
 
     protected fun indexToPosition(index: Int): Position = Position(index % width, index / width)
 
@@ -69,14 +69,14 @@ open class Matrix<V : Any> protected constructor(
         fun <V : Any> empty(template: Matrix<*>): Matrix<V> =
             Matrix<V>(template.width, template.height)
 
-        fun <V : Any> empty(width: Int, height: Int): Matrix<V> =
+        fun <V : Any> empty(width: Long, height: Long): Matrix<V> =
             Matrix<V>(width, height)
 
         fun <V : Any> from(cells: Map<Position, V>): Matrix<V> =
             Matrix<V>(cells.keys.maxOf { it.x } + 1, cells.keys.maxOf { it.y } + 1)
                 .apply { putAll(cells) }
 
-        private fun allPositions(maxY: Int, maxX: Int): Sequence<Position> = sequence {
+        private fun allPositions(maxY: Long, maxX: Long): Sequence<Position> = sequence {
             for (y in 0..maxY) {
                 for (x in 0..maxX) {
                     yield(Position(x, y))
@@ -86,7 +86,7 @@ open class Matrix<V : Any> protected constructor(
 
     }
 
-    class WithValuesIndex<V : Any> internal constructor(width: Int, height: Int) : Matrix<V>(width, height) {
+    class WithValuesIndex<V : Any> internal constructor(width: Long, height: Long) : Matrix<V>(width, height) {
 
         private val positionsByValue: MutableMap<V, MutableSet<Position>> = mutableMapOf()
 
@@ -173,7 +173,9 @@ enum class Direction(val vector: Distance) {
 /**
  * zero indexed
  */
-data class Position(val x: Int, val y: Int) {
+data class Position(val x: Long, val y: Long) {
+
+    constructor(x: Int, y: Int) : this(x.toLong(), y.toLong())
 
     operator fun plus(other: Position): Position =
         Position(this.x + other.x, this.y + other.y)
@@ -200,18 +202,20 @@ data class Position(val x: Int, val y: Int) {
     companion object {
 
         fun comparatorXThenY(): Comparator<Position> =
-            Comparator.comparing(Position::x, Int::compareTo)
-                .thenComparing(Position::y, Int::compareTo)
+            Comparator.comparing(Position::x, Long::compareTo)
+                .thenComparing(Position::y, Long::compareTo)
 
         fun comparatorYThenX(): Comparator<Position> =
-            Comparator.comparing(Position::y, Int::compareTo)
-                .thenComparing(Position::x, Int::compareTo)
+            Comparator.comparing(Position::y, Long::compareTo)
+                .thenComparing(Position::x, Long::compareTo)
 
     }
 
 }
 
-data class Distance(val xDiff: Int, val yDiff: Int) {
+data class Distance(val xDiff: Long, val yDiff: Long) {
+
+    constructor(xDiff: Int, yDiff: Int) : this(xDiff.toLong(), yDiff.toLong())
 
     operator fun times(length: Int): Distance =
         Distance(xDiff * length, yDiff * length)

@@ -2,6 +2,7 @@ package aoc.y2024
 
 import aoc.utils.Resource
 import aoc.utils.d2.Distance
+import aoc.utils.d2.Position
 
 fun main() {
     solve(Resource.named("aoc2024/day13/example1.txt"))
@@ -32,7 +33,7 @@ data class Day13(val arcades: List<SlotMachine>) {
 
     val result2 by lazy {
         arcades
-            .map { it.copy(prize = PositionL(it.prize.x + 10000000000000L, it.prize.y + 10000000000000L)) }
+            .map { it.copy(prize = Position(it.prize.x + 10000000000000L, it.prize.y + 10000000000000L)) }
             .sumOf<SlotMachine> { howManyMinTokensAreNeededToReachPrizeFast(it) }
     }
 
@@ -73,18 +74,12 @@ data class Day13(val arcades: List<SlotMachine>) {
 
         return when {
             a < 0 || b < 0 -> 0L
-            machine.prize == PositionL(a * aX + b * bX, a * aY + b * bY) -> a * 3 + b
+            machine.prize == Position(a * aX + b * bX, a * aY + b * bY) -> a * 3 + b
             else -> 0L
         }
     }
 
-    data class SlotMachine(val a: Distance, val b: Distance, val prize: PositionL)
-
-    data class PositionL(val x: Long, val y: Long) {
-
-        override fun toString(): String = "(x=$x, y=$y)"
-
-    }
+    data class SlotMachine(val a: Distance, val b: Distance, val prize: Position)
 
     companion object {
 
@@ -100,9 +95,9 @@ data class Day13(val arcades: List<SlotMachine>) {
                 ?.let { Distance(it.groupValues[1].toInt(), it.groupValues[2].toInt()) }
                 ?: error("Bad input: $input")
 
-        fun parsePrize(input: String): PositionL =
+        fun parsePrize(input: String): Position =
             prizePattern.matchEntire(input.trim())
-                ?.let { PositionL(it.groupValues[1].toLong(), it.groupValues[2].toLong()) }
+                ?.let { Position(it.groupValues[1].toLong(), it.groupValues[2].toLong()) }
                 ?: error("Bad input: $input")
 
         val buttonPattern = "Button [AB]: X\\+(\\d+), Y\\+(\\d+)".toRegex()

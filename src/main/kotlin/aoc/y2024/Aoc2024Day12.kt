@@ -81,7 +81,7 @@ data class Day12(val fieldGraph: Graph<Char>) {
         return uniqueFenceSides
     }
 
-    class Graph<V : Any>(width: Int, height: Int) {
+    class Graph<V : Any>(width: Long, height: Long) {
 
         val nodes = Matrix.empty<Node>(width, height)
 
