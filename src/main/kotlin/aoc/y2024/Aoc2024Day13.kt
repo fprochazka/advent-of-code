@@ -7,7 +7,6 @@ import com.google.ortools.sat.CpModel
 import com.google.ortools.sat.CpSolver
 import com.google.ortools.sat.CpSolverStatus
 import com.google.ortools.sat.LinearExpr
-import java.util.*
 
 fun main() {
     solve(Resource.named("aoc2024/day13/example1.txt"))
@@ -37,7 +36,6 @@ data class Day13(val arcades: List<SlotMachine>) {
 
     val result1 by lazy {
         arcades
-//            .sumOf<SlotMachine> { howManyMinTokensAreNeededToReachPrizeNaive(it) }
             .sumOf<SlotMachine> { howManyMinTokensAreNeededToReachPrizeFast(it) }
     }
 
@@ -82,59 +80,6 @@ data class Day13(val arcades: List<SlotMachine>) {
             CpSolverStatus.OPTIMAL -> solver.objectiveValue().toLong() // // Return the minimum cost as the result
             else -> 0L // If unreachable, return 0
         }
-    }
-
-    fun howManyMinTokensAreNeededToReachPrizeNaive(machine: SlotMachine): Int {
-        val generatedButtonPresses = mutableSetOf<Pair<Int, Int>>()
-
-        val queue = PriorityQueue<GraphNode>(compareBy { it.cost })
-        queue.add(GraphNode(PositionL(0, 0), 0, 0))
-
-        while (queue.isNotEmpty()) {
-            val current = queue.poll()
-
-            if (current.position == machine.prize) {
-                return current.cost // Yay
-            }
-
-            val nextSteps = listOf(current.presA(machine), current.presB(machine))
-
-            val reasonableNextSteps = nextSteps
-                .filterNot { it.missedThePrize(machine) }
-                .filter { it.buttonA <= machine.maxButtonA && it.buttonB <= machine.maxButtonB }
-                .filter { (it.buttonA to it.buttonB) !in generatedButtonPresses }
-
-            queue.addAll(reasonableNextSteps)
-
-            reasonableNextSteps.forEach { generatedButtonPresses.add(it.buttonA to it.buttonB) }
-        }
-
-        return 0; // target is unreachable, 0 tokens
-    }
-
-    data class GraphNode(
-        val position: PositionL,
-        val buttonA: Int,
-        val buttonB: Int,
-    ) {
-
-        // pressing A costs 3
-        // pressing B costs 1
-        val cost: Int = (buttonA * 3) + buttonB
-
-        fun presA(machine: SlotMachine): GraphNode = copy(
-            position = position + machine.buttonA,
-            buttonA = buttonA + 1,
-        )
-
-        fun presB(machine: SlotMachine): GraphNode = copy(
-            position = position + machine.buttonB,
-            buttonB = buttonB + 1,
-        )
-
-        fun missedThePrize(machine: SlotMachine): Boolean =
-            this.position.x > machine.prize.x || this.position.y > machine.prize.y
-
     }
 
     /**
