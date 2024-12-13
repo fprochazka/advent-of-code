@@ -21,7 +21,7 @@ dependencies {
     implementation("io.arrow-kt:arrow-fx-coroutines")
 
     // implementation("org.choco-solver:choco-solver:4.10.7")
-    implementation("com.google.ortools:ortools-java:9.11.4210")
+//    implementation("com.google.ortools:ortools-java:9.11.4210")
 
     implementation(libs.javaDiffUtils)
 }

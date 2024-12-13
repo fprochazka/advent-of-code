@@ -2,11 +2,6 @@ package aoc.y2024
 
 import aoc.utils.Resource
 import aoc.utils.d2.Distance
-import aoc.utils.math.gcd
-import com.google.ortools.sat.CpModel
-import com.google.ortools.sat.CpSolver
-import com.google.ortools.sat.CpSolverStatus
-import com.google.ortools.sat.LinearExpr
 
 fun main() {
     solve(Resource.named("aoc2024/day13/example1.txt"))
@@ -30,10 +25,6 @@ fun Resource.day13(): Day13 = Day13(
 
 data class Day13(val arcades: List<SlotMachine>) {
 
-    init {
-        com.google.ortools.Loader.loadNativeLibraries()
-    }
-
     val result1 by lazy {
         arcades
             .sumOf<SlotMachine> { howManyMinTokensAreNeededToReachPrizeFast(it) }
@@ -46,68 +37,56 @@ data class Day13(val arcades: List<SlotMachine>) {
     }
 
     fun howManyMinTokensAreNeededToReachPrizeFast(machine: SlotMachine): Long {
-        fun SlotMachine.isPrizeReachable(): Boolean {
-            val gcdX = gcd(buttonA.xDiff, buttonB.xDiff)
-            val gcdY = gcd(buttonA.yDiff, buttonB.yDiff)
+        val (pX, pY) = machine.prize
+        val (aX, aY) = machine.a
+        val (bX, bY) = machine.b
 
-            // AI says that if the target coordinates are NOT divisible by their respective GCDs, then the prize is not reachable at all
-            return (prize.x % gcdX == 0L) && (prize.y % gcdY == 0L)
-        }
+        // Starting conditions:
+        //  pX = (a * aX) + (b * bX)
+        //  pY = (a * aY) + (b * bY)
+        //  cost = (a * 3) + b
+        //  a >= 0
+        //  b >= 0
+        //
+        // Task: search for "a" and "b" and return minimal cost
 
-        if (!machine.isPrizeReachable()) return 0L
+        // The following is also true:
+        //
+        // extract a from first equation:
+        // pX = (a * aX) + (b * bX)
+        // pX - (b * bX) = (a * aX)
+        // a = (pX - (b * bX)) / aX
+        //
+        // extract a from second equation:
+        // pY = (a * aY) + (b * bY)
+        // pY - (b * bY) = (a * aY)
+        // a = (pY - (b * bY)) / aY
+        //
+        // extract b using a = a:
+        // (pX - (b * bX)) / aX = (pY - (b * bY)) / aY
+        // (pX - (b * bX)) * aY = (pY - (b * bY)) * aX
+        // (pX * aY) - (b * bX * aY) = (pY * aX) - (b * bY * aX)
+        // (pX * aY) - (pY * aX) = (b * bX * aY) - (b * bY * aX)
+        // (pX * aY) - (pY * aX) = b * ((bX * aY) - (bY * aX))
+        // b = ((pX * aY) - (pY * aX)) / ((bX * aY) - (bY * aX))
 
-        val (buttonA, buttonB) = listOf(machine.buttonA, machine.buttonB)
+        val b = ((pX * aY) - (pY * aX)) / ((bX * aY) - (bY * aX))
+        val a = (pX - (b * bX)) / aX
 
-        val model = CpModel()
+        val arrivedTo = PositionL(
+            a * aX + b * bX,
+            a * aY + b * bY,
+        )
 
-        val a = model.newIntVar(0, machine.maxButtonA, "a")
-        val b = model.newIntVar(0, machine.maxButtonB, "b")
-
-        val prizeX = model.newConstant(machine.prize.x)
-        val prizeY = model.newConstant(machine.prize.y)
-
-        model.addEquality(prizeX, LinearExpr.sum(arrayOf(LinearExpr.term(a, buttonA.xDiff.toLong()), LinearExpr.term(b, buttonB.xDiff.toLong()))))
-        model.addEquality(prizeY, LinearExpr.sum(arrayOf(LinearExpr.term(a, buttonA.yDiff.toLong()), LinearExpr.term(b, buttonB.yDiff.toLong()))))
-
-        model.minimize(LinearExpr.sum(arrayOf(LinearExpr.term(a, 3), LinearExpr.term(b, 1))))
-
-        // Solve the model
-        val solver = CpSolver()
-        val status = solver.solve(model)
-
-        // Check if a solution was found
-        return when (status) {
-            CpSolverStatus.OPTIMAL -> solver.objectiveValue().toLong() // // Return the minimum cost as the result
-            else -> 0L // If unreachable, return 0
+        return when {
+            arrivedTo == machine.prize -> a * 3 + b
+            else -> 0L
         }
     }
 
-    /**
-     * Conditions:
-     * prize.x = a * vectorA.x + b * vectorB.x
-     * prize.y = a * vectorA.y + b * vectorB.y
-     * cost = a * costA + b * costB
-     * where (m >= 0 && n >= 0) and (costA = 3, costB = 1)
-     *
-     * Task:
-     * search for "m" and "n" and return minimal cost
-     */
-    data class SlotMachine(
-        val buttonA: Distance,
-        val buttonB: Distance,
-        val prize: PositionL,
-    ) {
-
-        // pressing the buttons more would overshoot the prize
-        val maxButtonA = minOf(prize.x / buttonA.xDiff, prize.y / buttonA.yDiff)
-        val maxButtonB = minOf(prize.x / buttonB.xDiff, prize.y / buttonB.yDiff)
-
-    }
+    data class SlotMachine(val a: Distance, val b: Distance, val prize: PositionL)
 
     data class PositionL(val x: Long, val y: Long) {
-
-        operator fun plus(other: Distance): PositionL =
-            PositionL(this.x + other.xDiff, this.y + other.yDiff)
 
         override fun toString(): String = "(x=$x, y=$y)"
 
@@ -132,8 +111,8 @@ data class Day13(val arcades: List<SlotMachine>) {
                 ?.let { PositionL(it.groupValues[1].toLong(), it.groupValues[2].toLong()) }
                 ?: error("Bad input: $input")
 
-        val buttonPattern = "Button\\s*[AB]:\\s*X\\+(\\d+),\\s*Y\\+(\\d+)".toRegex()
-        val prizePattern = "Prize:\\s*X=(\\d+),\\s*Y=(\\d+)".toRegex()
+        val buttonPattern = "Button [AB]: X\\+(\\d+), Y\\+(\\d+)".toRegex()
+        val prizePattern = "Prize: X=(\\d+), Y=(\\d+)".toRegex()
 
     }
 
