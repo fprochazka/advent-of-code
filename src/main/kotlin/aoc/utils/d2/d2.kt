@@ -1,5 +1,7 @@
 package aoc.utils.d2
 
+import java.awt.image.BufferedImage
+
 open class Matrix<V : Any> protected constructor(
     val width: Long,
     val height: Long
@@ -52,6 +54,16 @@ open class Matrix<V : Any> protected constructor(
             it.matrix.addAll(this.matrix)
         }
 
+    fun draw(valueToPixel: (V) -> java.awt.Color): BufferedImage {
+        val image = BufferedImage(width.toInt(), height.toInt(), BufferedImage.TYPE_INT_ARGB)
+
+        allEntries().forEach { (pos, value) ->
+            image.setRGB(pos.x.toInt(), pos.y.toInt(), valueToPixel(value).rgb)
+        }
+
+        return image
+    }
+
     fun withValuesIndex(): WithValuesIndex<V> =
         WithValuesIndex<V>(width, height).apply { putAll(this@apply) }
 
@@ -69,8 +81,19 @@ open class Matrix<V : Any> protected constructor(
         fun <V : Any> empty(template: Matrix<*>): Matrix<V> =
             Matrix<V>(template.width, template.height)
 
+        fun <V : Any> empty(width: Int, height: Int): Matrix<V> =
+            empty(width.toLong(), height.toLong())
+
         fun <V : Any> empty(width: Long, height: Long): Matrix<V> =
             Matrix<V>(width, height)
+
+        fun <V : Any> empty(dims: Dimensions): Matrix<V> =
+            Matrix<V>(dims.w, dims.h)
+
+        fun <V : Any> of(dims: Dimensions, initialValue: () -> V): Matrix<V> =
+            Matrix<V>(dims.w, dims.h).apply {
+                allPositions().forEach { this[it] = initialValue() }
+            }
 
         fun <V : Any> from(cells: Map<Position, V>): Matrix<V> =
             Matrix<V>(cells.keys.maxOf { it.x } + 1, cells.keys.maxOf { it.y } + 1)
@@ -177,6 +200,8 @@ data class Position(val x: Long, val y: Long) {
 
     constructor(x: Int, y: Int) : this(x.toLong(), y.toLong())
 
+    constructor(x: String, y: String) : this(x.toLong(), y.toLong())
+
     operator fun plus(other: Position): Position =
         Position(this.x + other.x, this.y + other.y)
 
@@ -185,6 +210,15 @@ data class Position(val x: Long, val y: Long) {
 
     operator fun plus(other: Distance): Position =
         Position(this.x + other.xDiff, this.y + other.yDiff)
+
+    operator fun rem(dims: Dimensions): Position {
+        fun Long.inDimension(size: Long): Long = ((this % size) + size) % size
+
+        return Position(
+            x.inDimension(dims.w),
+            y.inDimension(dims.h)
+        )
+    }
 
     fun distanceTo(other: Position): Distance =
         Distance(this.x - other.x, this.y - other.y)
@@ -213,9 +247,22 @@ data class Position(val x: Long, val y: Long) {
 
 }
 
+data class Dimensions(val w: Long, val h: Long) {
+
+    constructor(width: Int, height: Int) : this(width.toLong(), height.toLong())
+
+    constructor(width: String, height: String) : this(width.toLong(), height.toLong())
+
+    val maxX = (w - 1)
+    val maxY = (h - 1)
+
+}
+
 data class Distance(val xDiff: Long, val yDiff: Long) {
 
     constructor(xDiff: Int, yDiff: Int) : this(xDiff.toLong(), yDiff.toLong())
+
+    constructor(xDiff: String, yDiff: String) : this(xDiff.toLong(), yDiff.toLong())
 
     operator fun times(length: Int): Distance =
         Distance(xDiff * length, yDiff * length)
