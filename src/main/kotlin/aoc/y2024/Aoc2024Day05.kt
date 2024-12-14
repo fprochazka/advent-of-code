@@ -71,15 +71,12 @@ data class Day05(
         return fixedUpdate
     }
 
-    fun <T> List<T>.uniqueOrderedIndexPairs(): Sequence<Pair<Int, Int>> {
-        val list = this
-        return sequence {
-            for (i in list.indices) {
-                for (j in i + 1 until list.size) {
-                    yield(i to j)
+    fun <T> List<T>.uniqueOrderedIndexPairs(): Sequence<Pair<Int, Int>> =
+        indices.asSequence()
+            .flatMap { i ->
+                (i + 1 until size).map { j ->
+                    i to j
                 }
             }
-        }
-    }
 
 }
