@@ -4,74 +4,78 @@
 
 ```
  day  task                   [average]        [worst]         [best]
-  1.    1.       input:         1.23ms         1.52ms         0.88ms
-  1.    2.       input:         1.31ms         1.54ms         1.00ms
-  2.    1.       input:         0.50ms         0.56ms         0.46ms
-  2.    2.       input:         0.81ms         1.11ms         0.73ms
-  3.    1.       input:         0.49ms         0.65ms         0.43ms
-  3.    2.       input:         0.56ms         0.79ms         0.51ms
-  4.    1.       input:         9.72ms        10.30ms         9.40ms
-  4.    2.       input:         1.82ms         2.58ms         1.46ms
-  5.    1.       input:         0.68ms         0.90ms         0.57ms
-  5.    2.       input:         0.96ms         1.13ms         0.87ms
-  6.    1.       input:         1.04ms         1.33ms         0.89ms
-  6.    2.       input:        33.19ms        34.95ms        31.01ms
-  7.    1.       input:         5.05ms         5.36ms         4.60ms
-  7.    2.       input:       152.35ms       154.16ms       147.26ms
-  8.    1.       input:         0.53ms         0.70ms         0.44ms
-  8.    2.       input:         0.48ms         0.88ms         0.38ms
-  9.    1.       input:         1.68ms         2.14ms         1.55ms
-  9.    1. perf_test_1:         2.58ms         2.73ms         2.52ms
-  9.    1. perf_test_2:        12.31ms        13.65ms        11.76ms
-  9.    2.       input:         9.88ms        10.76ms         8.82ms
-  9.    2. perf_test_1:        18.62ms        20.86ms        17.32ms
-  9.    2. perf_test_2:       121.02ms       178.85ms       107.74ms
- 10.    1.       input:         1.08ms         1.23ms         0.88ms
- 10.    2.       input:         0.98ms         1.30ms         0.75ms
- 11.    1.       input:         0.38ms         0.42ms         0.35ms
- 11.    2.       input:        21.26ms        56.53ms        14.96ms
- 12.    1.       input:        16.67ms        26.98ms        13.94ms
- 12.    2.       input:        17.64ms        19.97ms        16.02ms
- 13.    1.       input:         0.34ms         0.41ms         0.30ms
- 13.    2.       input:         0.29ms         0.42ms         0.26ms
+  1.    1.       input:         1.32ms         1.57ms         1.03ms
+  1.    2.       input:         1.38ms         1.57ms         0.99ms
+  2.    1.       input:         0.51ms         0.67ms         0.47ms
+  2.    2.       input:         0.77ms         0.87ms         0.74ms
+  3.    1.       input:         0.47ms         0.53ms         0.44ms
+  3.    2.       input:         0.51ms         0.52ms         0.50ms
+  4.    1.       input:         9.61ms        10.94ms         9.26ms
+  4.    2.       input:         1.81ms         2.69ms         1.42ms
+  5.    1.       input:         0.69ms         1.03ms         0.57ms
+  5.    2.       input:         0.93ms         1.05ms         0.88ms
+  6.    1.       input:         1.06ms         1.37ms         0.90ms
+  6.    2.       input:        34.90ms        37.04ms        31.80ms
+  7.    1.       input:         5.60ms         6.33ms         5.37ms
+  7.    2.       input:       173.31ms       181.87ms       168.39ms
+  8.    1.       input:         0.55ms         1.01ms         0.38ms
+  8.    2.       input:         0.55ms         1.39ms         0.37ms
+  9.    1.       input:         1.88ms         3.40ms         1.55ms
+  9.    1. perf_test_1:         2.61ms         2.80ms         2.48ms
+  9.    1. perf_test_2:        13.22ms        21.36ms        11.49ms
+  9.    2.       input:        10.79ms        12.97ms         9.62ms
+  9.    2. perf_test_1:        19.43ms        24.54ms        17.28ms
+  9.    2. perf_test_2:       118.27ms       190.03ms       106.24ms
+ 10.    1.       input:         1.05ms         1.22ms         0.85ms
+ 10.    2.       input:         0.88ms         1.03ms         0.71ms
+ 11.    1.       input:         0.35ms         0.39ms         0.34ms
+ 11.    2.       input:        16.32ms        18.15ms        14.14ms
+ 12.    1.       input:        15.91ms        18.84ms        14.22ms
+ 12.    2.       input:        17.39ms        22.63ms        15.83ms
+ 13.    1.       input:         0.31ms         0.38ms         0.28ms
+ 13.    2.       input:         0.29ms         0.37ms         0.25ms
+ 14.    1.       input:         0.58ms         0.69ms         0.51ms
 
-Sum of average times for normal inputs: 280.913ms
+Sum of average times for normal inputs: 299.736ms
 ```
 
 ## Snapshot of `./gradlew benchmarkNative`:
 
 ```
  day  task                   [average]        [worst]         [best]
-  1.    1.       input:         0.64ms         0.66ms         0.62ms
-  1.    2.       input:         0.62ms         0.64ms         0.61ms
-  2.    1.       input:         1.21ms         1.28ms         0.90ms
-  2.    2.       input:         2.11ms         2.19ms         1.84ms
-  3.    1.       input:         0.58ms         0.60ms         0.56ms
-  3.    2.       input:         0.81ms         0.84ms         0.79ms
-  4.    1.       input:        32.90ms        95.49ms        24.04ms
-  4.    2.       input:         4.46ms        12.10ms         3.16ms
-  5.    1.       input:         0.94ms         0.98ms         0.89ms
-  5.    2.       input:         1.46ms         1.57ms         1.37ms
-  6.    1.       input:         1.77ms         1.99ms         1.66ms
-  6.    2.       input:        87.16ms       123.98ms        63.33ms
-  7.    1.       input:        11.82ms        25.13ms         9.72ms
-  7.    2.       input:       444.79ms       469.64ms       427.37ms
-  8.    1.       input:         0.35ms         0.52ms         0.32ms
-  8.    2.       input:         0.32ms         0.34ms         0.31ms
-  9.    1.       input:         4.06ms         4.32ms         3.92ms
-  9.    1. perf_test_1:         6.77ms         7.09ms         6.61ms
-  9.    1. perf_test_2:        40.18ms        42.98ms        38.61ms
-  9.    2.       input:        16.36ms        16.94ms        16.12ms
-  9.    2. perf_test_1:        33.82ms        43.97ms        31.23ms
-  9.    2. perf_test_2:       208.76ms       340.24ms       180.13ms
- 10.    1.       input:         1.47ms         1.51ms         1.41ms
- 10.    2.       input:         1.42ms         1.48ms         1.33ms
- 11.    1.       input:         0.51ms         0.52ms         0.48ms
- 11.    2.       input:        32.67ms        52.39ms        26.76ms
- 12.    1.       input:        29.30ms        52.52ms        24.82ms
- 12.    2.       input:        29.81ms        36.07ms        27.99ms
+  1.    1.       input:         0.60ms         0.62ms         0.56ms
+  1.    2.       input:         0.61ms         0.64ms         0.57ms
+  2.    1.       input:         1.19ms         1.29ms         0.94ms
+  2.    2.       input:         2.10ms         2.19ms         1.84ms
+  3.    1.       input:         0.63ms         0.84ms         0.56ms
+  3.    2.       input:         1.01ms         2.59ms         0.76ms
+  4.    1.       input:        27.91ms        39.17ms        24.60ms
+  4.    2.       input:         4.39ms         9.79ms         3.29ms
+  5.    1.       input:         1.20ms         3.33ms         0.89ms
+  5.    2.       input:         1.68ms         3.64ms         1.36ms
+  6.    1.       input:         9.31ms        69.18ms         1.71ms
+  6.    2.       input:        93.55ms       138.22ms        64.01ms
+  7.    1.       input:         9.89ms        10.21ms         9.67ms
+  7.    2.       input:       449.43ms       470.37ms       430.59ms
+  8.    1.       input:         0.33ms         0.37ms         0.32ms
+  8.    2.       input:         0.33ms         0.34ms         0.32ms
+  9.    1.       input:         4.06ms         4.26ms         3.90ms
+  9.    1. perf_test_1:         6.98ms         8.40ms         6.56ms
+  9.    1. perf_test_2:        42.86ms        56.46ms        36.49ms
+  9.    2.       input:        16.66ms        18.60ms        15.98ms
+  9.    2. perf_test_1:        34.02ms        41.21ms        30.98ms
+  9.    2. perf_test_2:       211.23ms       269.54ms       181.10ms
+ 10.    1.       input:         1.61ms         1.92ms         1.49ms
+ 10.    2.       input:         1.51ms         1.57ms         1.42ms
+ 11.    1.       input:         0.51ms         0.54ms         0.49ms
+ 11.    2.       input:        32.96ms        73.37ms        26.13ms
+ 12.    1.       input:        30.61ms        55.73ms        24.22ms
+ 12.    2.       input:        30.24ms        35.26ms        27.02ms
+ 13.    1.       input:         0.43ms         0.59ms         0.40ms
+ 13.    2.       input:         0.39ms         0.62ms         0.34ms
+ 14.    1.       input:         0.54ms         0.56ms         0.51ms
 
-Sum of average times for normal inputs: 707.555ms
+Sum of average times for normal inputs: 723.69ms
 ```
 
 lol?
