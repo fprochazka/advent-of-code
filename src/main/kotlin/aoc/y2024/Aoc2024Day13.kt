@@ -3,6 +3,7 @@ package aoc.y2024
 import aoc.utils.Resource
 import aoc.utils.d2.Distance
 import aoc.utils.d2.Position
+import aoc.utils.strings.matchEntire
 
 fun Resource.day13(): Day13 = Day13(
     nonBlankLines()
@@ -77,14 +78,10 @@ data class Day13(val arcades: List<SlotMachine>) {
             )
 
         fun parseButton(input: String): Distance =
-            buttonPattern.matchEntire(input.trim())
-                ?.let { Distance(it.groupValues[1].toInt(), it.groupValues[2].toInt()) }
-                ?: error("Bad input: $input")
+            input.trim().matchEntire(buttonPattern) { Distance(it.groupValues[1], it.groupValues[2]) }
 
         fun parsePrize(input: String): Position =
-            prizePattern.matchEntire(input.trim())
-                ?.let { Position(it.groupValues[1].toLong(), it.groupValues[2].toLong()) }
-                ?: error("Bad input: $input")
+            input.trim().matchEntire(prizePattern) { Position(it.groupValues[1], it.groupValues[2]) }
 
         val buttonPattern = "Button [AB]: X\\+(\\d+), Y\\+(\\d+)".toRegex()
         val prizePattern = "Prize: X=(\\d+), Y=(\\d+)".toRegex()

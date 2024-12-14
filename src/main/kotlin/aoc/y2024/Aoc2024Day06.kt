@@ -7,7 +7,8 @@ import aoc.utils.d2.OrientedPosition
 import aoc.utils.d2.Position
 import kotlinx.coroutines.*
 
-fun Resource.day06(): Day06 = Day06.toMatrix(matrix2d()).let { (floorPlan, startingPoint) -> Day06(floorPlan, startingPoint) }
+fun Resource.day06(): Day06 =
+    Day06.parse(matrix2d()).let { (floorPlan, startingPoint) -> Day06(floorPlan, startingPoint) }
 
 data class Day06(
     val floorPlan: Matrix<Char>,
@@ -116,7 +117,7 @@ data class Day06(
         const val OBSTACLE = '#'
         const val GUARD_UP = '^'
 
-        fun toMatrix(matrix: Resource.CharMatrix2d): Pair<Matrix<Char>, OrientedPosition> {
+        fun parse(matrix: Resource.CharMatrix2d): Pair<Matrix<Char>, OrientedPosition> {
             val floorPlan = Matrix.ofChars(matrix)
 
             val startingPos = OrientedPosition(floorPlan.allPositionsOfValue(GUARD_UP).single(), Direction.UP)

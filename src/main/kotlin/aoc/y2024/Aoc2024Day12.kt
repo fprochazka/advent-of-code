@@ -1,6 +1,7 @@
 package aoc.y2024
 
 import aoc.utils.Resource
+import aoc.utils.containers.popAny
 import aoc.utils.d2.*
 
 fun Resource.day12(): Day12 = Day12(
@@ -74,16 +75,14 @@ data class Day12(val fieldGraph: Graph<Char>) {
             nodes[position]
 
         fun groupToConnectedComponents(): List<Component> {
-            fun <V> MutableSet<V>.popFirst(): V = first().also { remove(it) }
-
             val result = mutableListOf<Component>()
 
-            val remainingPositions = nodes.allPositions().toMutableSet()
+            val remainingPositions = nodes.positions.toMutableSet()
             while (remainingPositions.isNotEmpty()) {
                 val connectedComponent = mutableSetOf<Position>()
 
                 val neighboursQueue = ArrayDeque<Position>()
-                neighboursQueue.add(remainingPositions.popFirst())
+                neighboursQueue.add(remainingPositions.popAny())
 
                 while (neighboursQueue.isNotEmpty()) {
                     val position = neighboursQueue.removeFirst()
@@ -122,9 +121,6 @@ data class Day12(val fieldGraph: Graph<Char>) {
 
             val connections = mutableSetOf<Position>()
 
-            val connectedNodes: List<Node>
-                get() = connections.map { nodes[it]!! }
-
             fun vacantSidesIncludingOutOfMatrix(): Iterable<OrientedPosition> { // O(4 + 4)
                 val result = mutableSetOf<OrientedPosition>()
 
@@ -161,7 +157,7 @@ data class Day12(val fieldGraph: Graph<Char>) {
                     graph[position] = value
                 }
 
-                for (position in graph.nodes.allPositions()) {
+                for (position in graph.nodes.positions) {
                     val node = graph[position]!!
 
                     for (neighbourPosition in node.neighbourPositionsValid()) {

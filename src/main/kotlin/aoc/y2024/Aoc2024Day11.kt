@@ -1,9 +1,11 @@
 package aoc.y2024
 
 import aoc.utils.Resource
+import aoc.utils.numbers.digitHalfs
+import aoc.utils.strings.toLongs
 
 fun Resource.day11(): Day11 = Day11(
-    content().trim().split("\\s+".toRegex()).map { it.toLong() }
+    content().toLongs()
 )
 
 data class Day11(
@@ -31,20 +33,12 @@ data class Day11(
                 when {
                     remaining == 0 -> 1
                     number == 0L -> countAfterExpansion(1L, remaining - 1)
-                    number.toString().length % 2 == 0 -> number.halfDigits().let { (left, right) -> countAfterExpansion(left, remaining - 1) + countAfterExpansion(right, remaining - 1) }
+                    number.toString().length % 2 == 0 -> number.digitHalfs().let { (left, right) -> countAfterExpansion(left, remaining - 1) + countAfterExpansion(right, remaining - 1) }
                     else -> countAfterExpansion(number * 2024, remaining - 1)
                 }
             }
 
         return numbers.sumOf { countAfterExpansion(it, iterations) }
     }
-
-    fun Long.halfDigits(): Pair<Long, Long> =
-        toString().half()
-            .let { (left, right) -> left.toLong() to right.toLong() }
-
-    fun String.half(): Pair<String, String> =
-        (length / 2)
-            .let { halfLength -> substring(0, halfLength) to substring(halfLength, length) }
 
 }

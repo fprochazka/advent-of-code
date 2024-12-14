@@ -1,13 +1,13 @@
 package aoc.y2024
 
 import aoc.utils.Resource
+import aoc.utils.strings.toInts
 import aoc.y2024.Day02.Report
 import kotlin.math.absoluteValue
 
 fun Resource.day02(): Day02 = Day02(
     nonBlankLines()
-        .map { line -> line.split("\\s+".toRegex()) }
-        .map { line -> Report(line.map { it.toInt() }) }
+        .map { line -> Report(line.toInts()) }
 )
 
 data class Day02(val reports: List<Report>) {

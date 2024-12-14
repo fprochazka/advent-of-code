@@ -44,7 +44,7 @@ data class Day04(val matrix: Matrix<Char>) {
     fun Matrix<Char>.allWordsOfLength(length: Int): Sequence<String> = sequence {
         val movesOnAllAxes = listOf(Direction.RIGHT, Direction.RIGHT_DOWN, Direction.DOWN, Direction.LEFT_DOWN)
 
-        allPositions().forEach { startFrom ->
+        positions.forEach { startFrom ->
             movesOnAllAxes.forEach { direction ->
                 getWord(startFrom, direction, length)?.let {
                     yield(it)

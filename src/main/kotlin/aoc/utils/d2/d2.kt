@@ -2,6 +2,9 @@ package aoc.utils.d2
 
 import aoc.utils.Resource
 import java.awt.image.BufferedImage
+import java.nio.file.Path
+import javax.imageio.ImageIO
+import kotlin.io.path.extension
 
 open class Matrix<V : Any> protected constructor(
     val dims: Dimensions,
@@ -21,14 +24,14 @@ open class Matrix<V : Any> protected constructor(
             .groupBy({ it.value!! }, { it.index })
             .mapValues { (_, indices) -> indices.map { dims.matrixIndexToPosition(it) }.toSet() }
 
-    fun allEntries(): Sequence<Pair<Position, V>> =
-        allPositions().map { it to this[it]!! }
+    val entries: Sequence<Pair<Position, V>>
+        get() = positions.map { it to this[it]!! }
 
-    fun allPositions(): Sequence<Position> =
-        dims.allPositions()
+    val positions: Sequence<Position>
+        get() = dims.matrixPositions
 
     fun putAll(other: Matrix<V>) =
-        other.allEntries().forEach { (position, value) -> this[position] = value }
+        other.entries.forEach { (position, value) -> this[position] = value }
 
     open operator fun set(position: Position, value: V) {
         require(position in this) { "$position is not in matrix${dims}" }
@@ -48,10 +51,14 @@ open class Matrix<V : Any> protected constructor(
             it.matrix.addAll(this.matrix)
         }
 
+    fun draw(file: Path, valueToPixel: (V) -> java.awt.Color) {
+        ImageIO.write(draw(valueToPixel), file.extension.lowercase(), file.toFile())
+    }
+
     fun draw(valueToPixel: (V) -> java.awt.Color): BufferedImage {
         val image = BufferedImage(dims.w.toInt(), dims.h.toInt(), BufferedImage.TYPE_INT_ARGB)
 
-        allEntries().forEach { (pos, value) ->
+        entries.forEach { (pos, value) ->
             image.setRGB(pos.x.toInt(), pos.y.toInt(), valueToPixel(value).rgb)
         }
 
@@ -62,27 +69,18 @@ open class Matrix<V : Any> protected constructor(
         WithValuesIndex<V>(dims).apply { putAll(this@apply) }
 
     override fun toString(): String =
-        allPositions()
+        positions
             .map { "${this[it]}" + (if (it.x == dims.maxX) "\n" else "") }
             .joinToString("")
 
     companion object {
-
-        fun <V : Any> empty(template: Matrix<*>): Matrix<V> =
-            Matrix<V>(template.dims)
-
-        fun <V : Any> empty(width: Int, height: Int): Matrix<V> =
-            empty(width.toLong(), height.toLong())
-
-        fun <V : Any> empty(width: Long, height: Long): Matrix<V> =
-            Matrix<V>(Dimensions(width, height))
 
         fun <V : Any> empty(dims: Dimensions): Matrix<V> =
             Matrix<V>(dims)
 
         fun <V : Any> of(dims: Dimensions, initialValue: () -> V): Matrix<V> =
             Matrix<V>(dims).apply {
-                allPositions().forEach { this[it] = initialValue() }
+                positions.forEach { this[it] = initialValue() }
             }
 
         fun ofChars(cells: Resource.CharMatrix2d): Matrix<Char> =
@@ -251,18 +249,19 @@ data class Dimensions(val w: Long, val h: Long) {
     val area = w * h
 
     fun matrixIndex(position: Position): Int =
-        Math.toIntExact(position.y * w + position.x)
+        Math.toIntExact((position.y * w) + position.x)
 
     fun matrixIndexToPosition(index: Int): Position =
+        matrixIndexToPosition(index.toLong())
+
+    fun matrixIndexToPosition(index: Long): Position =
         Position(index % w, index / w)
 
-    fun allPositions(): Sequence<Position> = sequence {
-        for (y in 0..maxY) {
-            for (x in 0..maxX) {
-                yield(Position(x, y))
-            }
-        }
-    }
+    val matrixIndices: Sequence<Long>
+        get() = (0L until area).asSequence()
+
+    val matrixPositions: Sequence<Position>
+        get() = matrixIndices.map { matrixIndexToPosition(it) }
 
     override fun toString(): String = "($w x $h)"
 

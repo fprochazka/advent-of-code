@@ -1,6 +1,7 @@
 package aoc.y2024
 
 import aoc.utils.Resource
+import aoc.utils.strings.toInts
 import kotlin.math.absoluteValue
 
 fun Resource.day01(): Day01 {
@@ -8,9 +9,9 @@ fun Resource.day01(): Day01 {
     val rightNumbers = mutableListOf<Int>();
 
     nonBlankLines().forEach { line ->
-        val (left, right) = line.trim().split("\\s+".toRegex(), limit = 2)
-        leftNumbers.add(left.toInt())
-        rightNumbers.add(right.toInt())
+        val (left, right) = line.toInts(2)
+        leftNumbers.add(left)
+        rightNumbers.add(right)
     }
 
     return Day01(leftNumbers.sorted(), rightNumbers.sorted())

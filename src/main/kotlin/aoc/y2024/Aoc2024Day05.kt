@@ -1,6 +1,8 @@
 package aoc.y2024
 
 import aoc.utils.Resource
+import aoc.utils.containers.middle
+import aoc.utils.strings.toInts
 
 fun Resource.day05(): Day05 {
     val rules = mutableSetOf<Pair<Int, Int>>()
@@ -8,9 +10,9 @@ fun Resource.day05(): Day05 {
 
     nonBlankLines().forEach { line ->
         if (line.contains("|")) {
-            rules.add(line.split("|", limit = 2).let { it[0].toInt() to it[1].toInt() })
+            rules.add(line.toInts(2).let { it[0] to it[1] })
         } else {
-            updates.add(line.split(",").map { it.toInt() })
+            updates.add(line.toInts())
         }
     }
 
@@ -69,23 +71,15 @@ data class Day05(
         return fixedUpdate
     }
 
-}
-
-fun <T> List<T>.middle(): T = this[this.size / 2]
-
-operator fun <T> List<T>.plus(other: Pair<T, T>): List<T> = this + other.toList()
-
-operator fun <T> Pair<T, T>.plus(other: List<T>): List<T> = this.toList() + other
-
-fun <A, B> Pair<A, B>.reversed(): Pair<B, A> = second to first
-
-fun <T> List<T>.uniqueOrderedIndexPairs(): Sequence<Pair<Int, Int>> {
-    val list = this
-    return sequence {
-        for (i in list.indices) {
-            for (j in i + 1 until list.size) {
-                yield(i to j)
+    fun <T> List<T>.uniqueOrderedIndexPairs(): Sequence<Pair<Int, Int>> {
+        val list = this
+        return sequence {
+            for (i in list.indices) {
+                for (j in i + 1 until list.size) {
+                    yield(i to j)
+                }
             }
         }
     }
+
 }

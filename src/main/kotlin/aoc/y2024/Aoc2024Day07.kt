@@ -1,14 +1,16 @@
 package aoc.y2024
 
 import aoc.utils.Resource
+import aoc.utils.containers.headTail
+import aoc.utils.strings.toLongs
 
 fun Resource.day07(): Day07 = Day07(
     nonBlankLines()
         .map {
-            it.split(":", limit = 2)
-                .let { equationParts -> equationParts[0].trim().toLong() to (equationParts[1].trim().split(" ").map { it.trim().toLong() }).toList() }
+            it.toLongs().headTail().let { (result, components) ->
+                Day07.Equation(result, components.toList())
+            }
         }
-        .map { (result, components) -> Day07.Equation(result, components) }
         .toList()
 )
 

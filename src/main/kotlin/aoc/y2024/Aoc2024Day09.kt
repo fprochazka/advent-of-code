@@ -1,6 +1,7 @@
 package aoc.y2024
 
 import aoc.utils.Resource
+import aoc.utils.ranges.length
 import java.util.*
 
 fun Resource.day09(): Day09 = Day09(
@@ -199,8 +200,6 @@ data class Day09(val diskMap: String) {
                 .joinToString("\n")
 
         fun IntRange.fittingSizes(): List<Int> = if (this.length() > 0) toList().indices.map { it + 1 } else emptyList()
-
-        fun IntRange.length() = last - first + 1
 
         data class File(val id: Long, val size: Int, val originalPosition: Int)
 
