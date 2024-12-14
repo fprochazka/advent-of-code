@@ -7,10 +7,10 @@ import aoc.utils.d2.Distance
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
 import aoc.utils.strings.matchEntire
-import aoc.y2024.Day14.Room.Quadrant
 import aoc.y2024.Day14.Room.Robot
 import java.awt.Color
 import java.nio.file.Files
+import kotlin.math.sign
 
 fun main() {
     Resource.named("aoc2024/day14/input.txt").day14().easterEgg()
@@ -25,13 +25,31 @@ data class Day14(val room: Room) {
     val result1 by lazy { safetyFactor(100) }
 
     fun safetyFactor(afterSeconds: Int): Long {
-        val quadrants = room.dims.quadrants()
+        // 0..4  6..10
+        //
+        // ..... 2..1.   0..2
+        // ..... .....
+        // 1.... .....
+        //
+        // ..... .....   4..6
+        // ...12 .....
+        // .1... 1....
+
+        // when (11 / 2) => 5, then 5 - 6 => sign -1
+        // when (11 / 2) => 5, then 5 - 4 => sign +1
+        // when (11 / 2) => 5, then 5 - 5 => sign  0 ... middle of the matrix
+
+        fun Robot.quadrant(): Pair<Int, Int>? =
+            (((room.dims.w / 2) - pos.x).sign to ((room.dims.h / 2) - pos.y).sign)
+                .takeIf { (a, b) -> a != 0 && b != 0 }
+
+        val quadrants = HashMap<Pair<Int, Int>, Long>(4, 1.0f)
 
         for (robot in room.tick(afterSeconds).robots) {
-            quadrants.forEach { it.addRobotIfInRange(robot.pos) }
+            robot.quadrant()?.let { q -> quadrants.merge(q, 1) { a, b -> a + b } }
         }
 
-        return quadrants.map { it.robots }.reduce { r, v -> r * v }
+        return quadrants.values.reduce { r, v -> r * v }
     }
 
     fun easterEgg() {
@@ -69,20 +87,6 @@ data class Day14(val room: Room) {
                 robots.forEach { robot -> this[robot.pos] = true }
             }
 
-        data class Quadrant(
-            val x: IntRange,
-            val y: IntRange,
-            var robots: Long = 0,
-        ) {
-
-            fun addRobotIfInRange(position: Position) {
-                if (position.x in x && position.y in y) {
-                    robots++
-                }
-            }
-
-        }
-
         data class Robot(
             val pos: Position,
             val velocityPerSecond: Distance, // can be negative!
@@ -93,27 +97,6 @@ data class Day14(val room: Room) {
 
         }
 
-    }
-
-    // 0..4  6..10
-    //
-    // ..... 2..1.   0..2
-    // ..... .....
-    // 1.... .....
-    //
-    // ..... .....   4..6
-    // ...12 .....
-    // .1... 1....
-    fun Dimensions.quadrants(): List<Quadrant> = buildList {
-        val midX = (w / 2).toInt()
-        val midY = (h / 2).toInt()
-        val maxX = maxX.toInt()
-        val maxY = maxY.toInt()
-
-        add(Quadrant(0 until midX, 0 until midY)) // top, left
-        add(Quadrant((midX + 1)..maxX, 0 until midY)) // top, right
-        add(Quadrant(0 until midX, (midY + 1)..maxY)) // bottom, left
-        add(Quadrant((midX + 1)..maxX, (midY + 1)..maxY)) // bottom, right
     }
 
     companion object {
