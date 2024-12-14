@@ -24,7 +24,7 @@ data class Day14(val room: Room) {
 
     val result1 by lazy { safetyFactor(100) }
 
-    fun safetyFactor(afterSeconds: Int): Long {
+    fun safetyFactor(afterSeconds: Int): Int {
         // 0..4  6..10
         //
         // ..... 2..1.   0..2
@@ -39,17 +39,15 @@ data class Day14(val room: Room) {
         // when (11 / 2) => 5, then 5 - 4 => sign +1
         // when (11 / 2) => 5, then 5 - 5 => sign  0 ... middle of the matrix
 
-        fun Robot.quadrant(): Pair<Int, Int>? =
-            (((room.dims.w / 2) - pos.x).sign to ((room.dims.h / 2) - pos.y).sign)
-                .takeIf { (a, b) -> a != 0 && b != 0 }
+        fun Dimensions.quadrant(pos: Position): Pair<Int, Int> = ((w / 2) - pos.x).sign to ((h / 2) - pos.y).sign
+        fun Robot.quadrant(): Pair<Int, Int>? = room.dims.quadrant(pos).takeIf { (a, b) -> a != 0 && b != 0 }
 
-        val quadrants = HashMap<Pair<Int, Int>, Long>(4, 1.0f)
+        val robotsInQuadrants = room.tick(afterSeconds).robots
+            .mapNotNull { it.quadrant() }
+            .groupingBy { it }
+            .eachCount()
 
-        for (robot in room.tick(afterSeconds).robots) {
-            robot.quadrant()?.let { q -> quadrants.merge(q, 1) { a, b -> a + b } }
-        }
-
-        return quadrants.values.reduce { r, v -> r * v }
+        return robotsInQuadrants.values.reduce { r, v -> r * v }
     }
 
     fun easterEgg() {
