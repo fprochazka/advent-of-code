@@ -2,21 +2,6 @@ package aoc.y2024
 
 import aoc.utils.Resource
 
-fun main() {
-    solve(Resource.named("aoc2024/day03/example1.txt"))
-    solve(Resource.named("aoc2024/day03/example2.txt"))
-    solve(Resource.named("aoc2024/day03/input.txt"))
-}
-
-private fun solve(input: Resource) {
-    println("input: $input")
-
-    val problem = input.day03()
-
-    input.assertResult("task1") { problem.result1 }
-    input.assertResult("task2") { problem.result2 }
-}
-
 fun Resource.day03(): Day03 = Day03(
     content().replace("\\s+".toRegex(), "")
 )

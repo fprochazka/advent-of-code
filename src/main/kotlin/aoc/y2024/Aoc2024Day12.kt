@@ -6,22 +6,6 @@ import aoc.utils.d2.Matrix
 import aoc.utils.d2.OrientedPosition
 import aoc.utils.d2.Position
 
-fun main() {
-    solve(Resource.named("aoc2024/day12/example1.txt"))
-    solve(Resource.named("aoc2024/day12/example2.txt"))
-    solve(Resource.named("aoc2024/day12/example3.txt"))
-    solve(Resource.named("aoc2024/day12/input.txt"))
-}
-
-private fun solve(input: Resource) {
-    println("input: $input")
-
-    val problem = input.day12()
-
-    input.assertResult("task1") { problem.result1 }
-    input.assertResult("task2") { problem.result2 }
-}
-
 fun Resource.day12(): Day12 = Day12(
     Day12.Graph.from(charMatrix()) { a, b -> a.value == b.value }
 )

@@ -3,20 +3,6 @@ package aoc.y2024
 import aoc.utils.Resource
 import kotlin.math.absoluteValue
 
-fun main() {
-    solve(Resource.named("aoc2024/day01/example.txt"))
-    solve(Resource.named("aoc2024/day01/input.txt"))
-}
-
-private fun solve(input: Resource) {
-    println("input: $input")
-
-    val problem = input.day01()
-
-    input.assertResult("task1") { problem.result1 }
-    input.assertResult("task2") { problem.result2 }
-}
-
 fun Resource.day01(): Day01 {
     val leftNumbers = mutableListOf<Int>();
     val rightNumbers = mutableListOf<Int>();

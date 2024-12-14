@@ -4,20 +4,6 @@ import aoc.utils.Resource
 import aoc.y2024.Day02.Report
 import kotlin.math.absoluteValue
 
-fun main() {
-    solve(Resource.named("aoc2024/day02/example.txt"))
-    solve(Resource.named("aoc2024/day02/input.txt"))
-}
-
-private fun solve(input: Resource) {
-    println("input: $input")
-
-    val problem = input.day02()
-
-    input.assertResult("task1") { problem.result1 }
-    input.assertResult("task2") { problem.result2 }
-}
-
 fun Resource.day02(): Day02 = Day02(
     nonBlankLines()
         .map { line -> line.split("\\s+".toRegex()) }

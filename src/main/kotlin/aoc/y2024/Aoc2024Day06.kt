@@ -7,20 +7,6 @@ import aoc.utils.d2.OrientedPosition
 import aoc.utils.d2.Position
 import kotlinx.coroutines.*
 
-fun main() {
-    solve(Resource.named("aoc2024/day06/example1.txt"))
-    solve(Resource.named("aoc2024/day06/input.txt"))
-}
-
-private fun solve(input: Resource) {
-    println("input: $input")
-
-    val problem = input.day06()
-
-    input.assertResult("task1") { problem.result1 }
-    input.assertResult("task2") { problem.result2 }
-}
-
 fun Resource.day06(): Day06 = Day06.toMatrix(charMatrix()).let { (floorPlan, startingPoint) -> Day06(floorPlan, startingPoint) }
 
 data class Day06(

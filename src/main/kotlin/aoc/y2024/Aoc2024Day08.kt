@@ -5,21 +5,6 @@ import aoc.utils.combinatorics.variationsWithoutRepetition
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
 
-fun main() {
-    solve(Resource.named("aoc2024/day08/example1.txt"))
-    solve(Resource.named("aoc2024/day08/example2.txt"))
-    solve(Resource.named("aoc2024/day08/input.txt"))
-}
-
-private fun solve(input: Resource) {
-    println("input: $input")
-
-    val problem = input.day08()
-
-    input.assertResult("task1") { problem.result1 }
-    input.assertResult("task2") { problem.result2 }
-}
-
 fun Resource.day08(): Day08 = Day08(
     Matrix.from(charMatrix())
 )

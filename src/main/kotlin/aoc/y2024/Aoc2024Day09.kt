@@ -3,22 +3,6 @@ package aoc.y2024
 import aoc.utils.Resource
 import java.util.*
 
-fun main() {
-    solve(Resource.named("aoc2024/day09/example1.txt"))
-    solve(Resource.named("aoc2024/day09/input.txt"))
-    solve(Resource.named("aoc2024/day09/perf_test_1.txt"))
-    solve(Resource.named("aoc2024/day09/perf_test_2.txt"))
-}
-
-private fun solve(input: Resource) {
-    println("input: $input")
-
-    val problem = input.day09()
-
-    input.assertResult("task1") { problem.result1 }
-    input.assertResult("task2") { problem.result2 }
-}
-
 fun Resource.day09(): Day09 = Day09(
     content().trim()
 )

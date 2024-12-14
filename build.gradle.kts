@@ -24,6 +24,12 @@ dependencies {
 //    implementation("com.google.ortools:ortools-java:9.11.4210")
 
     implementation(libs.javaDiffUtils)
+
+    implementation(libs.logback.classic)
+
+    testImplementation(libs.junit.jupiter)
+    testImplementation(libs.assertj)
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 tasks.register<JavaExec>("benchmarkJvm") {

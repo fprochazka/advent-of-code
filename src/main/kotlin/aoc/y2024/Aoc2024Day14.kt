@@ -10,20 +10,6 @@ import java.nio.file.Files
 import javax.imageio.ImageIO
 
 fun main() {
-    Resource.named("aoc2024/day14/example1.txt").let { input ->
-        input.day14().let { problem ->
-            println("input: $input")
-            input.assertResult("task1") { problem.result1 }
-        }
-    }
-
-    Resource.named("aoc2024/day14/input.txt").let { input ->
-        input.day14().let { problem ->
-            println("input: $input")
-            input.assertResult("task1") { problem.result1 }
-        }
-    }
-
     Resource.named("aoc2024/day14/input.txt").day14().easterEgg()
 }
 
@@ -34,7 +20,6 @@ fun Resource.day14(): Day14 = Day14(
 data class Day14(val room: Room) {
 
     val result1 by lazy { safetyFactor(100) }
-    val result2 by lazy { easterEgg() }
 
     fun safetyFactor(afterSeconds: Int): Long {
         val quadrants = room.quadrants()
@@ -68,7 +53,7 @@ data class Day14(val room: Room) {
                 }
             }
 
-            dir.resolve("aoc_trees_${seconds.toString().padStart(10, '0')}.png")
+            dir.resolve("${seconds.toString().padStart(10, '0')}.png")
                 .let { file -> ImageIO.write(image, "png", file.toFile()) }
 
             if (seconds % 100 == 0) {

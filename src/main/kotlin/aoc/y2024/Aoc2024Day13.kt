@@ -4,20 +4,6 @@ import aoc.utils.Resource
 import aoc.utils.d2.Distance
 import aoc.utils.d2.Position
 
-fun main() {
-    solve(Resource.named("aoc2024/day13/example1.txt"))
-    solve(Resource.named("aoc2024/day13/input.txt"))
-}
-
-private fun solve(input: Resource) {
-    println("input: $input")
-
-    val problem = input.day13()
-
-    input.assertResult("task1") { problem.result1 }
-    input.assertResult("task2") { problem.result2 }
-}
-
 fun Resource.day13(): Day13 = Day13(
     nonBlankLines()
         .chunked(3)

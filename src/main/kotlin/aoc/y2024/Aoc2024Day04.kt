@@ -5,20 +5,6 @@ import aoc.utils.d2.Direction
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
 
-fun main() {
-    solve(Resource.named("aoc2024/day04/example1.txt"))
-    solve(Resource.named("aoc2024/day04/input.txt"))
-}
-
-private fun solve(input: Resource) {
-    println("input: $input")
-
-    val problem = input.day04()
-
-    input.assertResult("task1") { problem.result1 }
-    input.assertResult("task2") { problem.result2 }
-}
-
 fun Resource.day04(): Day04 = Day04(
     Matrix.from(charMatrix())
 )
