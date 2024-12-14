@@ -6,7 +6,7 @@ import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
 
 fun Resource.day04(): Day04 = Day04(
-    Matrix.from(charMatrix())
+    Matrix.ofChars(matrix2d())
 )
 
 data class Day04(val matrix: Matrix<Char>) {

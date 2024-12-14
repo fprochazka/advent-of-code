@@ -6,7 +6,7 @@ import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
 
 fun Resource.day10(): Day10 = Day10(
-    Day10.TerrainMap(Matrix.from(intMatrix()))
+    Day10.TerrainMap(Matrix.ofInts(matrix2d()))
 )
 
 data class Day10(val data: TerrainMap) {

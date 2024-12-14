@@ -1,61 +1,55 @@
 package aoc.utils.d2
 
+import aoc.utils.Resource
 import java.awt.image.BufferedImage
 
 open class Matrix<V : Any> protected constructor(
-    val width: Long,
-    val height: Long
+    val dims: Dimensions,
 ) {
 
-    val maxX = width - 1
-    val maxY = height - 1
-
-    private val matrix: MutableList<V?> = MutableList(Math.toIntExact(width * height)) { null }
+    private val matrix: MutableList<V?> = MutableList(Math.toIntExact(dims.area)) { null }
 
     open fun allPositionsOfValue(value: V): Set<Position> =
         matrix.withIndex()
             .filter { it.value == value }
-            .map { indexToPosition(it.index) }
+            .map { dims.matrixIndexToPosition(it.index) }
             .toSet()
 
     open fun allPositionsByValues(valueFilter: (V) -> Boolean): Map<V, Set<Position>> =
         matrix.withIndex()
             .filter { (_, value) -> value?.let(valueFilter) == true }
             .groupBy({ it.value!! }, { it.index })
-            .mapValues { (_, indices) -> indices.map { indexToPosition(it) }.toSet() }
+            .mapValues { (_, indices) -> indices.map { dims.matrixIndexToPosition(it) }.toSet() }
 
     fun allEntries(): Sequence<Pair<Position, V>> =
         allPositions().map { it to this[it]!! }
 
     fun allPositions(): Sequence<Position> =
-        allPositions(maxY, maxX)
+        dims.allPositions()
 
     fun putAll(other: Matrix<V>) =
         other.allEntries().forEach { (position, value) -> this[position] = value }
 
-    fun putAll(cells: Map<Position, V>) =
-        cells.forEach { (position, value) -> this[position] = value }
-
     open operator fun set(position: Position, value: V) {
-        require(position in this) { "$position is not in matrix($width x $height)" }
-        matrix[position.matrixIndex()] = value
+        require(position in this) { "$position is not in matrix${dims}" }
+        matrix[dims.matrixIndex(position)] = value
     }
 
     operator fun get(position: Position): V? =
-        if (position in this) matrix[position.matrixIndex()] else null
+        if (position in this) matrix[dims.matrixIndex(position)] else null
 
     operator fun contains(position: Position): Boolean =
         position.x > -1 && position.y > -1
-          && position.x <= maxX && position.y <= maxY
+          && position.x <= dims.maxX && position.y <= dims.maxY
 
     fun copy(): Matrix<V> =
-        Matrix<V>(width, height).also {
+        Matrix<V>(dims).also {
             it.matrix.clear()
             it.matrix.addAll(this.matrix)
         }
 
     fun draw(valueToPixel: (V) -> java.awt.Color): BufferedImage {
-        val image = BufferedImage(width.toInt(), height.toInt(), BufferedImage.TYPE_INT_ARGB)
+        val image = BufferedImage(dims.w.toInt(), dims.h.toInt(), BufferedImage.TYPE_INT_ARGB)
 
         allEntries().forEach { (pos, value) ->
             image.setRGB(pos.x.toInt(), pos.y.toInt(), valueToPixel(value).rgb)
@@ -65,51 +59,46 @@ open class Matrix<V : Any> protected constructor(
     }
 
     fun withValuesIndex(): WithValuesIndex<V> =
-        WithValuesIndex<V>(width, height).apply { putAll(this@apply) }
+        WithValuesIndex<V>(dims).apply { putAll(this@apply) }
 
     override fun toString(): String =
         allPositions()
-            .map { "${this[it]}" + (if (it.x == maxX) "\n" else "") }
+            .map { "${this[it]}" + (if (it.x == dims.maxX) "\n" else "") }
             .joinToString("")
-
-    fun Position.matrixIndex(): Int = Math.toIntExact(y * width + x)
-
-    protected fun indexToPosition(index: Int): Position = Position(index % width, index / width)
 
     companion object {
 
         fun <V : Any> empty(template: Matrix<*>): Matrix<V> =
-            Matrix<V>(template.width, template.height)
+            Matrix<V>(template.dims)
 
         fun <V : Any> empty(width: Int, height: Int): Matrix<V> =
             empty(width.toLong(), height.toLong())
 
         fun <V : Any> empty(width: Long, height: Long): Matrix<V> =
-            Matrix<V>(width, height)
+            Matrix<V>(Dimensions(width, height))
 
         fun <V : Any> empty(dims: Dimensions): Matrix<V> =
-            Matrix<V>(dims.w, dims.h)
+            Matrix<V>(dims)
 
         fun <V : Any> of(dims: Dimensions, initialValue: () -> V): Matrix<V> =
-            Matrix<V>(dims.w, dims.h).apply {
+            Matrix<V>(dims).apply {
                 allPositions().forEach { this[it] = initialValue() }
             }
 
-        fun <V : Any> from(cells: Map<Position, V>): Matrix<V> =
-            Matrix<V>(cells.keys.maxOf { it.x } + 1, cells.keys.maxOf { it.y } + 1)
-                .apply { putAll(cells) }
+        fun ofChars(cells: Resource.CharMatrix2d): Matrix<Char> =
+            of(cells, { it })
 
-        private fun allPositions(maxY: Long, maxX: Long): Sequence<Position> = sequence {
-            for (y in 0..maxY) {
-                for (x in 0..maxX) {
-                    yield(Position(x, y))
-                }
+        fun ofInts(cells: Resource.CharMatrix2d): Matrix<Int> =
+            of(cells, { it.digitToInt() })
+
+        fun <V : Any> of(cells: Resource.CharMatrix2d, toValue: (Char) -> V): Matrix<V> =
+            Matrix<V>(cells.dims).apply {
+                cells.entries.forEach { (pos, char) -> this[pos] = toValue(char) }
             }
-        }
 
     }
 
-    class WithValuesIndex<V : Any> internal constructor(width: Long, height: Long) : Matrix<V>(width, height) {
+    class WithValuesIndex<V : Any> internal constructor(dims: Dimensions) : Matrix<V>(dims) {
 
         private val positionsByValue: MutableMap<V, MutableSet<Position>> = mutableMapOf()
 
@@ -211,6 +200,9 @@ data class Position(val x: Long, val y: Long) {
     operator fun plus(other: Distance): Position =
         Position(this.x + other.xDiff, this.y + other.yDiff)
 
+    /**
+     * Fits the position into given dimensions which represent a (w * h) matrix
+     */
     operator fun rem(dims: Dimensions): Position {
         fun Long.inDimension(size: Long): Long = ((this % size) + size) % size
 
@@ -249,12 +241,30 @@ data class Position(val x: Long, val y: Long) {
 
 data class Dimensions(val w: Long, val h: Long) {
 
-    constructor(width: Int, height: Int) : this(width.toLong(), height.toLong())
+    constructor(w: Int, h: Int) : this(w.toLong(), h.toLong())
 
-    constructor(width: String, height: String) : this(width.toLong(), height.toLong())
+    constructor(w: String, h: String) : this(w.toLong(), h.toLong())
 
     val maxX = (w - 1)
     val maxY = (h - 1)
+
+    val area = w * h
+
+    fun matrixIndex(position: Position): Int =
+        Math.toIntExact(position.y * w + position.x)
+
+    fun matrixIndexToPosition(index: Int): Position =
+        Position(index % w, index / w)
+
+    fun allPositions(): Sequence<Position> = sequence {
+        for (y in 0..maxY) {
+            for (x in 0..maxX) {
+                yield(Position(x, y))
+            }
+        }
+    }
+
+    override fun toString(): String = "($w x $h)"
 
 }
 

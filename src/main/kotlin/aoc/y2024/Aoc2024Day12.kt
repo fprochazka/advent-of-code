@@ -1,13 +1,10 @@
 package aoc.y2024
 
 import aoc.utils.Resource
-import aoc.utils.d2.Direction
-import aoc.utils.d2.Matrix
-import aoc.utils.d2.OrientedPosition
-import aoc.utils.d2.Position
+import aoc.utils.d2.*
 
 fun Resource.day12(): Day12 = Day12(
-    Day12.Graph.from(charMatrix()) { a, b -> a.value == b.value }
+    Day12.Graph.ofChars(matrix2d()) { a, b -> a.value == b.value }
 )
 
 data class Day12(val fieldGraph: Graph<Char>) {
@@ -65,9 +62,9 @@ data class Day12(val fieldGraph: Graph<Char>) {
         return uniqueFenceSides
     }
 
-    class Graph<V : Any>(width: Long, height: Long) {
+    class Graph<V : Any>(dims: Dimensions) {
 
-        val nodes = Matrix.empty<Node>(width, height)
+        val nodes: Matrix<Node> = Matrix.empty<Node>(dims)
 
         operator fun set(position: Position, value: V) {
             nodes[position] = Node(value, position)
@@ -157,13 +154,10 @@ data class Day12(val fieldGraph: Graph<Char>) {
 
             val neighbourSides = listOf(Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT)
 
-            fun <R : Any> from(cells: Map<Position, R>, edgeFilter: (Graph<R>.Node, Graph<R>.Node) -> Boolean): Graph<R> {
-                val width = cells.keys.maxOf { it.x } + 1
-                val height = cells.keys.maxOf { it.y } + 1
+            fun ofChars(matrix: Resource.CharMatrix2d, edgeFilter: (Graph<Char>.Node, Graph<Char>.Node) -> Boolean): Graph<Char> {
+                val graph = Graph<Char>(matrix.dims)
 
-                val graph = Graph<R>(width, height)
-
-                for ((position, value) in cells.entries) {
+                for ((position, value) in matrix.entries) {
                     graph[position] = value
                 }
 

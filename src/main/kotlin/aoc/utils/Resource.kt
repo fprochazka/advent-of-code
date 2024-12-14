@@ -16,18 +16,8 @@ data class Resource(val name: String) {
 
     fun nonBlankLines(): List<String> = allLines().filter { it.isNotBlank() }
 
-    fun charMatrix(): Map<aoc.utils.d2.Position, Char> {
-        return nonBlankLines()
-            .flatMapIndexed { y, line ->
-                line.mapIndexed { x, char -> aoc.utils.d2.Position(x, y) to char }
-            }
-            .toMap()
-    }
-
-    fun intMatrix(): Map<aoc.utils.d2.Position, Int> {
-        return charMatrix()
-            .mapValues { it.value.digitToInt() }
-    }
+    fun matrix2d(): CharMatrix2d =
+        CharMatrix2d.fromLines(nonBlankLines())
 
     fun assertResult(name: String, compute: () -> Any) {
         this.resultNamed(name)
@@ -64,6 +54,27 @@ data class Resource(val name: String) {
     }
 
     override fun toString(): String = name
+
+    data class CharMatrix2d(
+        val entries: Sequence<Pair<aoc.utils.d2.Position, Char>>,
+        val dims: aoc.utils.d2.Dimensions
+    ) {
+
+        companion object {
+
+            fun fromLines(lines: List<String>): CharMatrix2d =
+                CharMatrix2d(
+                    lines
+                        .asSequence()
+                        .flatMapIndexed { y, line ->
+                            line.mapIndexed { x, char -> aoc.utils.d2.Position(x, y) to char }
+                        },
+                    aoc.utils.d2.Dimensions(lines.size, lines.first().length)
+                )
+
+        }
+
+    }
 
     companion object {
 
