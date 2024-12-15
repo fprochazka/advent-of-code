@@ -90,14 +90,14 @@ data class Day15(
             fun nextBoxesRow(boxesRow: Set<Position>): Set<Position>? {
                 var nextBoxesRow = mutableSetOf<Position>()
 
-                for (nextPosition in boxesRow.map { it + move }) {
-                    if (this[nextPosition] == WALL || this[nextPosition + toRight1] == WALL) {
+                for ((nextLeft, nextRight) in boxesRow.map { it + move }.map { it to (it + toRight1) }) {
+                    if (this[nextLeft] == WALL || this[nextRight] == WALL) {
                         return null // cannot move boxes into a wall
                     }
 
                     nextBoxesRow.addAllNotNull(
-                        boxPositionAt(nextPosition),
-                        boxPositionAt(nextPosition + toRight1)
+                        boxPositionAt(nextLeft),
+                        boxPositionAt(nextRight)
                     )
                 }
 
