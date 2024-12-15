@@ -137,7 +137,7 @@ data class Day15(
         return robotWantsToMoveTo
     }
 
-    fun Matrix<Char>.smallWarehouseApplyMoves(moves: List<Direction>): Matrix<Char> {
+    fun Matrix<Char>.applyMoves(moves: List<Direction>, moveBoxes: (Position, Direction) -> Position): Matrix<Char> {
         var robotPos = allPositionsOfValue(ROBOT).first()
         this[robotPos] = EMPTY
 
@@ -152,7 +152,7 @@ data class Day15(
                 }
 
                 else -> {
-                    robotPos = smallWarehouseMoveBoxes(robotPos, move)
+                    robotPos = moveBoxes(robotPos, move)
                 }
             }
         }
@@ -162,29 +162,12 @@ data class Day15(
         return this
     }
 
+    fun Matrix<Char>.smallWarehouseApplyMoves(moves: List<Direction>): Matrix<Char> {
+        return this.applyMoves(moves) { robotPos, move -> smallWarehouseMoveBoxes(robotPos, move) }
+    }
+
     fun Matrix<Char>.bigWarehouseApplyMoves(moves: List<Direction>): Matrix<Char> {
-        var robotPos = allPositionsOfValue(ROBOT).first()
-        this[robotPos] = EMPTY
-
-        for (move in moves) {
-            val robotWantsToMoveTo = robotPos + move
-            when (this[robotWantsToMoveTo]) {
-                WALL -> continue // cannot move into wall
-
-                EMPTY -> {
-                    robotPos = robotWantsToMoveTo
-                    continue // empty space, naively go for it
-                }
-
-                else -> {
-                    robotPos = bigWarehouseMoveBoxes(robotPos, move)
-                }
-            }
-        }
-
-        this[robotPos] = ROBOT
-
-        return this
+        return this.applyMoves(moves) { robotPos, move -> bigWarehouseMoveBoxes(robotPos, move) }
     }
 
     fun Matrix<Char>.scaleUp(): Matrix<Char> {
