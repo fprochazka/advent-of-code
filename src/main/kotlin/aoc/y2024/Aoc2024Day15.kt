@@ -58,16 +58,14 @@ data class Day15(
             throw IllegalStateException("No WALL or EMPTY found from $robotPos -> $move")
         }
 
-        val firstEmptySpaceInMoveDirection = findFirstEmptySpaceInDirection(move)
-        if (firstEmptySpaceInMoveDirection == null) {
-            return robotPos // nowhere to move the boxes
-        }
+        val emptySpaceForBox = findFirstEmptySpaceInDirection(move)
+            ?: return robotPos // nowhere to move the boxes
 
         val robotWantsToMoveTo = robotPos + move
 
         // we don't have to move all individual boxes, just jump the first one to the empty slot, it looks the same
         this[robotWantsToMoveTo] = EMPTY
-        this[firstEmptySpaceInMoveDirection] = SMALL_BOX
+        this[emptySpaceForBox] = SMALL_BOX
 
         return robotWantsToMoveTo
     }
@@ -75,26 +73,24 @@ data class Day15(
     fun Matrix<Char>.bigWarehouseMoveBoxes(robotPos: Position, move: Direction): Position {
         val robotWantsToMoveTo = robotPos + move
 
-        fun collectBoxesAffectedByMoveIfTheyAreNotBlockedByWall(move: Direction): Set<Position>? {
+        fun collectBoxesAffectedByMoveForHorizontal(move: Direction): Set<Position>? {
             val result = mutableSetOf<Position>()
 
-            if (move == Direction.LEFT || move == Direction.RIGHT) {
-                for ((pos, value) in entriesInDirection(robotPos, move)) {
-                    when (value) {
-                        WALL -> return null // if we find a wall before we find empty spot, we cannot move the boxes
-                        EMPTY -> break // we've reached an empty spot
-                        else -> result.add(boxPositionAt(pos) ?: error("expected box at $pos, but got $value"))
-                    }
+            for ((pos, value) in entriesInDirection(robotPos, move)) {
+                when (value) {
+                    WALL -> return null // if we find a wall before we find empty spot, we cannot move the boxes
+                    EMPTY -> break // we've reached an empty spot
+                    else -> result.add(boxPositionAt(pos) ?: error("expected box at $pos, but got $value"))
                 }
-
-                return result
             }
 
-            var boxesRow = setOf(boxPositionAt(robotWantsToMoveTo)!!)
-            while (true) {
+            return result
+        }
+
+        fun collectBoxesAffectedByMoveForVertical(move: Direction): Set<Position>? {
+            fun nextBoxesRow(boxesRow: Set<Position>): Set<Position>? {
                 var nextBoxesRow = mutableSetOf<Position>()
 
-                var foundMoreBoxesToMove = false
                 for (position in boxesRow) {
                     val nextPosition = position + move
 
@@ -107,13 +103,22 @@ data class Day15(
                         boxPositionAt(nextPosition + toRight1)
                     )
                     nextBoxesRow.addAll(nextAffectedBoxes)
-                    foundMoreBoxesToMove = foundMoreBoxesToMove || nextAffectedBoxes.isNotEmpty()
                 }
+
+                return nextBoxesRow
+            }
+
+            val result = mutableSetOf<Position>()
+
+            var boxesRow = setOf(boxPositionAt(robotWantsToMoveTo)!!)
+            while (true) {
+                var nextBoxesRow = nextBoxesRow(boxesRow)
+                    ?: return null // cannot move boxes into a wall
 
                 result.addAll(boxesRow)
                 boxesRow = nextBoxesRow
 
-                if (!foundMoreBoxesToMove) {
+                if (nextBoxesRow.isEmpty()) {
                     break
                 }
             }
@@ -121,21 +126,23 @@ data class Day15(
             return result
         }
 
-        val boxPositions = collectBoxesAffectedByMoveIfTheyAreNotBlockedByWall(move)
-        if (boxPositions == null) {
+        val affectedBoxes = when (move) {
+            Direction.LEFT, Direction.RIGHT -> collectBoxesAffectedByMoveForHorizontal(move)
+            Direction.UP, Direction.DOWN -> collectBoxesAffectedByMoveForVertical(move)
+            else -> error("Unexpected direction $move")
+        }
+        if (affectedBoxes == null) {
             return robotPos // nowhere to move the boxes
         }
 
-        require(boxPositions.isNotEmpty()) { "no movable boxes found in direction $move from $robotPos" }
-
         // pick up the boxes
-        for (boxPosition in boxPositions) {
+        for (boxPosition in affectedBoxes) {
             this[boxPosition] = EMPTY
             this[boxPosition + toRight1] = EMPTY
         }
 
-        // place them all
-        for (boxPosition in boxPositions) {
+        // place the boxes
+        for (boxPosition in affectedBoxes) {
             this[boxPosition + move] = BIG_BOX_LEFT
             this[boxPosition + toRight1 + move] = BIG_BOX_RIGHT
         }
@@ -143,7 +150,7 @@ data class Day15(
         return robotWantsToMoveTo
     }
 
-    fun Matrix<Char>.applyMoves(moves: List<Direction>, moveBoxes: (Position, Direction) -> Position): Matrix<Char> {
+    fun Matrix<Char>.applyMoves(moves: List<Direction>, tryMovingBoxes: (Position, Direction) -> Position): Matrix<Char> {
         var robotPos = allPositionsOfValue(ROBOT).first()
         this[robotPos] = EMPTY
 
@@ -158,7 +165,7 @@ data class Day15(
                 }
 
                 else -> {
-                    robotPos = moveBoxes(robotPos, move)
+                    robotPos = tryMovingBoxes(robotPos, move)
                 }
             }
         }
