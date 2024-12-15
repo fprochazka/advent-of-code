@@ -62,6 +62,9 @@ data class Resource(val name: String) {
 
         companion object {
 
+            fun fromContent(content: String): CharMatrix2d =
+                content.lines().let { fromLines(it) }
+
             fun fromLines(lines: List<String>): CharMatrix2d =
                 CharMatrix2d(
                     lines.asSequence()

@@ -31,15 +31,26 @@ data class Day15(
     // #......
     fun Position.boxGps(): Long = (100 * y) + x
 
+    fun Matrix<Char>.boxPositionAt(at: Position): Position? = when (this[at]) {
+        SMALL_BOX -> at
+
+        // big box positions are always the box's left side
+        BIG_BOX_LEFT -> at
+        BIG_BOX_RIGHT -> at + toLeft1
+
+        else -> null
+    }
+
+    fun Matrix<Char>.positionsInDirection(startFrom: Position, dir: Direction): Sequence<Position> =
+        generateSequence(startFrom + dir) { it + dir }
+            .takeWhile { it in this } // only for coordinates within matrix
+
     fun Matrix<Char>.smallWarehouseApplyMoves(moves: List<Direction>): Matrix<Char> {
         var robotPos = allPositionsOfValue(ROBOT).first()
         this[robotPos] = EMPTY
 
         fun findFirstEmptySpaceInDirection(move: Direction): Position? {
-            val positionsInDirectionOfMove = generateSequence(robotPos + move) { it + move }
-                .takeWhile { it in this } // only for coordinates within matrix
-
-            for (pos in positionsInDirectionOfMove) {
+            for (pos in positionsInDirection(robotPos, move)) {
                 when (this[pos]) {
                     WALL -> return null // if we find a wall before we find empty spot, we cannot move the boxes
                     EMPTY -> return pos // we can move the boxes into this empty slot
@@ -59,7 +70,7 @@ data class Day15(
                     continue // empty space, naively go for it
                 }
 
-                SMALL_BOX -> {
+                else -> {
                     val firstEmptySpaceInMoveDirection = findFirstEmptySpaceInDirection(move)
                     if (firstEmptySpaceInMoveDirection == null) {
                         continue // nowhere to move the boxes
@@ -71,8 +82,6 @@ data class Day15(
 
                     robotPos = robotWantsToMoveTo
                 }
-
-                else -> error("Unexpected value ${this[robotWantsToMoveTo]} at $robotWantsToMoveTo")
             }
         }
 
@@ -85,27 +94,12 @@ data class Day15(
         var robotPos = allPositionsOfValue(ROBOT).first()
         this[robotPos] = EMPTY
 
-        val toRight1 = Distance(1, 0)
-        val toLeft1 = Distance(-1, 0)
-
-        // box positions are always the BOXes left side
-        fun boxPositionAt(at: Position): Position? = when (this[at]) {
-            BIG_BOX_LEFT -> at
-            BIG_BOX_RIGHT -> at + toLeft1
-            else -> null
-        }
-
-        fun collectBoxesAffectedByMoveIfTheyAreNotBlockedByWall(move: Direction): Set<Position> {
+        fun collectBoxesAffectedByMoveIfTheyAreNotBlockedByWall(move: Direction): Set<Position>? {
             val result = mutableSetOf<Position>()
 
-            val robotWantsToMoveTo = robotPos + move
-
             if (move == Direction.LEFT || move == Direction.RIGHT) {
-                val positionsInDirectionOfMove = generateSequence(robotWantsToMoveTo) { it + move }
-                    .takeWhile { it in this } // only for coordinates within matrix
-
-                for (pos in positionsInDirectionOfMove) {
-                    if (this[pos] == WALL) return emptySet() // if we find a wall before we find empty spot, we cannot move the boxes
+                for (pos in positionsInDirection(robotPos, move)) {
+                    if (this[pos] == WALL) return null // if we find a wall before we find empty spot, we cannot move the boxes
                     if (this[pos] == EMPTY) break // we've reached an empty spot
                     result.add(boxPositionAt(pos) ?: error("expected box at $pos, but got ${this[pos]}"))
                 }
@@ -113,6 +107,7 @@ data class Day15(
                 return result
             }
 
+            val robotWantsToMoveTo = robotPos + move
             var boxesRow = setOf(boxPositionAt(robotWantsToMoveTo)!!)
             while (true) {
                 var nextBoxesRow = mutableSetOf<Position>()
@@ -122,7 +117,7 @@ data class Day15(
                     val nextPosition = position + move
 
                     if (this[nextPosition] == WALL || this[nextPosition + toRight1] == WALL) {
-                        return emptySet() // cannot move boxes into a wall
+                        return null // cannot move boxes into a wall
                     }
 
                     val nextAffectedBoxes = setOfNotNull(boxPositionAt(nextPosition), boxPositionAt(nextPosition + toRight1))
@@ -143,33 +138,38 @@ data class Day15(
 
         for (move in moves) {
             val robotWantsToMoveTo = robotPos + move
-            if (this[robotWantsToMoveTo] == WALL) {
-                continue // cannot move into wall
-            }
-            if (this[robotWantsToMoveTo] == EMPTY) {
-                robotPos = robotWantsToMoveTo
-                continue // empty space, naively go for it
-            }
+            when (this[robotWantsToMoveTo]) {
+                WALL -> continue // cannot move into wall
 
-            // box LEFT or RIGHT
-            val boxPositions = collectBoxesAffectedByMoveIfTheyAreNotBlockedByWall(move)
-            if (boxPositions.isEmpty()) {
-                continue // nowhere to move the boxes
-            }
+                EMPTY -> {
+                    robotPos = robotWantsToMoveTo
+                    continue // empty space, naively go for it
+                }
 
-            // pick up the boxes
-            for (boxPosition in boxPositions) {
-                this[boxPosition] = EMPTY
-                this[boxPosition + toRight1] = EMPTY
-            }
+                else -> {
+                    // box LEFT or RIGHT
+                    val boxPositions = collectBoxesAffectedByMoveIfTheyAreNotBlockedByWall(move)
+                    if (boxPositions == null) {
+                        continue // nowhere to move the boxes
+                    }
 
-            // place them all
-            for (boxPosition in boxPositions) {
-                this[boxPosition + move] = BIG_BOX_LEFT
-                this[boxPosition + toRight1 + move] = BIG_BOX_RIGHT
-            }
+                    require(boxPositions.isNotEmpty()) { "no movable boxes found in direction $move from $robotPos" }
 
-            robotPos = robotWantsToMoveTo
+                    // pick up the boxes
+                    for (boxPosition in boxPositions) {
+                        this[boxPosition] = EMPTY
+                        this[boxPosition + toRight1] = EMPTY
+                    }
+
+                    // place them all
+                    for (boxPosition in boxPositions) {
+                        this[boxPosition + move] = BIG_BOX_LEFT
+                        this[boxPosition + toRight1 + move] = BIG_BOX_RIGHT
+                    }
+
+                    robotPos = robotWantsToMoveTo
+                }
+            }
         }
 
         this[robotPos] = ROBOT
@@ -178,46 +178,46 @@ data class Day15(
     }
 
     fun Matrix<Char>.scaleUp(): Matrix<Char> {
-        val bigWarehouse = Matrix.empty<Char>(dims.let { Dimensions(it.w * 2, it.h) })
+        val bigDims = dims.let { Dimensions(it.w * 2, it.h) }
+        val result = Matrix.empty<Char>(bigDims)
 
-        val toRight = Distance(1, 0)
         for ((smallPos, value) in entries) {
             val bigPos = Position(smallPos.x * 2, smallPos.y)
             when (value) {
                 EMPTY, WALL -> {
-                    bigWarehouse[bigPos] = value
-                    bigWarehouse[bigPos + toRight] = value
+                    result[bigPos] = value
+                    result[bigPos + toRight1] = value
                 }
 
                 SMALL_BOX -> {
-                    bigWarehouse[bigPos] = BIG_BOX_LEFT
-                    bigWarehouse[bigPos + toRight] = BIG_BOX_RIGHT
+                    result[bigPos] = BIG_BOX_LEFT
+                    result[bigPos + toRight1] = BIG_BOX_RIGHT
                 }
 
                 ROBOT -> {
-                    bigWarehouse[bigPos] = value
-                    bigWarehouse[bigPos + toRight] = EMPTY
+                    result[bigPos] = value
+                    result[bigPos + toRight1] = EMPTY
                 }
             }
         }
 
-        return bigWarehouse
+        return result
     }
 
     companion object {
 
-        fun parse(input: String): Day15 {
-            val (warehouse, moves) = input.split("\n\n", limit = 2).map { it.trim() }
+        fun parse(input: String): Day15 =
+            input.split("\n\n", limit = 2)
+                .map { it.trim() }
+                .let { (warehouse, moves) ->
+                    Day15(
+                        parseWarehouse(warehouse),
+                        parseMoves(moves),
+                    )
+                }
 
-            return Day15(
-                parseWarehouse(warehouse),
-                parseMoves(moves),
-            )
-        }
-
-        fun parseWarehouse(string: String): Matrix<Char> {
-            return Matrix.ofChars(string.lines().let { Resource.CharMatrix2d.fromLines(it) })
-        }
+        fun parseWarehouse(raw: String): Matrix<Char> =
+            Matrix.ofChars(Resource.CharMatrix2d.fromContent(raw))
 
         fun parseMoves(raw: String): List<Direction> =
             raw.mapNotNull {
@@ -229,6 +229,9 @@ data class Day15(
                     else -> null
                 }
             }
+
+        val toRight1 = Distance(1, 0)
+        val toLeft1 = Distance(-1, 0)
 
         const val WALL = '#'
         const val EMPTY = '.'
