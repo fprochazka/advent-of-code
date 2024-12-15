@@ -196,8 +196,7 @@ data class Day15(
     companion object {
 
         fun parse(input: String): Day15 =
-            input.split("\n\n", limit = 2)
-                .map { it.trim() }
+            input.trim().split("\n\n", limit = 2)
                 .let { (warehouse, moves) ->
                     Day15(
                         parseWarehouse(warehouse),
