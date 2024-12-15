@@ -41,14 +41,15 @@ data class Day15(
         else -> null
     }
 
-    fun Matrix<Char>.positionsInDirection(startFrom: Position, dir: Direction): Sequence<Position> =
+    fun Matrix<Char>.entriesInDirection(startFrom: Position, dir: Direction): Sequence<Pair<Position, Char>> =
         generateSequence(startFrom + dir) { it + dir }
             .takeWhile { it in this } // only for coordinates within matrix
+            .map { it to this[it]!! }
 
     fun Matrix<Char>.smallWarehouseMoveBoxes(robotPos: Position, move: Direction): Position {
         fun findFirstEmptySpaceInDirection(move: Direction): Position? {
-            for (pos in positionsInDirection(robotPos, move)) {
-                when (this[pos]) {
+            for ((pos, value) in entriesInDirection(robotPos, move)) {
+                when (value) {
                     WALL -> return null // if we find a wall before we find empty spot, we cannot move the boxes
                     EMPTY -> return pos // we can move the boxes into this empty slot
                 }
@@ -57,12 +58,12 @@ data class Day15(
             throw IllegalStateException("No WALL or EMPTY found from $robotPos -> $move")
         }
 
-        val robotWantsToMoveTo = robotPos + move
-
         val firstEmptySpaceInMoveDirection = findFirstEmptySpaceInDirection(move)
         if (firstEmptySpaceInMoveDirection == null) {
             return robotPos // nowhere to move the boxes
         }
+
+        val robotWantsToMoveTo = robotPos + move
 
         // we don't have to move all individual boxes, just jump the first one to the empty slot, it looks the same
         this[robotWantsToMoveTo] = EMPTY
@@ -78,10 +79,12 @@ data class Day15(
             val result = mutableSetOf<Position>()
 
             if (move == Direction.LEFT || move == Direction.RIGHT) {
-                for (pos in positionsInDirection(robotPos, move)) {
-                    if (this[pos] == WALL) return null // if we find a wall before we find empty spot, we cannot move the boxes
-                    if (this[pos] == EMPTY) break // we've reached an empty spot
-                    result.add(boxPositionAt(pos) ?: error("expected box at $pos, but got ${this[pos]}"))
+                for ((pos, value) in entriesInDirection(robotPos, move)) {
+                    when (value) {
+                        WALL -> return null // if we find a wall before we find empty spot, we cannot move the boxes
+                        EMPTY -> break // we've reached an empty spot
+                        else -> result.add(boxPositionAt(pos) ?: error("expected box at $pos, but got $value"))
+                    }
                 }
 
                 return result
@@ -99,7 +102,10 @@ data class Day15(
                         return null // cannot move boxes into a wall
                     }
 
-                    val nextAffectedBoxes = setOfNotNull(boxPositionAt(nextPosition), boxPositionAt(nextPosition + toRight1))
+                    val nextAffectedBoxes = setOfNotNull(
+                        boxPositionAt(nextPosition),
+                        boxPositionAt(nextPosition + toRight1)
+                    )
                     nextBoxesRow.addAll(nextAffectedBoxes)
                     foundMoreBoxesToMove = foundMoreBoxesToMove || nextAffectedBoxes.isNotEmpty()
                 }
