@@ -176,26 +176,18 @@ data class Day15(
     }
 
     fun Matrix<Char>.scaleUp(): Matrix<Char> {
-        val bigDims = dims.let { Dimensions(it.w * 2, it.h) }
-        val result = Matrix.empty<Char>(bigDims)
+        fun Char.scaleUp(): Pair<Char, Char> = when (this) {
+            EMPTY, WALL -> this to this
+            SMALL_BOX -> BIG_BOX_LEFT to BIG_BOX_RIGHT
+            ROBOT -> this to EMPTY
+            else -> error("Unexpected value $this")
+        }
 
-        for ((smallPos, value) in entries) {
-            val bigPos = Position(smallPos.x * 2, smallPos.y)
-            when (value) {
-                EMPTY, WALL -> {
-                    result[bigPos] = value
-                    result[bigPos + toRight1] = value
-                }
-
-                SMALL_BOX -> {
-                    result[bigPos] = BIG_BOX_LEFT
-                    result[bigPos + toRight1] = BIG_BOX_RIGHT
-                }
-
-                ROBOT -> {
-                    result[bigPos] = value
-                    result[bigPos + toRight1] = EMPTY
-                }
+        val result = Matrix.empty<Char>(dims.let { Dimensions(it.w * 2, it.h) })
+        for ((bigPos, value) in entries.map { (smallPos, value) -> smallPos.copy(x = smallPos.x * 2) to value }) {
+            value.scaleUp().let { (left, right) ->
+                result[bigPos] = left
+                result[bigPos + toRight1] = right
             }
         }
 
