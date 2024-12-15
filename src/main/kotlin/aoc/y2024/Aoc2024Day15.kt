@@ -14,14 +14,14 @@ data class Day15(
 
     val result1 by lazy {
         smallWarehouse.copy()
-            .smallWarehouseApplyMoves(moves)
+            .also { it.applyMoves(moves) { robotPos, move -> it.smallWarehouseMoveBoxes(robotPos, move) } }
             .allPositionsOfValue(SMALL_BOX)
             .sumOf { it.boxGps() }
     }
 
     val result2 by lazy {
         bigWarehouse.copy()
-            .bigWarehouseApplyMoves(moves)
+            .also { it.applyMoves(moves) { robotPos, move -> it.bigWarehouseMoveBoxes(robotPos, move) } }
             .allPositionsOfValue(BIG_BOX_LEFT)
             .sumOf { it.boxGps() }
     }
@@ -160,14 +160,6 @@ data class Day15(
         this[robotPos] = ROBOT
 
         return this
-    }
-
-    fun Matrix<Char>.smallWarehouseApplyMoves(moves: List<Direction>): Matrix<Char> {
-        return this.applyMoves(moves) { robotPos, move -> smallWarehouseMoveBoxes(robotPos, move) }
-    }
-
-    fun Matrix<Char>.bigWarehouseApplyMoves(moves: List<Direction>): Matrix<Char> {
-        return this.applyMoves(moves) { robotPos, move -> bigWarehouseMoveBoxes(robotPos, move) }
     }
 
     fun Matrix<Char>.scaleUp(): Matrix<Char> {
