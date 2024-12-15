@@ -241,6 +241,18 @@ data class Position(val x: Long, val y: Long) {
         else -> Position(this.x + (direction.vector.xDiff * length), this.y + (direction.vector.yDiff * length))
     }
 
+    val left: Position
+        get() = plus(Direction.LEFT)
+
+    val right: Position
+        get() = plus(Direction.RIGHT)
+
+    val up: Position
+        get() = plus(Direction.UP)
+
+    val down: Position
+        get() = plus(Direction.DOWN)
+
     override fun toString(): String = "(x=$x, y=$y)"
 
     companion object {

@@ -2,7 +2,10 @@ package aoc.y2024
 
 import aoc.utils.Resource
 import aoc.utils.containers.addAllNotNull
-import aoc.utils.d2.*
+import aoc.utils.d2.Dimensions
+import aoc.utils.d2.Direction
+import aoc.utils.d2.Matrix
+import aoc.utils.d2.Position
 
 fun Resource.day15(): Day15 = Day15.parse(content())
 
@@ -116,14 +119,14 @@ data class Day15(
         return robotPos + move
     }
 
-    fun Position.bothBoxPositions() = this to this + toRight1
+    fun Position.bothBoxPositions() = this to this.right
 
     fun Matrix<Char>.boxPositionAt(at: Position): Position? = when (this[at]) {
         SMALL_BOX -> at
 
         // big box positions are always the box's left side
         BIG_BOX_LEFT -> at
-        BIG_BOX_RIGHT -> at + toLeft1
+        BIG_BOX_RIGHT -> at.left
 
         else -> null
     }
@@ -136,7 +139,7 @@ data class Day15(
 
             BIG_BOX_LEFT -> {
                 this[at] = EMPTY
-                this[at + toRight1] = EMPTY
+                this[at.right] = EMPTY
             }
 
             else -> error("Unexpected value ${this[at]} at $at")
@@ -149,7 +152,7 @@ data class Day15(
 
     fun Matrix<Char>.placeBigBox(at: Position) {
         this[at] = BIG_BOX_LEFT
-        this[at + toRight1] = BIG_BOX_RIGHT
+        this[at.right] = BIG_BOX_RIGHT
     }
 
     fun Matrix<Char>.applyMoves(moves: List<Direction>, tryMovingBoxes: (Position, Direction) -> Position): Matrix<Char> {
@@ -189,7 +192,7 @@ data class Day15(
         for ((bigPos, value) in entries.map { (smallPos, value) -> smallPos.copy(x = smallPos.x * 2) to value }) {
             value.scaleUp().let { (left, right) ->
                 result[bigPos] = left
-                result[bigPos + toRight1] = right
+                result[bigPos.right] = right
             }
         }
 
@@ -221,9 +224,6 @@ data class Day15(
                     else -> null
                 }
             }
-
-        val toRight1 = Distance(1, 0)
-        val toLeft1 = Distance(-1, 0)
 
         const val WALL = '#'
         const val EMPTY = '.'
