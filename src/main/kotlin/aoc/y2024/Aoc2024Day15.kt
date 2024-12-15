@@ -45,10 +45,7 @@ data class Day15(
         generateSequence(startFrom + dir) { it + dir }
             .takeWhile { it in this } // only for coordinates within matrix
 
-    fun Matrix<Char>.smallWarehouseApplyMoves(moves: List<Direction>): Matrix<Char> {
-        var robotPos = allPositionsOfValue(ROBOT).first()
-        this[robotPos] = EMPTY
-
+    fun Matrix<Char>.smallWarehouseMoveBoxes(robotPos: Position, move: Direction): Position {
         fun findFirstEmptySpaceInDirection(move: Direction): Position? {
             for (pos in positionsInDirection(robotPos, move)) {
                 when (this[pos]) {
@@ -60,39 +57,22 @@ data class Day15(
             throw IllegalStateException("No WALL or EMPTY found from $robotPos -> $move")
         }
 
-        for (move in moves) {
-            val robotWantsToMoveTo = robotPos + move
-            when (this[robotWantsToMoveTo]) {
-                WALL -> continue // cannot move into wall
+        val robotWantsToMoveTo = robotPos + move
 
-                EMPTY -> {
-                    robotPos = robotWantsToMoveTo
-                    continue // empty space, naively go for it
-                }
-
-                else -> {
-                    val firstEmptySpaceInMoveDirection = findFirstEmptySpaceInDirection(move)
-                    if (firstEmptySpaceInMoveDirection == null) {
-                        continue // nowhere to move the boxes
-                    }
-
-                    // we don't have to move all individual boxes, just jump the first one to the empty slot, it looks the same
-                    this[robotWantsToMoveTo] = EMPTY
-                    this[firstEmptySpaceInMoveDirection] = SMALL_BOX
-
-                    robotPos = robotWantsToMoveTo
-                }
-            }
+        val firstEmptySpaceInMoveDirection = findFirstEmptySpaceInDirection(move)
+        if (firstEmptySpaceInMoveDirection == null) {
+            return robotPos // nowhere to move the boxes
         }
 
-        this[robotPos] = ROBOT
+        // we don't have to move all individual boxes, just jump the first one to the empty slot, it looks the same
+        this[robotWantsToMoveTo] = EMPTY
+        this[firstEmptySpaceInMoveDirection] = SMALL_BOX
 
-        return this
+        return robotWantsToMoveTo
     }
 
-    fun Matrix<Char>.bigWarehouseApplyMoves(moves: List<Direction>): Matrix<Char> {
-        var robotPos = allPositionsOfValue(ROBOT).first()
-        this[robotPos] = EMPTY
+    fun Matrix<Char>.bigWarehouseMoveBoxes(robotPos: Position, move: Direction): Position {
+        val robotWantsToMoveTo = robotPos + move
 
         fun collectBoxesAffectedByMoveIfTheyAreNotBlockedByWall(move: Direction): Set<Position>? {
             val result = mutableSetOf<Position>()
@@ -107,7 +87,6 @@ data class Day15(
                 return result
             }
 
-            val robotWantsToMoveTo = robotPos + move
             var boxesRow = setOf(boxPositionAt(robotWantsToMoveTo)!!)
             while (true) {
                 var nextBoxesRow = mutableSetOf<Position>()
@@ -136,6 +115,32 @@ data class Day15(
             return result
         }
 
+        val boxPositions = collectBoxesAffectedByMoveIfTheyAreNotBlockedByWall(move)
+        if (boxPositions == null) {
+            return robotPos // nowhere to move the boxes
+        }
+
+        require(boxPositions.isNotEmpty()) { "no movable boxes found in direction $move from $robotPos" }
+
+        // pick up the boxes
+        for (boxPosition in boxPositions) {
+            this[boxPosition] = EMPTY
+            this[boxPosition + toRight1] = EMPTY
+        }
+
+        // place them all
+        for (boxPosition in boxPositions) {
+            this[boxPosition + move] = BIG_BOX_LEFT
+            this[boxPosition + toRight1 + move] = BIG_BOX_RIGHT
+        }
+
+        return robotWantsToMoveTo
+    }
+
+    fun Matrix<Char>.smallWarehouseApplyMoves(moves: List<Direction>): Matrix<Char> {
+        var robotPos = allPositionsOfValue(ROBOT).first()
+        this[robotPos] = EMPTY
+
         for (move in moves) {
             val robotWantsToMoveTo = robotPos + move
             when (this[robotWantsToMoveTo]) {
@@ -147,27 +152,32 @@ data class Day15(
                 }
 
                 else -> {
-                    // box LEFT or RIGHT
-                    val boxPositions = collectBoxesAffectedByMoveIfTheyAreNotBlockedByWall(move)
-                    if (boxPositions == null) {
-                        continue // nowhere to move the boxes
-                    }
+                    robotPos = smallWarehouseMoveBoxes(robotPos, move)
+                }
+            }
+        }
 
-                    require(boxPositions.isNotEmpty()) { "no movable boxes found in direction $move from $robotPos" }
+        this[robotPos] = ROBOT
 
-                    // pick up the boxes
-                    for (boxPosition in boxPositions) {
-                        this[boxPosition] = EMPTY
-                        this[boxPosition + toRight1] = EMPTY
-                    }
+        return this
+    }
 
-                    // place them all
-                    for (boxPosition in boxPositions) {
-                        this[boxPosition + move] = BIG_BOX_LEFT
-                        this[boxPosition + toRight1 + move] = BIG_BOX_RIGHT
-                    }
+    fun Matrix<Char>.bigWarehouseApplyMoves(moves: List<Direction>): Matrix<Char> {
+        var robotPos = allPositionsOfValue(ROBOT).first()
+        this[robotPos] = EMPTY
 
+        for (move in moves) {
+            val robotWantsToMoveTo = robotPos + move
+            when (this[robotWantsToMoveTo]) {
+                WALL -> continue // cannot move into wall
+
+                EMPTY -> {
                     robotPos = robotWantsToMoveTo
+                    continue // empty space, naively go for it
+                }
+
+                else -> {
+                    robotPos = bigWarehouseMoveBoxes(robotPos, move)
                 }
             }
         }
