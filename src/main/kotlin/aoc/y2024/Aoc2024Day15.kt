@@ -41,8 +41,8 @@ data class Day15(
         else -> null
     }
 
-    fun Matrix<Char>.entriesInDirection(startFrom: Position, dir: Direction): Sequence<Pair<Position, Char>> =
-        generateSequence(startFrom + dir) { it + dir }
+    fun Matrix<Char>.entriesInDirection(startExclusive: Position, dir: Direction): Sequence<Pair<Position, Char>> =
+        generateSequence(startExclusive + dir) { it + dir }
             .takeWhile { it in this } // only for coordinates within matrix
             .map { it to this[it]!! }
 
