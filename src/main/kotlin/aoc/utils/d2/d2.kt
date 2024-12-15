@@ -132,6 +132,21 @@ enum class Direction(val vector: Distance) {
     LEFT_DOWN(Distance(-1, 1)),
     ;
 
+    fun isHorizontal(): Boolean = when (this) {
+        RIGHT, LEFT -> true
+        else -> false
+    }
+
+    fun isVertical(): Boolean = when (this) {
+        UP, DOWN -> true
+        else -> false
+    }
+
+    fun isDiagonal(): Boolean = when (this) {
+        RIGHT_UP, RIGHT_DOWN, LEFT_UP, LEFT_DOWN -> true
+        else -> false
+    }
+
     fun turnRight90(): Direction = when (this) {
         UP -> RIGHT
         RIGHT -> DOWN

@@ -71,8 +71,6 @@ data class Day15(
     }
 
     fun Matrix<Char>.bigWarehouseMoveBoxes(robotPos: Position, move: Direction): Position {
-        val robotWantsToMoveTo = robotPos + move
-
         fun collectBoxesAffectedByMoveForHorizontal(move: Direction): Set<Position>? {
             val result = mutableSetOf<Position>()
 
@@ -110,7 +108,7 @@ data class Day15(
 
             val result = mutableSetOf<Position>()
 
-            var boxesRow = setOf(boxPositionAt(robotWantsToMoveTo)!!)
+            var boxesRow = setOf(boxPositionAt(robotPos + move)!!)
             while (true) {
                 var nextBoxesRow = nextBoxesRow(boxesRow)
                     ?: return null // cannot move boxes into a wall
@@ -126,14 +124,14 @@ data class Day15(
             return result
         }
 
-        val affectedBoxes = when (move) {
-            Direction.LEFT, Direction.RIGHT -> collectBoxesAffectedByMoveForHorizontal(move)
-            Direction.UP, Direction.DOWN -> collectBoxesAffectedByMoveForVertical(move)
+        fun collectBoxesAffectedByMove(): Set<Position>? = when {
+            move.isHorizontal() -> collectBoxesAffectedByMoveForHorizontal(move)
+            move.isVertical() -> collectBoxesAffectedByMoveForVertical(move)
             else -> error("Unexpected direction $move")
         }
-        if (affectedBoxes == null) {
-            return robotPos // nowhere to move the boxes
-        }
+
+        val affectedBoxes = collectBoxesAffectedByMove()
+            ?: return robotPos // nowhere to move the boxes
 
         // pick up the boxes
         for (boxPosition in affectedBoxes) {
@@ -147,7 +145,7 @@ data class Day15(
             this[boxPosition + toRight1 + move] = BIG_BOX_RIGHT
         }
 
-        return robotWantsToMoveTo
+        return robotPos + move
     }
 
     fun Matrix<Char>.applyMoves(moves: List<Direction>, tryMovingBoxes: (Position, Direction) -> Position): Matrix<Char> {
