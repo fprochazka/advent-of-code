@@ -72,25 +72,27 @@ data class Day15(
             }
         }
 
+        fun nextBoxesVerticalRow(boxesRow: Set<Position>, move: Direction): Set<Position>? = let { warehouse ->
+            buildSet {
+                for ((nextLeft, nextRight) in boxesRow.map { (it + move).bothBoxPositions() }) {
+                    if (warehouse[nextLeft] == WALL || warehouse[nextRight] == WALL) {
+                        return null // cannot move boxes into a wall
+                    }
+
+                    addAllNotNull(
+                        warehouse.boxPositionAt(nextLeft),
+                        warehouse.boxPositionAt(nextRight)
+                    )
+                }
+            }
+        }
+
         fun collectBoxesAffectedByMoveForVertical(move: Direction): Set<Position>? = let { warehouse ->
             buildSet {
-                fun nextBoxesRow(row: Set<Position>): Set<Position>? = buildSet {
-                    for ((nextLeft, nextRight) in row.map { (it + move).bothBoxPositions() }) {
-                        if (warehouse[nextLeft] == WALL || warehouse[nextRight] == WALL) {
-                            return null // cannot move boxes into a wall
-                        }
-
-                        this.addAllNotNull(
-                            warehouse.boxPositionAt(nextLeft),
-                            warehouse.boxPositionAt(nextRight)
-                        )
-                    }
-                }
-
                 var boxesRow = setOf(warehouse.boxPositionAt(robotPos + move)!!)
                 while (boxesRow.isNotEmpty()) {
-                    this.addAll(boxesRow)
-                    boxesRow = nextBoxesRow(boxesRow) ?: return null // cannot move boxes into a wall
+                    addAll(boxesRow)
+                    boxesRow = nextBoxesVerticalRow(boxesRow, move) ?: return null // cannot move boxes into a wall
                 }
             }
         }
