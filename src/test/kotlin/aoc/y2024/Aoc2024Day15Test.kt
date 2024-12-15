@@ -29,8 +29,10 @@ class Aoc2024Day15Test : AocTest() {
     private fun solve(input: Resource) {
         println("input: $input")
 
-        input.assertResult("task1") { input.day15task1().result1 }
-        input.assertResult("task2") { input.day15task2().result2 }
+        val problem = input.day15()
+
+        input.assertResult("task1") { problem.result1 }
+        input.assertResult("task2") { problem.result2 }
     }
 
 }

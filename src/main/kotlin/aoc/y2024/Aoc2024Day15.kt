@@ -3,19 +3,26 @@ package aoc.y2024
 import aoc.utils.Resource
 import aoc.utils.d2.*
 
-fun Resource.day15task1(): Day15Task1 = Day15Task1.parse(content())
+fun Resource.day15(): Day15 = Day15.parse(content())
 
-fun Resource.day15task2(): Day15Task2 = Day15Task1.parse(content()).let { Day15Task2.resize(it.warehouse, it.moves) }
-
-data class Day15Task1(
-    val warehouse: Matrix<Char>,
+data class Day15(
+    val smallWarehouse: Matrix<Char>,
     val moves: List<Direction>,
 ) {
 
+    val bigWarehouse by lazy { smallWarehouse.scaleUp() }
+
     val result1 by lazy {
-        warehouse.copy()
-            .applyMoves(moves)
-            .allPositionsOfValue(BOX)
+        smallWarehouse.copy()
+            .smallWarehouseApplyMoves(moves)
+            .allPositionsOfValue(SMALL_BOX)
+            .sumOf { it.boxGps() }
+    }
+
+    val result2 by lazy {
+        bigWarehouse.copy()
+            .bigWarehouseApplyMoves(moves)
+            .allPositionsOfValue(BIG_BOX_LEFT)
             .sumOf { it.boxGps() }
     }
 
@@ -24,7 +31,7 @@ data class Day15Task1(
     // #......
     fun Position.boxGps(): Long = (100 * y) + x
 
-    fun Matrix<Char>.applyMoves(moves: List<Direction>): Matrix<Char> {
+    fun Matrix<Char>.smallWarehouseApplyMoves(moves: List<Direction>): Matrix<Char> {
         var robotPos = allPositionsOfValue(ROBOT).first()
         this[robotPos] = EMPTY
 
@@ -52,7 +59,7 @@ data class Day15Task1(
                     continue // empty space, naively go for it
                 }
 
-                BOX -> {
+                SMALL_BOX -> {
                     val firstEmptySpaceInMoveDirection = findFirstEmptySpaceInDirection(move)
                     if (firstEmptySpaceInMoveDirection == null) {
                         continue // nowhere to move the boxes
@@ -60,7 +67,7 @@ data class Day15Task1(
 
                     // we don't have to move all individual boxes, just jump the first one to the empty slot, it looks the same
                     this[robotWantsToMoveTo] = EMPTY
-                    this[firstEmptySpaceInMoveDirection] = BOX
+                    this[firstEmptySpaceInMoveDirection] = SMALL_BOX
 
                     robotPos = robotWantsToMoveTo
                 }
@@ -74,59 +81,7 @@ data class Day15Task1(
         return this
     }
 
-    companion object {
-
-        fun parse(input: String): Day15Task1 {
-            val (warehouse, moves) = input.split("\n\n", limit = 2).map { it.trim() }
-
-            return Day15Task1(
-                parseWarehouse(warehouse),
-                parseMoves(moves),
-            )
-        }
-
-        fun parseWarehouse(string: String): Matrix<Char> {
-            return Matrix.ofChars(string.lines().let { Resource.CharMatrix2d.fromLines(it) })
-        }
-
-        fun parseMoves(raw: String): List<Direction> =
-            raw.mapNotNull {
-                when (it) {
-                    '^' -> Direction.UP
-                    'v' -> Direction.DOWN
-                    '>' -> Direction.RIGHT
-                    '<' -> Direction.LEFT
-                    else -> null
-                }
-            }
-
-        const val WALL = '#'
-        const val EMPTY = '.'
-        const val ROBOT = '@'
-        const val BOX = 'O'
-
-    }
-
-}
-
-data class Day15Task2(
-    val bigWarehouse: Matrix<Char>,
-    val moves: List<Direction>,
-) {
-
-    val result2 by lazy {
-        bigWarehouse.copy()
-            .applyMoves(moves)
-            .allPositionsOfValue(BOX_LEFT)
-            .sumOf { it.boxGps() }
-    }
-
-    // ##########
-    // ##...[]...    100 * 1 + 5 = 105
-    // ##........
-    fun Position.boxGps(): Long = (100 * y) + x
-
-    fun Matrix<Char>.applyMoves(moves: List<Direction>): Matrix<Char> {
+    fun Matrix<Char>.bigWarehouseApplyMoves(moves: List<Direction>): Matrix<Char> {
         var robotPos = allPositionsOfValue(ROBOT).first()
         this[robotPos] = EMPTY
 
@@ -135,8 +90,8 @@ data class Day15Task2(
 
         // box positions are always the BOXes left side
         fun boxPositionAt(at: Position): Position? = when (this[at]) {
-            BOX_LEFT -> at
-            BOX_RIGHT -> at + toLeft1
+            BIG_BOX_LEFT -> at
+            BIG_BOX_RIGHT -> at + toLeft1
             else -> null
         }
 
@@ -188,10 +143,10 @@ data class Day15Task2(
 
         for (move in moves) {
             val robotWantsToMoveTo = robotPos + move
-            if (this[robotWantsToMoveTo] == Day15Task1.Companion.WALL) {
+            if (this[robotWantsToMoveTo] == WALL) {
                 continue // cannot move into wall
             }
-            if (this[robotWantsToMoveTo] == Day15Task1.Companion.EMPTY) {
+            if (this[robotWantsToMoveTo] == EMPTY) {
                 robotPos = robotWantsToMoveTo
                 continue // empty space, naively go for it
             }
@@ -210,8 +165,8 @@ data class Day15Task2(
 
             // place them all
             for (boxPosition in boxPositions) {
-                this[boxPosition + move] = BOX_LEFT
-                this[boxPosition + toRight1 + move] = BOX_RIGHT
+                this[boxPosition + move] = BIG_BOX_LEFT
+                this[boxPosition + toRight1 + move] = BIG_BOX_RIGHT
             }
 
             robotPos = robotWantsToMoveTo
@@ -222,43 +177,67 @@ data class Day15Task2(
         return this
     }
 
-    companion object {
+    fun Matrix<Char>.scaleUp(): Matrix<Char> {
+        val bigWarehouse = Matrix.empty<Char>(dims.let { Dimensions(it.w * 2, it.h) })
 
-        fun resize(smallWarehouse: Matrix<Char>, moves: List<Direction>): Day15Task2 {
-            val bigWarehouse = Matrix.empty<Char>(smallWarehouse.dims.let { Dimensions(it.w * 2, it.h) })
+        val toRight = Distance(1, 0)
+        for ((smallPos, value) in entries) {
+            val bigPos = Position(smallPos.x * 2, smallPos.y)
+            when (value) {
+                EMPTY, WALL -> {
+                    bigWarehouse[bigPos] = value
+                    bigWarehouse[bigPos + toRight] = value
+                }
 
-            val toRight = Distance(1, 0)
-            for ((smallPos, value) in smallWarehouse.entries) {
-                val bigPos = Position(smallPos.x * 2, smallPos.y)
-                when (value) {
-                    Day15Task1.EMPTY, Day15Task1.WALL -> {
-                        bigWarehouse[bigPos] = value
-                        bigWarehouse[bigPos + toRight] = value
-                    }
+                SMALL_BOX -> {
+                    bigWarehouse[bigPos] = BIG_BOX_LEFT
+                    bigWarehouse[bigPos + toRight] = BIG_BOX_RIGHT
+                }
 
-                    Day15Task1.BOX -> {
-                        bigWarehouse[bigPos] = BOX_LEFT
-                        bigWarehouse[bigPos + toRight] = BOX_RIGHT
-                    }
-
-                    Day15Task1.ROBOT -> {
-                        bigWarehouse[bigPos] = value
-                        bigWarehouse[bigPos + toRight] = EMPTY
-                    }
+                ROBOT -> {
+                    bigWarehouse[bigPos] = value
+                    bigWarehouse[bigPos + toRight] = EMPTY
                 }
             }
+        }
 
-            return Day15Task2(
-                bigWarehouse,
-                moves,
+        return bigWarehouse
+    }
+
+    companion object {
+
+        fun parse(input: String): Day15 {
+            val (warehouse, moves) = input.split("\n\n", limit = 2).map { it.trim() }
+
+            return Day15(
+                parseWarehouse(warehouse),
+                parseMoves(moves),
             )
         }
 
-        const val WALL = Day15Task1.WALL
-        const val EMPTY = Day15Task1.EMPTY
-        const val ROBOT = Day15Task1.ROBOT
-        const val BOX_LEFT = '['
-        const val BOX_RIGHT = ']'
+        fun parseWarehouse(string: String): Matrix<Char> {
+            return Matrix.ofChars(string.lines().let { Resource.CharMatrix2d.fromLines(it) })
+        }
+
+        fun parseMoves(raw: String): List<Direction> =
+            raw.mapNotNull {
+                when (it) {
+                    '^' -> Direction.UP
+                    'v' -> Direction.DOWN
+                    '>' -> Direction.RIGHT
+                    '<' -> Direction.LEFT
+                    else -> null
+                }
+            }
+
+        const val WALL = '#'
+        const val EMPTY = '.'
+        const val ROBOT = '@'
+
+        const val SMALL_BOX = 'O'
+
+        const val BIG_BOX_LEFT = '['
+        const val BIG_BOX_RIGHT = ']'
 
     }
 
