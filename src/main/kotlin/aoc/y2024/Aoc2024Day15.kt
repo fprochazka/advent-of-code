@@ -1,6 +1,7 @@
 package aoc.y2024
 
 import aoc.utils.Resource
+import aoc.utils.containers.addAllNotNull
 import aoc.utils.d2.*
 
 fun Resource.day15(): Day15 = Day15.parse(content())
@@ -94,11 +95,9 @@ data class Day15(
                         return null // cannot move boxes into a wall
                     }
 
-                    nextBoxesRow.addAll(
-                        setOfNotNull(
-                            boxPositionAt(nextPosition),
-                            boxPositionAt(nextPosition + toRight1)
-                        )
+                    nextBoxesRow.addAllNotNull(
+                        boxPositionAt(nextPosition),
+                        boxPositionAt(nextPosition + toRight1)
                     )
                 }
 

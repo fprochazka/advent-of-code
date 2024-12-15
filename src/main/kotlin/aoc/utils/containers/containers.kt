@@ -14,3 +14,9 @@ operator fun <T> Pair<T, T>.plus(other: List<T>): List<T> = this.toList() + othe
 fun <V> MutableList<V>.popFirst(): V = first().also { remove(it) }
 
 fun <V> MutableSet<V>.popAny(): V = first().also { remove(it) }
+
+fun <V> MutableCollection<V>.addAllNotNull(vararg values: V?) {
+    for (value in values) {
+        if (value != null) add(value)
+    }
+}
