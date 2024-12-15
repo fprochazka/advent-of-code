@@ -62,8 +62,6 @@ data class Day15(
     }
 
     fun Matrix<Char>.bigWarehouseMoveBoxes(robotPos: Position, move: Direction): Position {
-        fun Collection<Position>.bothBoxPositions(): List<Pair<Position, Position>> = map { it to (it + toRight1) }
-
         fun collectBoxesAffectedByMoveForHorizontal(move: Direction): Set<Position>? {
             val result = mutableSetOf<Position>()
 
@@ -80,6 +78,8 @@ data class Day15(
 
         fun collectBoxesAffectedByMoveForVertical(move: Direction): Set<Position>? {
             fun nextBoxesRow(row: Set<Position>): Set<Position>? {
+                fun Collection<Position>.bothBoxPositions() = map { it to (it + toRight1) }
+
                 var nextRow = mutableSetOf<Position>()
 
                 for ((nextLeft, nextRight) in row.map { it + move }.bothBoxPositions()) {
