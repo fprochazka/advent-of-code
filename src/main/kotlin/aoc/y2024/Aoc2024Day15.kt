@@ -32,16 +32,6 @@ data class Day15(
     // #......
     fun Position.boxGps(): Long = (100 * y) + x
 
-    fun Matrix<Char>.boxPositionAt(at: Position): Position? = when (this[at]) {
-        SMALL_BOX -> at
-
-        // big box positions are always the box's left side
-        BIG_BOX_LEFT -> at
-        BIG_BOX_RIGHT -> at + toLeft1
-
-        else -> null
-    }
-
     fun Matrix<Char>.entriesInDirection(startExclusive: Position, dir: Direction): Sequence<Pair<Position, Char>> =
         generateSequence(startExclusive + dir) { it + dir }
             .takeWhile { it in this } // only for coordinates within matrix
@@ -65,13 +55,15 @@ data class Day15(
         val robotWantsToMoveTo = robotPos + move
 
         // we don't have to move all individual boxes, just jump the first one to the empty slot, it looks the same
-        this[robotWantsToMoveTo] = EMPTY
-        this[emptySpaceForBox] = SMALL_BOX
+        this.removeBox(robotWantsToMoveTo)
+        this.placeSmallBox(emptySpaceForBox)
 
         return robotWantsToMoveTo
     }
 
     fun Matrix<Char>.bigWarehouseMoveBoxes(robotPos: Position, move: Direction): Position {
+        fun Collection<Position>.bothBoxPositions(): List<Pair<Position, Position>> = map { it to (it + toRight1) }
+
         fun collectBoxesAffectedByMoveForHorizontal(move: Direction): Set<Position>? {
             val result = mutableSetOf<Position>()
 
@@ -90,7 +82,7 @@ data class Day15(
             fun nextBoxesRow(row: Set<Position>): Set<Position>? {
                 var nextRow = mutableSetOf<Position>()
 
-                for ((nextLeft, nextRight) in row.map { it + move }.map { it to (it + toRight1) }) {
+                for ((nextLeft, nextRight) in row.map { it + move }.bothBoxPositions()) {
                     if (this[nextLeft] == WALL || this[nextRight] == WALL) {
                         return null // cannot move boxes into a wall
                     }
@@ -124,19 +116,48 @@ data class Day15(
         val affectedBoxes = collectBoxesAffectedByMove()
             ?: return robotPos // nowhere to move the boxes
 
-        // pick up the boxes
-        for (boxPosition in affectedBoxes) {
-            this[boxPosition] = EMPTY
-            this[boxPosition + toRight1] = EMPTY
-        }
-
-        // place the boxes
-        for (boxPosition in affectedBoxes.map { it + move }) {
-            this[boxPosition] = BIG_BOX_LEFT
-            this[boxPosition + toRight1] = BIG_BOX_RIGHT
-        }
+        // pick up and move the boxes
+        affectedBoxes.forEach { this.removeBox(it) }
+        affectedBoxes.map { it + move }.forEach { this.placeBigBox(it) }
 
         return robotPos + move
+    }
+
+    fun Matrix<Char>.boxPositionAt(at: Position): Position? = when (this[at]) {
+        SMALL_BOX -> at
+
+        // big box positions are always the box's left side
+        BIG_BOX_LEFT -> at
+        BIG_BOX_RIGHT -> at + toLeft1
+
+        else -> null
+    }
+
+    fun Matrix<Char>.removeBox(at: Position) {
+        when (this[at]) {
+            SMALL_BOX -> {
+                this[at] = EMPTY
+            }
+
+            BIG_BOX_LEFT -> {
+                this[at] = EMPTY
+                this[at + toRight1] = EMPTY
+            }
+
+            BIG_BOX_RIGHT -> {
+                this[at + toLeft1] = EMPTY
+                this[at] = EMPTY
+            }
+        }
+    }
+
+    fun Matrix<Char>.placeSmallBox(at: Position) {
+        this[at] = SMALL_BOX
+    }
+
+    fun Matrix<Char>.placeBigBox(at: Position) {
+        this[at] = BIG_BOX_LEFT
+        this[at + toRight1] = BIG_BOX_RIGHT
     }
 
     fun Matrix<Char>.applyMoves(moves: List<Direction>, tryMovingBoxes: (Position, Direction) -> Position): Matrix<Char> {
