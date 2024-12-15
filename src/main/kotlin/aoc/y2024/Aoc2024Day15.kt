@@ -60,47 +60,39 @@ data class Day15(
     }
 
     fun Matrix<Char>.bigWarehouseMoveBoxes(robotPos: Position, move: Direction): Position {
-        fun collectBoxesAffectedByMoveForHorizontal(move: Direction): Set<Position>? {
-            val result = mutableSetOf<Position>()
-
-            for ((pos, value) in entriesInDirection(robotPos + move, move)) {
-                when (value) {
-                    WALL -> return null // if we find a wall before we find empty spot, we cannot move the boxes
-                    EMPTY -> break // we've reached an empty spot
-                    else -> result.add(boxPositionAt(pos) ?: error("expected box at $pos, but got $value"))
+        fun collectBoxesAffectedByMoveForHorizontal(move: Direction): Set<Position>? = let { warehouse ->
+            buildSet {
+                for ((pos, value) in warehouse.entriesInDirection(robotPos + move, move)) {
+                    when (value) {
+                        WALL -> return null // if we find a wall before we find empty spot, we cannot move the boxes
+                        EMPTY -> break // we've reached an empty spot
+                        else -> add(warehouse.boxPositionAt(pos) ?: error("expected box at $pos, but got $value"))
+                    }
                 }
             }
-
-            return result
         }
 
-        fun collectBoxesAffectedByMoveForVertical(move: Direction): Set<Position>? {
-            fun nextBoxesRow(row: Set<Position>): Set<Position>? {
-                var nextRow = mutableSetOf<Position>()
+        fun collectBoxesAffectedByMoveForVertical(move: Direction): Set<Position>? = let { warehouse ->
+            buildSet {
+                fun nextBoxesRow(row: Set<Position>): Set<Position>? = buildSet {
+                    for ((nextLeft, nextRight) in row.map { (it + move).bothBoxPositions() }) {
+                        if (warehouse[nextLeft] == WALL || warehouse[nextRight] == WALL) {
+                            return null // cannot move boxes into a wall
+                        }
 
-                for ((nextLeft, nextRight) in row.map { (it + move).bothBoxPositions() }) {
-                    if (this[nextLeft] == WALL || this[nextRight] == WALL) {
-                        return null // cannot move boxes into a wall
+                        this.addAllNotNull(
+                            warehouse.boxPositionAt(nextLeft),
+                            warehouse.boxPositionAt(nextRight)
+                        )
                     }
-
-                    nextRow.addAllNotNull(
-                        boxPositionAt(nextLeft),
-                        boxPositionAt(nextRight)
-                    )
                 }
 
-                return nextRow
+                var boxesRow = setOf(warehouse.boxPositionAt(robotPos + move)!!)
+                while (boxesRow.isNotEmpty()) {
+                    this.addAll(boxesRow)
+                    boxesRow = nextBoxesRow(boxesRow) ?: return null // cannot move boxes into a wall
+                }
             }
-
-            val result = mutableSetOf<Position>()
-
-            var boxesRow = setOf(boxPositionAt(robotPos + move)!!)
-            while (boxesRow.isNotEmpty()) {
-                result.addAll(boxesRow)
-                boxesRow = nextBoxesRow(boxesRow) ?: return null // cannot move boxes into a wall
-            }
-
-            return result
         }
 
         fun collectBoxesAffectedByMove(): Set<Position>? = when {
