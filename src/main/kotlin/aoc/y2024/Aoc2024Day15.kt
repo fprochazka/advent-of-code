@@ -131,9 +131,9 @@ data class Day15(
         }
 
         // place the boxes
-        for (boxPosition in affectedBoxes) {
-            this[boxPosition + move] = BIG_BOX_LEFT
-            this[boxPosition + toRight1 + move] = BIG_BOX_RIGHT
+        for (boxPosition in affectedBoxes.map { it + move }) {
+            this[boxPosition] = BIG_BOX_LEFT
+            this[boxPosition + toRight1] = BIG_BOX_RIGHT
         }
 
         return robotPos + move
