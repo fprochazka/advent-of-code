@@ -89,18 +89,17 @@ data class Day15(
             fun nextBoxesRow(boxesRow: Set<Position>): Set<Position>? {
                 var nextBoxesRow = mutableSetOf<Position>()
 
-                for (position in boxesRow) {
-                    val nextPosition = position + move
-
+                for (nextPosition in boxesRow.map { it + move }) {
                     if (this[nextPosition] == WALL || this[nextPosition + toRight1] == WALL) {
                         return null // cannot move boxes into a wall
                     }
 
-                    val nextAffectedBoxes = setOfNotNull(
-                        boxPositionAt(nextPosition),
-                        boxPositionAt(nextPosition + toRight1)
+                    nextBoxesRow.addAll(
+                        setOfNotNull(
+                            boxPositionAt(nextPosition),
+                            boxPositionAt(nextPosition + toRight1)
+                        )
                     )
-                    nextBoxesRow.addAll(nextAffectedBoxes)
                 }
 
                 return nextBoxesRow
@@ -109,16 +108,9 @@ data class Day15(
             val result = mutableSetOf<Position>()
 
             var boxesRow = setOf(boxPositionAt(robotPos + move)!!)
-            while (true) {
-                var nextBoxesRow = nextBoxesRow(boxesRow)
-                    ?: return null // cannot move boxes into a wall
-
+            while (boxesRow.isNotEmpty()) {
                 result.addAll(boxesRow)
-                boxesRow = nextBoxesRow
-
-                if (nextBoxesRow.isEmpty()) {
-                    break
-                }
+                boxesRow = nextBoxesRow(boxesRow) ?: return null // cannot move boxes into a wall
             }
 
             return result
