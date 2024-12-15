@@ -87,21 +87,21 @@ data class Day15(
         }
 
         fun collectBoxesAffectedByMoveForVertical(move: Direction): Set<Position>? {
-            fun nextBoxesRow(boxesRow: Set<Position>): Set<Position>? {
-                var nextBoxesRow = mutableSetOf<Position>()
+            fun nextBoxesRow(row: Set<Position>): Set<Position>? {
+                var nextRow = mutableSetOf<Position>()
 
-                for ((nextLeft, nextRight) in boxesRow.map { it + move }.map { it to (it + toRight1) }) {
+                for ((nextLeft, nextRight) in row.map { it + move }.map { it to (it + toRight1) }) {
                     if (this[nextLeft] == WALL || this[nextRight] == WALL) {
                         return null // cannot move boxes into a wall
                     }
 
-                    nextBoxesRow.addAllNotNull(
+                    nextRow.addAllNotNull(
                         boxPositionAt(nextLeft),
                         boxPositionAt(nextRight)
                     )
                 }
 
-                return nextBoxesRow
+                return nextRow
             }
 
             val result = mutableSetOf<Position>()
