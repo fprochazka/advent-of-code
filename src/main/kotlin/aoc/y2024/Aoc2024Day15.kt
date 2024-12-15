@@ -78,11 +78,9 @@ data class Day15(
 
         fun collectBoxesAffectedByMoveForVertical(move: Direction): Set<Position>? {
             fun nextBoxesRow(row: Set<Position>): Set<Position>? {
-                fun Collection<Position>.bothBoxPositions() = map { it to (it + toRight1) }
-
                 var nextRow = mutableSetOf<Position>()
 
-                for ((nextLeft, nextRight) in row.map { it + move }.bothBoxPositions()) {
+                for ((nextLeft, nextRight) in row.map { (it + move).bothBoxPositions() }) {
                     if (this[nextLeft] == WALL || this[nextRight] == WALL) {
                         return null // cannot move boxes into a wall
                     }
@@ -123,6 +121,8 @@ data class Day15(
         return robotPos + move
     }
 
+    fun Position.bothBoxPositions() = this to this + toRight1
+
     fun Matrix<Char>.boxPositionAt(at: Position): Position? = when (this[at]) {
         SMALL_BOX -> at
 
@@ -144,10 +144,7 @@ data class Day15(
                 this[at + toRight1] = EMPTY
             }
 
-            BIG_BOX_RIGHT -> {
-                this[at + toLeft1] = EMPTY
-                this[at] = EMPTY
-            }
+            else -> error("Unexpected value ${this[at]} at $at")
         }
     }
 
