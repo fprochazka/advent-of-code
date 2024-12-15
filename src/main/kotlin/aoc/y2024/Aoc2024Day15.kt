@@ -32,14 +32,9 @@ data class Day15(
     // #......
     fun Position.boxGps(): Long = (100 * y) + x
 
-    fun Matrix<Char>.entriesInDirection(startExclusive: Position, dir: Direction): Sequence<Pair<Position, Char>> =
-        generateSequence(startExclusive + dir) { it + dir }
-            .takeWhile { it in this } // only for coordinates within matrix
-            .map { it to this[it]!! }
-
     fun Matrix<Char>.smallWarehouseMoveBoxes(robotPos: Position, move: Direction): Position {
         fun findFirstEmptySpaceInDirection(move: Direction): Position? {
-            for ((pos, value) in entriesInDirection(robotPos, move)) {
+            for ((pos, value) in entriesInDirection(robotPos + move, move)) {
                 when (value) {
                     WALL -> return null // if we find a wall before we find empty spot, we cannot move the boxes
                     EMPTY -> return pos // we can move the boxes into this empty slot
@@ -65,7 +60,7 @@ data class Day15(
         fun collectBoxesAffectedByMoveForHorizontal(move: Direction): Set<Position>? {
             val result = mutableSetOf<Position>()
 
-            for ((pos, value) in entriesInDirection(robotPos, move)) {
+            for ((pos, value) in entriesInDirection(robotPos + move, move)) {
                 when (value) {
                     WALL -> return null // if we find a wall before we find empty spot, we cannot move the boxes
                     EMPTY -> break // we've reached an empty spot

@@ -27,6 +27,11 @@ open class Matrix<V : Any> protected constructor(
     val entries: Sequence<Pair<Position, V>>
         get() = positions.map { it to this[it]!! }
 
+    fun entriesInDirection(startInclusive: Position, direction: Direction): Sequence<Pair<Position, V>> =
+        generateSequence(startInclusive) { it + direction }
+            .takeWhile { it in this } // only for coordinates within matrix
+            .map { it to this[it]!! }
+
     val positions: Sequence<Position>
         get() = dims.matrixPositions
 
