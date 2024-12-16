@@ -396,8 +396,9 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
         end: Position,
         edgeCost: (PathStep, Direction) -> Long = { cursor, inDir -> connectionWeight(cursor.pos, cursor.pos + inDir)!! },
     ): PathStep? {
-        val queue = PriorityQueue<PathStep>(compareBy { it.pathCost })
-        queue.add(PathStep(start, startDir, 0))
+        val queue = PriorityQueue<PathStep>(compareBy { it.pathCost }).apply {
+            add(PathStep(start, startDir, 0))
+        }
 
         val visited = mutableSetOf<Position>()
 
@@ -434,23 +435,12 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
         end: Position,
         edgeCost: (PathStep, Direction) -> Long = { cursor, inDir -> connectionWeight(cursor.pos, cursor.pos + inDir)!! },
     ): Sequence<PathStep> = sequence {
-        val minCosts = Matrix.empty<MutableMap<Direction, PathStep>>(nodes.dims)
-        fun updateMinCost(step: PathStep) {
-            minCosts[step.pos] = (minCosts[step.pos] ?: mutableMapOf()).also {
-                it.merge(step.inDir, step, { prev, next -> if (next.pathCost < prev.pathCost) next else prev })
-            }
-        }
-
-        fun getMinCostPath(step: PathStep): PathStep? =
-            minCosts[step.pos]?.get(step.inDir)
-
-        fun getMinCost(step: PathStep): Long =
-            getMinCostPath(step)?.pathCost ?: INFINITE_COST
-
+        val minCosts = MinCostsMatrix()
         var shortestPathCost = INFINITE_COST
 
-        val queue = PriorityQueue<PathStep>(compareBy { it.pathCost })
-        queue.add(PathStep(start, startDir, 0))
+        val queue = PriorityQueue<PathStep>(compareBy { it.pathCost }).apply {
+            add(PathStep(start, startDir, 0))
+        }
 
         while (queue.isNotEmpty()) {
             val currentStep = queue.poll()
@@ -460,11 +450,11 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
                 break
             }
 
-            if (currentStep.pathCost > getMinCost(currentStep)) {
+            if (currentStep.pathCost > minCosts[currentStep]) {
                 continue
             }
 
-            updateMinCost(currentStep)
+            minCosts.update(currentStep)
 
             if (currentStep.pos == end) {
                 shortestPathCost = minOf(shortestPathCost, currentStep.pathCost)
@@ -481,6 +471,24 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
                 queue.add(PathStep(neighbourPos, neighbourDir, stepCost = edgeCost(currentStep, neighbourDir), prev = currentStep))
             }
         }
+    }
+
+    inner class MinCostsMatrix() {
+
+        private val minCosts = Matrix.empty<MutableMap<Direction, PathStep>>(nodes.dims)
+
+        fun update(step: PathStep) {
+            minCosts[step.pos] = (minCosts[step.pos] ?: mutableMapOf()).also {
+                it.merge(step.inDir, step, { prev, next -> if (next.pathCost < prev.pathCost) next else prev })
+            }
+        }
+
+        fun getPath(step: PathStep): PathStep? =
+            minCosts[step.pos]?.get(step.inDir)
+
+        operator fun get(step: PathStep): Long =
+            getPath(step)?.pathCost ?: INFINITE_COST
+
     }
 
     inner class Node(
