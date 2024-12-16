@@ -72,9 +72,7 @@ data class Day16(val maze: MatrixGraph<Char>) {
     }
 
     fun MatrixGraph<Char>.anyShortestPath(): PathStep? =
-        mazeStartAndEnd.let { (start, end) ->
-            anyShortestPath(start, end) { cursor, inDir -> 1 + turnCost(cursor.inDir, inDir) }
-        }
+        mazeStartAndEnd.let { (start, end) -> anyShortestPath(start, end, ::edgeCost) }
 
     fun MatrixGraph<Char>.countOfAllPositionsOnAllShortestPaths(): Long {
         val positionsOnShortestPaths = allShortestPaths()
@@ -131,7 +129,7 @@ data class Day16(val maze: MatrixGraph<Char>) {
                 .map { currentStep.pos.relativeDirectionTo(it)!! to it }
 
             for ((neighbourDir, neighbourPos) in neighbours) {
-                queue.add(PathStep(neighbourPos, neighbourDir, stepCost = 1 + turnCost(currentStep.inDir, neighbourDir), prev = currentStep))
+                queue.add(PathStep(neighbourPos, neighbourDir, stepCost = edgeCost(currentStep, neighbourDir), prev = currentStep))
             }
         }
     }
@@ -149,7 +147,7 @@ data class Day16(val maze: MatrixGraph<Char>) {
         const val DEAD_END = 'x'
 
         fun edgeCost(current: PathStep, inDir: Direction): Long =
-            current.pathCost + 1 + turnCost(current.inDir, inDir)
+            1 + turnCost(current.inDir, inDir)
 
         fun turnCost(from: Direction, to: Direction): Long =
             turnCosts[from]!![to]!!
