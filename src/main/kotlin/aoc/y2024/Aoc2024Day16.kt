@@ -1,11 +1,8 @@
 package aoc.y2024
 
 import aoc.utils.Resource
-import aoc.utils.containers.popFirst
 import aoc.utils.d2.*
 import java.util.*
-import kotlin.collections.ArrayDeque
-import kotlin.math.abs
 
 fun Resource.day16(): Day16 = Day16(
     Day16.toGraph(matrix2d())
@@ -19,12 +16,8 @@ data class Day16(val maze: Graph<Char>) {
 
     val mazeStartAndEnd by lazy { maze.startAndEnd() }
 
-    val shortestPath by lazy {
-        maze.anyShortestPath()!!
-    }
-
-    val result1 by lazy { shortestPath.pathCost }
-    val result2 by lazy { maze.countOfAllPositionsOnAllShortestPaths(shortestPath.pathCost) }
+    val result1 by lazy { maze.anyShortestPath()!!.pathCost }
+    val result2 by lazy { maze.countOfAllPositionsOnAllShortestPaths() }
 
     fun eliminateDeadEnds(): Graph<Char> {
         val nodesByConnections = mutableMapOf<Int, MutableSet<Position>>().apply {
@@ -66,10 +59,10 @@ data class Day16(val maze: Graph<Char>) {
             }
         }
 
-        maze.toPlainMatrix().also {
-            println()
-            print(it.toString())
-        }
+//        maze.toPlainMatrix().also {
+//            println()
+//            print(it.toString())
+//        }
 
         return maze
     }
@@ -85,26 +78,6 @@ data class Day16(val maze: Graph<Char>) {
 
     fun edgeCost(current: GraphPathStep, inDir: Direction): Long =
         current.pathCost + 1 + turnCost(current.inDir, inDir)
-
-    fun edgeCost(prevCost: Long, prevDir: Direction, nextDir: Direction): Long =
-        prevCost + 1 + turnCost(prevDir, nextDir)
-
-    fun Graph<Char>.printPath(path: List<Position>) {
-        toPlainMatrix().also { matrix ->
-            path.forEach { matrix[it] = 'o' }
-            print(matrix.toString())
-        }
-    }
-
-    fun Graph<Char>.printPath(step: GraphPathStep) {
-        toPlainMatrix().also { matrix ->
-            generateSequence(step) { it.prev }
-                .forEach { matrix[it.pos] = 'o' }
-
-            println()
-            print(matrix.toString())
-        }
-    }
 
     fun Graph<Char>.anyShortestPath(): GraphPathStep? {
         val (start, end) = mazeStartAndEnd
@@ -135,96 +108,65 @@ data class Day16(val maze: Graph<Char>) {
         return null
     }
 
-    fun Graph<Char>.countOfAllPositionsOnAllShortestPaths(shortestPathCost: Long): Long {
-        val positionsOnShortestPaths = allShortestPaths1(shortestPathCost)
+    fun Graph<Char>.countOfAllPositionsOnAllShortestPaths(): Long {
+        val positionsOnShortestPaths = allShortestPaths()
             .flatten()
             .toSet()
-
-        maze.toPlainMatrix().also {
-            positionsOnShortestPaths.forEach { pos -> it[pos] = 'O' }
-
-            println()
-            println("All positions from all shortest paths:")
-            print(it.toString())
-        }
 
         return positionsOnShortestPaths.size.toLong()
     }
 
-    fun Graph<Char>.allShortestPaths1(shortestPathCost: Long): Sequence<List<Position>> = sequence {
+    fun Graph<Char>.allShortestPaths(): Sequence<List<Position>> = sequence {
         val (start, end) = mazeStartAndEnd
 
-        data class StatefulStep(val pos: Position, val inDir: Direction, val pathCost: Long) {
-
-            val remainingToTry = allowedDirections
-                .map { OrientedPosition(pos + it, it) }
-                .filter { nodes[it.position]?.let { node -> node.value != WALL && node.value != DEAD_END } == true }
-                .sortedBy { manhattanDistance(it.position, end) }
-                .toMutableList()
-
-            fun nextStep(pathVisited: MutableSet<Position>): StatefulStep? {
-                // They can move forward one tile at a time (increasing their score by 1 point), but never into a wall (#).
-                // They can also rotate clockwise or counterclockwise 90 degrees at a time (increasing their score by 1000 points).
-
-                while (remainingToTry.isNotEmpty()) {
-                    val (nextPos, nextDir) = remainingToTry.popFirst()
-                    if (nextPos in pathVisited) {
-                        continue
-                    }
-
-                    return StatefulStep(nextPos, nextDir, edgeCost(pathCost, inDir, nextDir))
-                }
-
-                return null
+        val minCosts = Matrix.empty<MutableMap<Direction, GraphPathStep>>(maze.nodes.dims)
+        fun updateMinCost(step: GraphPathStep) {
+            minCosts[step.pos] = (minCosts[step.pos] ?: mutableMapOf()).also {
+                it.merge(step.inDir, step, { prev, next -> if (next.pathCost < prev.pathCost) next else prev })
             }
-
-            override fun toString(): String = "(${inDir} -> ${pos}, cost=${pathCost}, remainingDirs=${remainingToTry.size})"
-
         }
 
-        val pathVisited = mutableSetOf<Position>()
+        fun getMinCostPath(step: GraphPathStep): GraphPathStep? =
+            minCosts[step.pos]?.get(step.inDir)
 
-        var pathDfs = ArrayDeque<StatefulStep>()
-        pathDfs.add(StatefulStep(start, Direction.RIGHT, 0))
+        fun getMinCost(step: GraphPathStep): Long =
+            getMinCostPath(step)?.pathCost ?: INFINITE_COST
 
-        while (pathDfs.isNotEmpty()) {
-            val currentStep = pathDfs.last()
+        var shortestPathCost = INFINITE_COST
 
-            pathVisited.add(currentStep.pos)
+        val queue = PriorityQueue<GraphPathStep>(compareBy { it.pathCost })
+        queue.add(GraphPathStep(start, Direction.RIGHT, 0))
+
+        while (queue.isNotEmpty()) {
+            val currentStep = queue.poll()
+
+            if (currentStep.pathCost > shortestPathCost) {
+                // the queue is sorter, therefore once it starts returning "too long" results we know we can throw away the rest
+                break
+            }
+
+            if (currentStep.pathCost > getMinCost(currentStep)) {
+                continue
+            }
+
+            updateMinCost(currentStep)
 
             if (currentStep.pos == end) {
-                val path = pathVisited.toList()
+                shortestPathCost = minOf(shortestPathCost, currentStep.pathCost)
 
-                println()
-                println("Found shortest path:")
-                printPath(path)
-
-                yield(path)
-
-                pathDfs.removeLast()
-                pathVisited.remove(currentStep.pos)
+                yield(currentStep.toList().map { it.pos })
                 continue
             }
 
-            val nextStep: StatefulStep? = currentStep.nextStep(pathVisited)
-            if (nextStep == null) {
-                // current step has explored all possible directions
-                pathDfs.removeLast()
-                pathVisited.remove(currentStep.pos)
-                continue
-            }
+            val neighbours = connectionsFrom(currentStep.pos)
+                .filter { it != currentStep.prev?.pos } // no 180 flips
+                .map { currentStep.pos.relativeDirectionTo(it)!! to it }
 
-            if (nextStep.pathCost <= shortestPathCost) {
-                pathDfs.add(nextStep)
+            for ((neighbourDir, neighbourPos) in neighbours) {
+                queue.add(GraphPathStep(neighbourPos, neighbourDir, edgeCost(currentStep, neighbourDir), prev = currentStep))
             }
         }
     }
-
-    fun <T, R : Comparable<R>> MutableSet<T>.popMinByOrNull(selector: (T) -> R): T? =
-        this.minByOrNull(selector)?.also { this.remove(it) }
-
-    fun manhattanDistance(curr: Position, end: Position): Long =
-        abs(curr.x - end.x) + abs(curr.y - end.y)
 
     fun Graph<Char>.startAndEnd(): Pair<Position, Position> =
         nodes

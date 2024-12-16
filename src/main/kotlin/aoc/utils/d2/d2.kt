@@ -200,6 +200,31 @@ enum class Direction(val vector: Distance) {
 
 }
 
+class DirectionBitMap {
+
+    private var map = 0
+
+    operator fun contains(dir: Direction): Boolean =
+        map and maskOf(dir) != 0
+
+    fun add(dir: Direction) {
+        map = map or maskOf(dir)
+    }
+
+    fun remove(dir: Direction) {
+        map = map and maskOf(dir).inv()
+    }
+
+    companion object {
+
+        fun maskOf(dir: Direction): Int {
+            return 1 shl dir.ordinal
+        }
+
+    }
+
+}
+
 /**
  * zero indexed
  */
