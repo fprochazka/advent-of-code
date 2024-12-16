@@ -468,7 +468,13 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
                 .map { currentStep.pos.relativeDirectionTo(it)!! to it }
 
             for ((neighbourDir, neighbourPos) in neighbours) {
-                queue.add(PathStep(neighbourPos, neighbourDir, stepCost = edgeCost(currentStep, neighbourDir), prev = currentStep))
+                val nextStep = PathStep(
+                    neighbourPos,
+                    neighbourDir,
+                    stepCost = edgeCost(currentStep, neighbourDir),
+                    prev = currentStep
+                )
+                queue.add(nextStep)
             }
         }
     }
