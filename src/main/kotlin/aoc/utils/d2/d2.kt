@@ -149,61 +149,32 @@ enum class Direction(val vector: Distance) {
         else -> false
     }
 
-    fun isDiagonal(): Boolean = when (this) {
-        RIGHT_UP, RIGHT_DOWN, LEFT_UP, LEFT_DOWN -> true
-        else -> false
-    }
+    fun isCardinal(): Boolean = this in entriesCardinal
 
-    fun turnRight90(): Direction = when (this) {
-        UP -> RIGHT
-        RIGHT -> DOWN
-        DOWN -> LEFT
-        LEFT -> UP
+    fun isDiagonal(): Boolean = this in entriesDiagonal
 
-        RIGHT_UP -> RIGHT_DOWN
-        RIGHT_DOWN -> LEFT_DOWN
-        LEFT_DOWN -> LEFT_UP
-        LEFT_UP -> RIGHT_UP
-    }
+    fun turnClockwise(steps: Int = 1): Direction = entriesByOrdinal[(ordinal + steps).remEuclid(size)]
 
-    fun turnLeft90(): Direction = when (this) {
-        UP -> LEFT
-        LEFT -> DOWN
-        DOWN -> RIGHT
-        RIGHT -> UP
+    fun turnCounterClockwise(steps: Int = 1): Direction = entriesByOrdinal[(ordinal - steps).remEuclid(size)]
 
-        RIGHT_UP -> LEFT_UP
-        LEFT_UP -> LEFT_DOWN
-        LEFT_DOWN -> RIGHT_DOWN
-        RIGHT_DOWN -> RIGHT_UP
-    }
+    fun turnRight90(): Direction = turnClockwise(2)
 
-    fun turnRight45(): Direction = when (this) {
-        UP -> RIGHT_UP
-        RIGHT_UP -> RIGHT
-        RIGHT -> RIGHT_DOWN
-        RIGHT_DOWN -> DOWN
-        DOWN -> LEFT_DOWN
-        LEFT_DOWN -> LEFT
-        LEFT -> LEFT_UP
-        LEFT_UP -> UP
-    }
+    fun turnLeft90(): Direction = turnCounterClockwise(2)
 
-    fun turnLeft45(): Direction = when (this) {
-        UP -> LEFT_UP
-        LEFT_UP -> LEFT
-        LEFT -> LEFT_DOWN
-        LEFT_DOWN -> DOWN
-        DOWN -> RIGHT_DOWN
-        RIGHT_DOWN -> RIGHT
-        RIGHT -> RIGHT_UP
-        RIGHT_UP -> UP
-    }
+    fun turnRight45(): Direction = turnClockwise(1)
+
+    fun turnLeft45(): Direction = turnCounterClockwise(1)
 
     companion object {
 
+        val size by lazy {
+            entries.size
+        }
+
         val entriesDiagonal = setOf(RIGHT_UP, RIGHT_DOWN, LEFT_UP, LEFT_DOWN)
         val entriesCardinal = setOf(UP, RIGHT, DOWN, LEFT)
+
+        private val entriesByOrdinal: List<Direction> = entries.toList()
 
     }
 
