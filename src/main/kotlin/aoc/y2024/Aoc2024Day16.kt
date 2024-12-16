@@ -137,11 +137,8 @@ data class Day16(val maze: MatrixGraph<Char>) {
     }
 
     fun MatrixGraph<Char>.startAndEnd(): Pair<Position, Position> =
-        nodes
-            .allPositionsByValues { it.value == 'S' || it.value == 'E' }
-            .map { entry -> entry.key.value to entry.key }
-            .toMap()
-            .let { it['S']!!.position to it['E']!!.position }
+        allPositionsByValues { it == START || it == END }
+            .let { it[START]!!.single() to it[END]!!.single() }
 
     companion object {
 
