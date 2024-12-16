@@ -230,6 +230,14 @@ data class Position(val x: Long, val y: Long) {
         )
     }
 
+    fun relativeDirectionTo(other: Position): Direction? {
+        val distance = other.distanceTo(this)
+        for (dir in Direction.entries) {
+            if (dir.vector.equals(distance)) return dir
+        }
+        return null
+    }
+
     fun distanceTo(other: Position): Distance =
         Distance(this.x - other.x, this.y - other.y)
 
