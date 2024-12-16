@@ -67,6 +67,8 @@ tasks.withType<Test>().configureEach {
             TestLogEvent.SKIPPED
         )
     }
+
+//    jvmArgs = listOf("-server", "-Xss515m")
 }
 
 graalvmNative {
