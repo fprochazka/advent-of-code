@@ -1,6 +1,8 @@
 package aoc.utils.d2
 
 import aoc.utils.Resource
+import aoc.utils.d2.Direction.entries
+import aoc.utils.math.remEuclid
 import java.awt.image.BufferedImage
 import java.nio.file.Path
 import javax.imageio.ImageIO
@@ -126,15 +128,14 @@ open class Matrix<V : Any> protected constructor(
 }
 
 enum class Direction(val vector: Distance) {
-    RIGHT(Distance(1, 0)),
-    LEFT(Distance(-1, 0)),
     UP(Distance(0, -1)),
-    DOWN(Distance(0, 1)),
-
     RIGHT_UP(Distance(1, -1)),
+    RIGHT(Distance(1, 0)),
     RIGHT_DOWN(Distance(1, 1)),
-    LEFT_UP(Distance(-1, -1)),
+    DOWN(Distance(0, 1)),
     LEFT_DOWN(Distance(-1, 1)),
+    LEFT(Distance(-1, 0)),
+    LEFT_UP(Distance(-1, -1)),
     ;
 
     fun isHorizontal(): Boolean = when (this) {
@@ -198,9 +199,16 @@ enum class Direction(val vector: Distance) {
         RIGHT_UP -> UP
     }
 
+    companion object {
+
+        val entriesDiagonal = setOf(RIGHT_UP, RIGHT_DOWN, LEFT_UP, LEFT_DOWN)
+        val entriesCardinal = setOf(UP, RIGHT, DOWN, LEFT)
+
+    }
+
 }
 
-class DirectionBitMap {
+class DirectionBitSet : Iterable<Direction> {
 
     private var map = 0
 
@@ -214,6 +222,11 @@ class DirectionBitMap {
     fun remove(dir: Direction) {
         map = map and maskOf(dir).inv()
     }
+
+    override fun iterator(): Iterator<Direction> =
+        Direction.entries.asSequence()
+            .filter { it in this }
+            .iterator()
 
     companion object {
 
@@ -246,22 +259,14 @@ data class Position(val x: Long, val y: Long) {
     /**
      * Fits the position into given dimensions which represent a (w * h) matrix
      */
-    operator fun rem(dims: Dimensions): Position {
-        fun Long.inDimension(size: Long): Long = ((this % size) + size) % size
-
-        return Position(
-            x.inDimension(dims.w),
-            y.inDimension(dims.h)
+    operator fun rem(dims: Dimensions): Position =
+        Position(
+            x.remEuclid(dims.w),
+            y.remEuclid(dims.h)
         )
-    }
 
-    fun relativeDirectionTo(other: Position): Direction? {
-        val distance = other.distanceTo(this)
-        for (dir in Direction.entries) {
-            if (dir.vector.equals(distance)) return dir
-        }
-        return null
-    }
+    fun relativeDirectionTo(other: Position): Direction? =
+        other.distanceTo(this).toDirection()
 
     fun distanceTo(other: Position): Distance =
         Distance(this.x - other.x, this.y - other.y)
@@ -341,7 +346,18 @@ data class Distance(val xDiff: Long, val yDiff: Long) {
     operator fun times(length: Int): Distance =
         Distance(xDiff * length, yDiff * length)
 
+    fun toDirection(): Direction? =
+        toDirectionCache[this]
+
     override fun toString(): String = "(x=$xDiff, y=$yDiff)"
+
+    companion object {
+
+        private val toDirectionCache: Map<Distance, Direction> by lazy {
+            Direction.entries.associateBy { it.vector }
+        }
+
+    }
 
 }
 

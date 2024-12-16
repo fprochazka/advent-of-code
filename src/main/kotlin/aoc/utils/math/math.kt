@@ -15,3 +15,17 @@ fun gcd(a: Long, b: Long): Long {
     }
     return x.absoluteValue
 }
+
+/**
+ * Calculates the least non-negative remainder of `self` (mod `dim`).
+ */
+fun Long.remEuclid(size: Long): Long {
+    require(size > 0) { "dim must be positive" }
+    return ((this % size) + size) % size
+}
+
+/**
+ * Calculates the least non-negative remainder of `self` (mod `dim`).
+ */
+fun Int.remEuclid(size: Int): Int =
+    toLong().remEuclid(size.toLong()).toInt()
