@@ -433,7 +433,7 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
         startDir: Direction,
         end: Position,
         edgeCost: (PathStep, Direction) -> Long = { cursor, inDir -> connectionWeight(cursor.pos, cursor.pos + inDir)!! },
-    ): Sequence<List<Position>> = sequence {
+    ): Sequence<PathStep> = sequence {
         val minCosts = Matrix.empty<MutableMap<Direction, PathStep>>(nodes.dims)
         fun updateMinCost(step: PathStep) {
             minCosts[step.pos] = (minCosts[step.pos] ?: mutableMapOf()).also {
@@ -469,7 +469,7 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
             if (currentStep.pos == end) {
                 shortestPathCost = minOf(shortestPathCost, currentStep.pathCost)
 
-                yield(currentStep.toList().map { it.pos })
+                yield(currentStep)
                 continue
             }
 
