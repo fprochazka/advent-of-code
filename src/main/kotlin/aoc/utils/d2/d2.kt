@@ -446,11 +446,12 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
             val currentStep = queue.poll()
 
             if (currentStep.pathCost > shortestPathCost) {
-                // the queue is sorter, therefore once it starts returning "too long" results we know we can throw away the rest
+                // the queue is sorted, therefore once it starts returning "too long" results we know we can throw away the rest
                 break
             }
 
             if (currentStep.pathCost > minCosts[currentStep]) {
+                // we've seen this path for cheaper
                 continue
             }
 
@@ -458,7 +459,6 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
 
             if (currentStep.pos == end) {
                 shortestPathCost = minOf(shortestPathCost, currentStep.pathCost)
-
                 yield(currentStep)
                 continue
             }
