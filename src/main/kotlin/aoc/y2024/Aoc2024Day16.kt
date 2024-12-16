@@ -11,7 +11,7 @@ fun Resource.day16(): Day16 = Day16(
 data class Day16(val maze: Graph<Char>) {
 
     val results by lazy {
-        eliminateDeadEnds().dijkstra()
+        eliminateDeadEnds().shortestPaths()
     }
 
     val result1 by lazy { results.first }
@@ -65,64 +65,97 @@ data class Day16(val maze: Graph<Char>) {
         return maze
     }
 
-    fun Graph<Char>.dijkstra(): Pair<Long, Long> {
+    fun Graph<Char>.shortestPaths(): Pair<Long, Long> {
         val (start, end) = this.startAndEnd()
 
-        data class Step(val pos: Position, val inDir: Direction, val cost: Long)
+        data class Step(val pos: Position, val inDir: Direction, val cost: Long, val prev: Step? = null) {
+            override fun toString(): String = "($inDir -> $pos, cost=$cost, prev=${prev?.pos})"
+        }
 
-        val distancesFromStart = mutableMapOf<Position, Long>()
-        val shortestPaths = mutableMapOf<Position, MutableList<List<Position>>>()
+        data class NodeState(var cost: Long = INFINITE_COST, var parents: MutableList<Position> = mutableListOf())
 
-        nodes.entries
-            .filter { (_, node) -> node.value == EMPTY || node.value == END || node.value == START }
-            .forEach { (pos, _) ->
-                distancesFromStart[pos] = INFINITE_COST
-                shortestPaths[pos] = mutableListOf()
-            }
+        val state = Matrix.of(maze.nodes.dims) { NodeState() }
 
-        val visited = mutableSetOf<Position>()
-
-        shortestPaths[start]!!.add(listOf(start))
-
-        val queue = PriorityQueue<Step>(compareBy { it.cost })
-        queue.add(Step(start, Direction.RIGHT, 0))
-
-        while (queue.isNotEmpty()) {
-            val current = queue.poll()!!
-            visited.add(current.pos)
-
-            for (neighbour in connectionsFrom(current.pos)) {
-                if (neighbour in visited) {
-                    continue
+        fun shortestPathsTo(pos: Position): List<List<Position>> {
+            return buildList {
+                fun backtrackPaths(pos: Position, path: List<Position>) {
+                    if (pos == start) {
+                        add(path.reversed())
+                        return
+                    }
+                    for (parent in state[pos]!!.parents) {
+                        backtrackPaths(parent, path + parent)
+                    }
                 }
 
-                val neighbourDir = current.pos.relativeDirectionTo(neighbour)!!
-                val newCost = current.cost + 1 + turnCost(current.inDir, neighbourDir)
-                val nextStep = Step(neighbour, neighbourDir, newCost)
+                backtrackPaths(pos, mutableListOf())
+            }
+        }
 
-                val oldCost = distancesFromStart[neighbour]!!
-                if (newCost < oldCost) {
-                    // new shortest path
-                    distancesFromStart[neighbour] = newCost
-                    shortestPaths[neighbour]!!.clear()
-                    for (pathToCurrent in shortestPaths[current.pos]!!) {
-                        shortestPaths[neighbour]!!.add(pathToCurrent + nextStep.pos)
+        fun printState(step: Step) {
+            maze.toPlainMatrix().also { matrix ->
+                generateSequence(step) { it.prev }.forEach {
+                    matrix[it.pos] = 'o'
+                }
+                matrix[step.pos] = 'O'
+
+                println()
+                print(matrix.toString())
+            }
+        }
+
+        val firstStep = Step(start, Direction.RIGHT, 0)
+
+        state[start]!!.let {
+            it.cost = 0
+            it.parents.add(start)
+        }
+
+        val queue = PriorityQueue<Step>(compareBy { it.cost })
+        queue.add(firstStep)
+
+        while (queue.isNotEmpty()) {
+            val currentStep = queue.poll()!!
+            val currentState = state[currentStep.pos]!!
+
+            println()
+            println("================ INSPECTING ${currentStep.pos} with current cost of ${currentStep.cost} ================")
+            printState(currentStep)
+
+            if (currentStep.cost > currentState.cost) {
+                println("Current step cost is greater than current state cost of ${currentState.cost} => skip")
+                continue
+            }
+
+            val neighbours = connectionsFrom(currentStep.pos)
+                .filter { it != currentStep.prev?.pos }
+                .map { currentStep.pos.relativeDirectionTo(it)!! to it }
+            println("Neighbours: $neighbours")
+            for ((neighbourDir, neighbourPos) in neighbours) {
+                val newCost = currentStep.cost + 1 + turnCost(currentStep.inDir, neighbourDir)
+
+                val neighbourStep = Step(neighbourPos, neighbourDir, newCost, prev = currentStep)
+                queue.add(neighbourStep)
+
+                val neighbourState = state[neighbourPos]!!
+                if (newCost < neighbourState.cost) {
+                    // new single shortest path
+                    neighbourState.let {
+                        it.cost = newCost
+                        it.parents = mutableListOf(currentStep.pos)
                     }
 
-                    queue.add(nextStep)
-
-                } else if (newCost == oldCost) {
-                    // additional shortest path
-                    for (pathToCurrent in shortestPaths[current.pos]!!) {
-                        shortestPaths[neighbour]!!.add(pathToCurrent + nextStep.pos)
-                    }
-
-                    queue.add(nextStep)
+                } else if (newCost == neighbourState.cost) {
+                    // newCost is equal => additional shortest path
+                    neighbourState.parents.add(currentStep.pos)
                 }
             }
         }
 
-        shortestPaths[end]!!.forEach { path ->
+        println("================ DONE")
+
+        val allShortestPaths = shortestPathsTo(end)
+        allShortestPaths.forEach { path ->
             maze.toPlainMatrix().also {
                 path.forEach { pos -> it[pos] = 'o' }
 
@@ -132,9 +165,7 @@ data class Day16(val maze: Graph<Char>) {
             }
         }
 
-        val positionsOnShortestPaths = shortestPaths[end]!!
-            .flatten()
-            .toSet()
+        val positionsOnShortestPaths = allShortestPaths.flatten().toSet()
 
         maze.toPlainMatrix().also {
             positionsOnShortestPaths.forEach { pos -> it[pos] = 'O' }
@@ -144,7 +175,7 @@ data class Day16(val maze: Graph<Char>) {
             print(it.toString())
         }
 
-        return distancesFromStart[end]!! to positionsOnShortestPaths.size.toLong()
+        return state[end]!!.cost to positionsOnShortestPaths.size.toLong()
     }
 
     fun Graph<Char>.startAndEnd(): Pair<Position, Position> =
