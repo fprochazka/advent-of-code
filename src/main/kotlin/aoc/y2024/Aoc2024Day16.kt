@@ -18,7 +18,7 @@ data class Day16(val maze: MatrixGraph<Char>) {
 
     val mazeStartAndEnd by lazy { maze.startAndEnd() }
 
-    val result1 by lazy { maze.anyShortestPath()!!.pathCost }
+    val result1 by lazy { maze.shortestPathCost() }
     val result2 by lazy { maze.countOfAllPositionsOnAllShortestPaths() }
 
     fun eliminateDeadEnds(): MatrixGraph<Char> {
@@ -61,27 +61,23 @@ data class Day16(val maze: MatrixGraph<Char>) {
             }
         }
 
-//        maze.toPlainMatrix().also {
-//            println()
-//            print(it.toString())
-//        }
-
         return maze
     }
 
-    fun MatrixGraph<Char>.anyShortestPath(): PathStep? =
-        mazeStartAndEnd.let { (start, end) -> anyShortestPath(start, Direction.RIGHT, end, ::edgeCost) }
+    fun MatrixGraph<Char>.shortestPathCost(): Long =
+        mazeStartAndEnd
+            .let { (start, end) -> anyShortestPath(start, Direction.RIGHT, end, ::edgeCost) }
+            ?.pathCost
+            ?: error("No path found")
 
     fun MatrixGraph<Char>.countOfAllPositionsOnAllShortestPaths(): Long {
-        val positionsOnShortestPaths = allShortestPaths()
+        val positionsOnShortestPaths = mazeStartAndEnd
+            .let { (start, end) -> allShortestPaths(start, Direction.RIGHT, end, ::edgeCost) }
             .flatten()
             .toSet()
 
         return positionsOnShortestPaths.size.toLong()
     }
-
-    fun MatrixGraph<Char>.allShortestPaths(): Sequence<List<Position>> =
-        mazeStartAndEnd.let { (start, end) -> allShortestPaths(start, Direction.RIGHT, end, ::edgeCost) }
 
     fun MatrixGraph<Char>.startAndEnd(): Pair<Position, Position> =
         allPositionsByValues { it == START || it == END }
