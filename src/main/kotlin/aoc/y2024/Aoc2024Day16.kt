@@ -10,12 +10,18 @@ fun Resource.day16(): Day16 = Day16(
 
 data class Day16(val maze: Graph<Char>) {
 
-    val results by lazy {
-        eliminateDeadEnds().shortestPaths()
+    init {
+        eliminateDeadEnds()
     }
 
-    val result1 by lazy { results.first }
-    val result2 by lazy { results.second }
+    val mazeStartAndEnd by lazy { maze.startAndEnd() }
+
+    val dijkstraShortestPath by lazy {
+        maze.anyShortestPath()!!
+    }
+
+    val result1 by lazy { dijkstraShortestPath.cost }
+    val result2 by lazy { maze.allShortestPaths(dijkstraShortestPath) }
 
     fun eliminateDeadEnds(): Graph<Char> {
         val nodesByConnections = mutableMapOf<Int, MutableSet<Position>>().apply {
@@ -65,8 +71,71 @@ data class Day16(val maze: Graph<Char>) {
         return maze
     }
 
-    fun Graph<Char>.shortestPaths(): Pair<Long, Long> {
-        val (start, end) = this.startAndEnd()
+    data class GraphPathStep(val pos: Position, val inDir: Direction, val cost: Long, val prev: GraphPathStep? = null) {
+        override fun toString(): String = "($inDir -> $pos, cost=$cost, prev=${prev?.pos})"
+    }
+
+    fun Graph<Char>.anyShortestPath(): GraphPathStep? {
+        val (start, end) = mazeStartAndEnd
+
+        val queue = PriorityQueue<GraphPathStep>(compareBy { it.cost })
+        queue.add(GraphPathStep(start, Direction.RIGHT, 0))
+
+        val visited = mutableSetOf<Position>()
+        var pathToEnd: GraphPathStep? = null
+
+        while (queue.isNotEmpty()) {
+            val currentStep = queue.poll()!!
+            visited.add(currentStep.pos)
+
+            if (currentStep.pos == end) {
+                pathToEnd = currentStep
+                break
+            }
+
+            val neighbours = connectionsFrom(currentStep.pos)
+                .filter { it != currentStep.prev?.pos } // no 180 flips
+                .filter { it !in visited }
+                .map { currentStep.pos.relativeDirectionTo(it)!! to it }
+
+            for ((neighbourDir, neighbourPos) in neighbours) {
+                val newCost = currentStep.cost + 1 + turnCost(currentStep.inDir, neighbourDir)
+
+                queue.add(GraphPathStep(neighbourPos, neighbourDir, newCost, prev = currentStep))
+            }
+        }
+
+        return pathToEnd
+    }
+
+    fun Graph<Char>.countOfAllPositionsOnAllShortestPaths(someShortestPath: GraphPathStep): Long {
+        val allShortestPaths = allShortestPaths(someShortestPath)
+
+        allShortestPaths.forEach { path ->
+            maze.toPlainMatrix().also {
+                path.forEach { pos -> it[pos] = 'o' }
+
+                println()
+                println("One of shortest paths:")
+                print(it.toString())
+            }
+        }
+
+        val positionsOnShortestPaths = allShortestPaths.flatten().toSet()
+
+        maze.toPlainMatrix().also {
+            positionsOnShortestPaths.forEach { pos -> it[pos] = 'O' }
+
+            println()
+            println("All positions from all shortest paths:")
+            print(it.toString())
+        }
+
+        return positionsOnShortestPaths.size.toLong()
+    }
+
+    fun Graph<Char>.allShortestPaths(someShortestPath: GraphPathStep): List<List<Position>> {
+        val (start, end) = mazeStartAndEnd
 
         data class Step(val pos: Position, val inDir: Direction, val cost: Long, val prev: Step? = null) {
             override fun toString(): String = "($inDir -> $pos, cost=$cost, prev=${prev?.pos})"
@@ -154,28 +223,7 @@ data class Day16(val maze: Graph<Char>) {
 
         println("================ DONE")
 
-        val allShortestPaths = shortestPathsTo(end)
-        allShortestPaths.forEach { path ->
-            maze.toPlainMatrix().also {
-                path.forEach { pos -> it[pos] = 'o' }
-
-                println()
-                println("One of shortest paths:")
-                print(it.toString())
-            }
-        }
-
-        val positionsOnShortestPaths = allShortestPaths.flatten().toSet()
-
-        maze.toPlainMatrix().also {
-            positionsOnShortestPaths.forEach { pos -> it[pos] = 'O' }
-
-            println()
-            println("All positions from all shortest paths:")
-            print(it.toString())
-        }
-
-        return state[end]!!.cost to positionsOnShortestPaths.size.toLong()
+        return shortestPathsTo(end)
     }
 
     fun Graph<Char>.startAndEnd(): Pair<Position, Position> =
