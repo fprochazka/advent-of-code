@@ -5,6 +5,7 @@ import aoc.utils.d2.Direction.entries
 import aoc.utils.math.remEuclid
 import java.awt.image.BufferedImage
 import java.nio.file.Path
+import java.util.PriorityQueue
 import javax.imageio.ImageIO
 import kotlin.io.path.extension
 
@@ -266,7 +267,7 @@ data class Position(val x: Long, val y: Long) {
         )
 
     fun relativeDirectionTo(other: Position): Direction? =
-        other.distanceTo(this).toDirection()
+        other.distanceTo(this).asDirection()
 
     fun distanceTo(other: Position): Distance =
         Distance(this.x - other.x, this.y - other.y)
@@ -346,7 +347,7 @@ data class Distance(val xDiff: Long, val yDiff: Long) {
     operator fun times(length: Int): Distance =
         Distance(xDiff * length, yDiff * length)
 
-    fun toDirection(): Direction? =
+    fun asDirection(): Direction? =
         toDirectionCache[this]
 
     override fun toString(): String = "(x=$xDiff, y=$yDiff)"
@@ -382,5 +383,169 @@ data class OrientedPosition(var position: Position, var direction: Direction) {
         )
 
     override fun toString(): String = "$position -> $direction"
+
+}
+
+class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
+
+    val neighbourSides = DirectionBitSet().apply {
+        neighbourSides.forEach { add(it) }
+    }
+
+    val nodes: Matrix<Node> = Matrix.empty<Node>(dims)
+
+    operator fun set(position: Position, value: V) {
+        nodes[position] = Node(value, position)
+    }
+
+    operator fun get(position: Position): Node? =
+        nodes[position]
+
+    fun connectionsOf(pos: Position): List<Position> =
+        nodes[pos]?.connections ?: emptyList()
+
+    fun toPlainMatrix(): Matrix<V> = let { graph ->
+        Matrix.empty<V>(nodes.dims).also { copy ->
+            for ((pos, node) in graph.nodes.entries) {
+                copy[pos] = node.value
+            }
+        }
+    }
+
+    fun allPositionsByValues(valueFilter: (V) -> Boolean): Map<V, Set<Position>> =
+        nodes.allPositionsByValues { valueFilter(it.value) }
+            .map { entry -> entry.key.value to entry.value }
+            .toMap()
+
+    fun MatrixGraph<Char>.anyShortestPath(
+        start: Position,
+        end: Position,
+        edgeCost: (PathStep, Direction) -> Long = { step, _ -> step.stepCost },
+    ): PathStep? {
+        val queue = PriorityQueue<PathStep>(compareBy { it.pathCost })
+        queue.add(PathStep(start, Direction.RIGHT, 0))
+
+        val visited = mutableSetOf<Position>()
+
+        while (queue.isNotEmpty()) {
+            val currentStep = queue.poll()!!
+            visited.add(currentStep.pos)
+
+            if (currentStep.pos == end) {
+                return currentStep
+            }
+
+            val neighbours = connectionsOf(currentStep.pos)
+                .filter { it != currentStep.prev?.pos } // no 180 flips
+                .filter { it !in visited }
+                .map { currentStep.pos.relativeDirectionTo(it)!! to it }
+
+            for ((neighbourDir, neighbourPos) in neighbours) {
+                val nextStep = PathStep(
+                    neighbourPos,
+                    neighbourDir,
+                    stepCost = edgeCost(currentStep, neighbourDir),
+                    prev = currentStep
+                )
+                queue.add(nextStep)
+            }
+        }
+
+        return null
+    }
+
+    inner class Node(
+        var value: V,
+        val position: Position,
+    ) {
+
+        // position to weight
+        val weightedConnections = mutableMapOf<Position, Long>()
+
+        val connections
+            get() = weightedConnections.keys.toList()
+
+        fun vacantSidesIncludingOutOfMatrix(): Iterable<OrientedPosition> { // O(4 + 4)
+            val result = mutableSetOf<OrientedPosition>()
+
+            for (neighbourPosition in neighbourPositionsIncludingOutOfMatrix()) {  // O(4)
+                if (neighbourPosition.position !in weightedConnections) {
+                    result.add(neighbourPosition)
+                }
+            }
+
+            return result
+        }
+
+        fun vacantSidesValid(): Iterable<OrientedPosition> = // O(4)
+            vacantSidesIncludingOutOfMatrix().filter { it.position in nodes }
+
+        fun neighbourPositionsIncludingOutOfMatrix(): Iterable<OrientedPosition> = // O(4)
+            neighbourSides.map { OrientedPosition(position + it, it) }
+
+        fun neighbourPositionsValid(): Iterable<OrientedPosition> = // O(4)
+            neighbourPositionsIncludingOutOfMatrix().filter { it.position in nodes }
+
+        override fun toString(): String = "'$value' at $position"
+
+    }
+
+    data class PathStep(
+        val pos: Position,
+        val inDir: Direction,
+        val stepCost: Long,
+        val pathCost: Long,
+        val prev: PathStep? = null
+    ) {
+
+        constructor(pos: Position, inDir: Direction, stepCost: Long) : this(pos, inDir, stepCost, stepCost, prev = null)
+
+        constructor(pos: Position, inDir: Direction, stepCost: Long, prev: PathStep) : this(
+            pos,
+            inDir,
+            pathCost = prev.pathCost + stepCost,
+            stepCost = stepCost,
+            prev = prev
+        )
+
+        fun toList(): List<PathStep> =
+            generateSequence(this) { it.prev }.toList().reversed()
+
+        override fun toString(): String = "($inDir -> $pos, cost=$pathCost, prev=${prev?.pos})"
+
+    }
+
+    companion object {
+
+        const val INFINITE_COST = (Long.MAX_VALUE / 2)
+
+        fun <V : Any> of(
+            matrix: Resource.CharMatrix2d,
+            neighbourSides: Set<Direction>,
+            nodeValues: (Char) -> V,
+            edges: (MatrixGraph<V>.Node, MatrixGraph<V>.Node) -> Pair<Boolean, Long>,
+        ): MatrixGraph<V> {
+            val result = MatrixGraph<V>(matrix.dims, neighbourSides)
+
+            for ((position, value) in matrix.entries) {
+                result[position] = nodeValues(value)
+            }
+
+            for (position in result.nodes.positions) {
+                val node = result[position]!!
+
+                for (neighbourPosition in node.neighbourPositionsValid()) {
+                    val candidate = result[neighbourPosition.position]!!
+                    val (isConnected, weight) = edges(node, candidate)
+                    if (isConnected) {
+                        node.weightedConnections[candidate.position] = weight
+                    }
+                }
+            }
+
+            return result
+        }
+
+    }
 
 }

@@ -1,14 +1,18 @@
 package aoc.y2024
 
 import aoc.utils.Resource
-import aoc.utils.d2.*
+import aoc.utils.d2.Direction
+import aoc.utils.d2.Matrix
+import aoc.utils.d2.MatrixGraph
+import aoc.utils.d2.MatrixGraph.PathStep
+import aoc.utils.d2.Position
 import java.util.*
 
 fun Resource.day16(): Day16 = Day16(
     Day16.toGraph(matrix2d())
 )
 
-data class Day16(val maze: Graph<Char>) {
+data class Day16(val maze: MatrixGraph<Char>) {
 
     init {
         eliminateDeadEnds()
@@ -19,7 +23,7 @@ data class Day16(val maze: Graph<Char>) {
     val result1 by lazy { maze.anyShortestPath()!!.pathCost }
     val result2 by lazy { maze.countOfAllPositionsOnAllShortestPaths() }
 
-    fun eliminateDeadEnds(): Graph<Char> {
+    fun eliminateDeadEnds(): MatrixGraph<Char> {
         val nodesByConnections = mutableMapOf<Int, MutableSet<Position>>().apply {
             put(1, mutableSetOf())
             put(2, mutableSetOf())
@@ -39,7 +43,7 @@ data class Day16(val maze: Graph<Char>) {
                 val deadEndNode = maze.nodes[deadEndPos]!!
                 val previousNode = maze.nodes[deadEndNode.connections.first()]!!
 
-                if (deadEndNode.value == 'S' || deadEndNode.value == 'E') {
+                if (deadEndNode.value == START || deadEndNode.value == END) {
                     nodesWithOneConnection.remove(deadEndPos)
                     continue
                 }
@@ -67,23 +71,11 @@ data class Day16(val maze: Graph<Char>) {
         return maze
     }
 
-    data class GraphPathStep(val pos: Position, val inDir: Direction, val pathCost: Long, val prev: GraphPathStep? = null) {
-
-        fun toList(): List<GraphPathStep> =
-            generateSequence(this) { it.prev }.toList().reversed()
-
-        override fun toString(): String = "($inDir -> $pos, cost=$pathCost, prev=${prev?.pos})"
-
-    }
-
-    fun edgeCost(current: GraphPathStep, inDir: Direction): Long =
-        current.pathCost + 1 + turnCost(current.inDir, inDir)
-
-    fun Graph<Char>.anyShortestPath(): GraphPathStep? {
+    fun MatrixGraph<Char>.anyShortestPath(): PathStep? {
         val (start, end) = mazeStartAndEnd
 
-        val queue = PriorityQueue<GraphPathStep>(compareBy { it.pathCost })
-        queue.add(GraphPathStep(start, Direction.RIGHT, 0))
+        val queue = PriorityQueue<PathStep>(compareBy { it.pathCost })
+        queue.add(PathStep(start, Direction.RIGHT, 0))
 
         val visited = mutableSetOf<Position>()
 
@@ -95,20 +87,20 @@ data class Day16(val maze: Graph<Char>) {
                 return currentStep
             }
 
-            val neighbours = connectionsFrom(currentStep.pos)
+            val neighbours = connectionsOf(currentStep.pos)
                 .filter { it != currentStep.prev?.pos } // no 180 flips
                 .filter { it !in visited }
                 .map { currentStep.pos.relativeDirectionTo(it)!! to it }
 
             for ((neighbourDir, neighbourPos) in neighbours) {
-                queue.add(GraphPathStep(neighbourPos, neighbourDir, edgeCost(currentStep, neighbourDir), prev = currentStep))
+                queue.add(PathStep(neighbourPos, neighbourDir, stepCost = 1 + turnCost(currentStep.inDir, neighbourDir), prev = currentStep))
             }
         }
 
         return null
     }
 
-    fun Graph<Char>.countOfAllPositionsOnAllShortestPaths(): Long {
+    fun MatrixGraph<Char>.countOfAllPositionsOnAllShortestPaths(): Long {
         val positionsOnShortestPaths = allShortestPaths()
             .flatten()
             .toSet()
@@ -116,26 +108,26 @@ data class Day16(val maze: Graph<Char>) {
         return positionsOnShortestPaths.size.toLong()
     }
 
-    fun Graph<Char>.allShortestPaths(): Sequence<List<Position>> = sequence {
+    fun MatrixGraph<Char>.allShortestPaths(): Sequence<List<Position>> = sequence {
         val (start, end) = mazeStartAndEnd
 
-        val minCosts = Matrix.empty<MutableMap<Direction, GraphPathStep>>(maze.nodes.dims)
-        fun updateMinCost(step: GraphPathStep) {
+        val minCosts = Matrix.empty<MutableMap<Direction, PathStep>>(maze.nodes.dims)
+        fun updateMinCost(step: PathStep) {
             minCosts[step.pos] = (minCosts[step.pos] ?: mutableMapOf()).also {
                 it.merge(step.inDir, step, { prev, next -> if (next.pathCost < prev.pathCost) next else prev })
             }
         }
 
-        fun getMinCostPath(step: GraphPathStep): GraphPathStep? =
+        fun getMinCostPath(step: PathStep): PathStep? =
             minCosts[step.pos]?.get(step.inDir)
 
-        fun getMinCost(step: GraphPathStep): Long =
-            getMinCostPath(step)?.pathCost ?: INFINITE_COST
+        fun getMinCost(step: PathStep): Long =
+            getMinCostPath(step)?.pathCost ?: MatrixGraph.INFINITE_COST
 
-        var shortestPathCost = INFINITE_COST
+        var shortestPathCost = MatrixGraph.INFINITE_COST
 
-        val queue = PriorityQueue<GraphPathStep>(compareBy { it.pathCost })
-        queue.add(GraphPathStep(start, Direction.RIGHT, 0))
+        val queue = PriorityQueue<PathStep>(compareBy { it.pathCost })
+        queue.add(PathStep(start, Direction.RIGHT, 0))
 
         while (queue.isNotEmpty()) {
             val currentStep = queue.poll()
@@ -158,17 +150,17 @@ data class Day16(val maze: Graph<Char>) {
                 continue
             }
 
-            val neighbours = connectionsFrom(currentStep.pos)
+            val neighbours = connectionsOf(currentStep.pos)
                 .filter { it != currentStep.prev?.pos } // no 180 flips
                 .map { currentStep.pos.relativeDirectionTo(it)!! to it }
 
             for ((neighbourDir, neighbourPos) in neighbours) {
-                queue.add(GraphPathStep(neighbourPos, neighbourDir, edgeCost(currentStep, neighbourDir), prev = currentStep))
+                queue.add(PathStep(neighbourPos, neighbourDir, stepCost = 1 + turnCost(currentStep.inDir, neighbourDir), prev = currentStep))
             }
         }
     }
 
-    fun Graph<Char>.startAndEnd(): Pair<Position, Position> =
+    fun MatrixGraph<Char>.startAndEnd(): Pair<Position, Position> =
         nodes
             .allPositionsByValues { it.value == 'S' || it.value == 'E' }
             .map { entry -> entry.key.value to entry.key }
@@ -183,15 +175,14 @@ data class Day16(val maze: Graph<Char>) {
         const val WALL = '#'
         const val DEAD_END = 'x'
 
-        const val INFINITE_COST = (Long.MAX_VALUE / 2)
-
-        val allowedDirections = listOf(Direction.RIGHT, Direction.LEFT, Direction.UP, Direction.DOWN)
+        fun edgeCost(current: PathStep, inDir: Direction): Long =
+            current.pathCost + 1 + turnCost(current.inDir, inDir)
 
         fun turnCost(from: Direction, to: Direction): Long =
             turnCosts[from]!![to]!!
 
         val turnCosts: Map<Direction, Map<Direction, Long>> = buildMap {
-            for (from in allowedDirections) {
+            for (from in Direction.entriesCardinal) {
                 val costs = mutableMapOf<Direction, Long>().apply {
                     put(from, 0)
                     put(from.turnRight90(), 1000)
@@ -203,105 +194,17 @@ data class Day16(val maze: Graph<Char>) {
             }
         }
 
-        fun toGraph(matrix: Resource.CharMatrix2d): Graph<Char> =
-            Graph.ofChars(matrix) { a, b ->
+        fun toGraph(matrix: Resource.CharMatrix2d): MatrixGraph<Char> =
+            MatrixGraph.of(matrix, Direction.entriesCardinal, { it }) { a, b ->
                 when (a.value) {
                     START, EMPTY, END -> when (b.value) {
                         START, EMPTY, END -> true to 1
-                        else -> false to INFINITE_COST
+                        else -> false to MatrixGraph.INFINITE_COST
                     }
 
-                    else -> false to INFINITE_COST
+                    else -> false to MatrixGraph.INFINITE_COST
                 }
             }
-
-    }
-
-    class Graph<V : Any>(dims: Dimensions) {
-
-        val nodes: Matrix<Node> = Matrix.empty<Node>(dims)
-
-        operator fun set(position: Position, value: V) {
-            nodes[position] = Node(value, position)
-        }
-
-        operator fun get(position: Position): Node? =
-            nodes[position]
-
-        fun connectionsFrom(pos: Position): List<Position> =
-            nodes[pos]?.connections ?: emptyList()
-
-        fun toPlainMatrix(): Matrix<V> = let { graph ->
-            Matrix.empty<V>(nodes.dims).also { copy ->
-                for ((pos, node) in graph.nodes.entries) {
-                    copy[pos] = node.value
-                }
-            }
-        }
-
-        inner class Node(
-            var value: V,
-            val position: Position,
-        ) {
-
-            // position to weight
-            val weightedConnections = mutableMapOf<Position, Long>()
-
-            val connections
-                get() = weightedConnections.keys.toList()
-
-            fun vacantSidesIncludingOutOfMatrix(): Iterable<OrientedPosition> { // O(4 + 4)
-                val result = mutableSetOf<OrientedPosition>()
-
-                for (neighbourPosition in neighbourPositionsIncludingOutOfMatrix()) {  // O(4)
-                    if (neighbourPosition.position !in weightedConnections) {
-                        result.add(neighbourPosition)
-                    }
-                }
-
-                return result
-            }
-
-            fun vacantSidesValid(): Iterable<OrientedPosition> = // O(4)
-                vacantSidesIncludingOutOfMatrix().filter { it.position in nodes }
-
-            fun neighbourPositionsIncludingOutOfMatrix(): Iterable<OrientedPosition> = // O(4)
-                neighbourSides.map { OrientedPosition(position + it, it) }
-
-            fun neighbourPositionsValid(): Iterable<OrientedPosition> = // O(4)
-                neighbourPositionsIncludingOutOfMatrix().filter { it.position in nodes }
-
-            override fun toString(): String = "'$value' at $position"
-
-        }
-
-        companion object {
-
-            val neighbourSides = listOf(Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT)
-
-            fun ofChars(matrix: Resource.CharMatrix2d, edgeFilter: (Graph<Char>.Node, Graph<Char>.Node) -> Pair<Boolean, Long>): Graph<Char> {
-                val graph = Graph<Char>(matrix.dims)
-
-                for ((position, value) in matrix.entries) {
-                    graph[position] = value
-                }
-
-                for (position in graph.nodes.positions) {
-                    val node = graph[position]!!
-
-                    for (neighbourPosition in node.neighbourPositionsValid()) {
-                        val candidate = graph[neighbourPosition.position]!!
-                        val (isConnected, weight) = edgeFilter(node, candidate)
-                        if (isConnected) {
-                            node.weightedConnections[candidate.position] = weight
-                        }
-                    }
-                }
-
-                return graph
-            }
-
-        }
 
     }
 
