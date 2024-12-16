@@ -24,7 +24,7 @@ data class Day16(val maze: Graph<Char>) {
     }
 
     val result1 by lazy { shortestPath.pathCost }
-    val result2 by lazy { maze.countOfAllPositionsOnAllShortestPaths(shortestPath) }
+    val result2 by lazy { maze.countOfAllPositionsOnAllShortestPaths(shortestPath.pathCost) }
 
     fun eliminateDeadEnds(): Graph<Char> {
         val nodesByConnections = mutableMapOf<Int, MutableSet<Position>>().apply {
@@ -86,12 +86,20 @@ data class Day16(val maze: Graph<Char>) {
     fun edgeCost(current: GraphPathStep, inDir: Direction): Long =
         current.pathCost + 1 + turnCost(current.inDir, inDir)
 
+    fun edgeCost(prevCost: Long, prevDir: Direction, nextDir: Direction): Long =
+        prevCost + 1 + turnCost(prevDir, nextDir)
+
+    fun Graph<Char>.printPath(path: List<Position>) {
+        toPlainMatrix().also { matrix ->
+            path.forEach { matrix[it] = 'o' }
+            print(matrix.toString())
+        }
+    }
+
     fun Graph<Char>.printPath(step: GraphPathStep) {
         toPlainMatrix().also { matrix ->
-            generateSequence(step.prev) { it.prev }.forEach {
-                matrix[it.pos] = 'o'
-            }
-            matrix[step.pos] = 'O'
+            generateSequence(step) { it.prev }
+                .forEach { matrix[it.pos] = 'o' }
 
             println()
             print(matrix.toString())
@@ -127,22 +135,10 @@ data class Day16(val maze: Graph<Char>) {
         return null
     }
 
-    fun Graph<Char>.countOfAllPositionsOnAllShortestPaths(someShortestPath: GraphPathStep): Long {
-        val allShortestPaths = allShortestPaths(someShortestPath)
-            .map { it.toList().map { step -> step.pos } }
-            .toList()
-
-        allShortestPaths.forEach { path ->
-            maze.toPlainMatrix().also {
-                path.forEach { pos -> it[pos] = 'o' }
-
-                println()
-                println("One of shortest paths:")
-                print(it.toString())
-            }
-        }
-
-        val positionsOnShortestPaths = allShortestPaths.flatten().toSet()
+    fun Graph<Char>.countOfAllPositionsOnAllShortestPaths(shortestPathCost: Long): Long {
+        val positionsOnShortestPaths = allShortestPaths1(shortestPathCost)
+            .flatten()
+            .toSet()
 
         maze.toPlainMatrix().also {
             positionsOnShortestPaths.forEach { pos -> it[pos] = 'O' }
@@ -155,21 +151,13 @@ data class Day16(val maze: Graph<Char>) {
         return positionsOnShortestPaths.size.toLong()
     }
 
-    fun Graph<Char>.allShortestPaths(someShortestPath: GraphPathStep): Sequence<GraphPathStep> = sequence {
+    fun Graph<Char>.allShortestPaths1(shortestPathCost: Long): Sequence<List<Position>> = sequence {
         val (start, end) = mazeStartAndEnd
 
-        data class StatefulStep(val step: GraphPathStep) {
-
-            constructor(pos: Position, inDir: Direction, cost: Long, prev: GraphPathStep? = null) : this(GraphPathStep(pos, inDir, cost, prev))
-
-            val pos: Position
-                get() = step.pos
-
-            val pathCost: Long
-                get() = step.pathCost
+        data class StatefulStep(val pos: Position, val inDir: Direction, val pathCost: Long) {
 
             val remainingToTry = allowedDirections
-                .map { OrientedPosition(step.pos + it, it) }
+                .map { OrientedPosition(pos + it, it) }
                 .filter { nodes[it.position]?.let { node -> node.value != WALL && node.value != DEAD_END } == true }
                 .sortedBy { manhattanDistance(it.position, end) }
                 .toMutableList()
@@ -184,17 +172,15 @@ data class Day16(val maze: Graph<Char>) {
                         continue
                     }
 
-                    return StatefulStep(nextPos, nextDir, edgeCost(step, nextDir), prev = step)
+                    return StatefulStep(nextPos, nextDir, edgeCost(pathCost, inDir, nextDir))
                 }
 
                 return null
             }
 
-            override fun toString(): String = "(${step.inDir} -> ${step.pos}, cost=${step.pathCost}, remainingDirs=${remainingToTry.size})"
+            override fun toString(): String = "(${inDir} -> ${pos}, cost=${pathCost}, remainingDirs=${remainingToTry.size})"
 
         }
-
-        val minCost = someShortestPath.pathCost
 
         val pathVisited = mutableSetOf<Position>()
 
@@ -207,7 +193,13 @@ data class Day16(val maze: Graph<Char>) {
             pathVisited.add(currentStep.pos)
 
             if (currentStep.pos == end) {
-                yield(currentStep.step)
+                val path = pathVisited.toList()
+
+                println()
+                println("Found shortest path:")
+                printPath(path)
+
+                yield(path)
 
                 pathDfs.removeLast()
                 pathVisited.remove(currentStep.pos)
@@ -222,7 +214,7 @@ data class Day16(val maze: Graph<Char>) {
                 continue
             }
 
-            if (nextStep.pathCost <= minCost) {
+            if (nextStep.pathCost <= shortestPathCost) {
                 pathDfs.add(nextStep)
             }
         }
