@@ -182,17 +182,17 @@ enum class Direction(val vector: Distance) {
 
 class DirectionBitSet : Iterable<Direction> {
 
-    private var map = 0
+    private var set = 0
 
     operator fun contains(dir: Direction): Boolean =
-        map and maskOf(dir) != 0
+        set and maskOf(dir) != 0
 
     fun add(dir: Direction) {
-        map = map or maskOf(dir)
+        set = set or maskOf(dir)
     }
 
     fun remove(dir: Direction) {
-        map = map and maskOf(dir).inv()
+        set = set and maskOf(dir).inv()
     }
 
     override fun iterator(): Iterator<Direction> =
@@ -202,9 +202,8 @@ class DirectionBitSet : Iterable<Direction> {
 
     companion object {
 
-        fun maskOf(dir: Direction): Int {
-            return 1 shl dir.ordinal
-        }
+        fun maskOf(dir: Direction): Int =
+            1 shl dir.ordinal
 
     }
 
