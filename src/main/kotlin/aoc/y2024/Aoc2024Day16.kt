@@ -71,34 +71,10 @@ data class Day16(val maze: MatrixGraph<Char>) {
         return maze
     }
 
-    fun MatrixGraph<Char>.anyShortestPath(): PathStep? {
-        val (start, end) = mazeStartAndEnd
-
-        val queue = PriorityQueue<PathStep>(compareBy { it.pathCost })
-        queue.add(PathStep(start, Direction.RIGHT, 0))
-
-        val visited = mutableSetOf<Position>()
-
-        while (queue.isNotEmpty()) {
-            val currentStep = queue.poll()!!
-            visited.add(currentStep.pos)
-
-            if (currentStep.pos == end) {
-                return currentStep
-            }
-
-            val neighbours = connectionsOf(currentStep.pos)
-                .filter { it != currentStep.prev?.pos } // no 180 flips
-                .filter { it !in visited }
-                .map { currentStep.pos.relativeDirectionTo(it)!! to it }
-
-            for ((neighbourDir, neighbourPos) in neighbours) {
-                queue.add(PathStep(neighbourPos, neighbourDir, stepCost = 1 + turnCost(currentStep.inDir, neighbourDir), prev = currentStep))
-            }
+    fun MatrixGraph<Char>.anyShortestPath(): PathStep? =
+        mazeStartAndEnd.let { (start, end) ->
+            anyShortestPath(start, end) { cursor, inDir -> 1 + turnCost(cursor.inDir, inDir) }
         }
-
-        return null
-    }
 
     fun MatrixGraph<Char>.countOfAllPositionsOnAllShortestPaths(): Long {
         val positionsOnShortestPaths = allShortestPaths()
