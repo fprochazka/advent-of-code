@@ -5,7 +5,7 @@ import aoc.utils.d2.Direction.entries
 import aoc.utils.math.remEuclid
 import java.awt.image.BufferedImage
 import java.nio.file.Path
-import java.util.PriorityQueue
+import java.util.*
 import javax.imageio.ImageIO
 import kotlin.io.path.extension
 
@@ -404,6 +404,9 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
     fun connectionsOf(pos: Position): List<Position> =
         nodes[pos]?.connections ?: emptyList()
 
+    fun connectionsWeight(from: Position, to: Position): Long? =
+        nodes[from]?.weightedConnections?.get(to)
+
     fun toPlainMatrix(): Matrix<V> = let { graph ->
         Matrix.empty<V>(nodes.dims).also { copy ->
             for ((pos, node) in graph.nodes.entries) {
@@ -417,10 +420,10 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
             .map { entry -> entry.key.value to entry.value }
             .toMap()
 
-    fun MatrixGraph<Char>.anyShortestPath(
+    fun anyShortestPath(
         start: Position,
         end: Position,
-        edgeCost: (PathStep, Direction) -> Long = { step, _ -> step.stepCost },
+        edgeCost: (PathStep, Direction) -> Long = { cursor, inDir -> connectionsWeight(cursor.pos, cursor.pos + inDir)!! },
     ): PathStep? {
         val queue = PriorityQueue<PathStep>(compareBy { it.pathCost })
         queue.add(PathStep(start, Direction.RIGHT, 0))
