@@ -375,7 +375,7 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
     fun connectionsOf(pos: Position): List<Position> =
         nodes[pos]?.connections ?: emptyList()
 
-    fun connectionsWeight(from: Position, to: Position): Long? =
+    fun connectionWeight(from: Position, to: Position): Long? =
         nodes[from]?.weightedConnections?.get(to)
 
     fun toPlainMatrix(): Matrix<V> = let { graph ->
@@ -395,7 +395,7 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
         start: Position,
         startDir: Direction,
         end: Position,
-        edgeCost: (PathStep, Direction) -> Long = { cursor, inDir -> connectionsWeight(cursor.pos, cursor.pos + inDir)!! },
+        edgeCost: (PathStep, Direction) -> Long = { cursor, inDir -> connectionWeight(cursor.pos, cursor.pos + inDir)!! },
     ): PathStep? {
         val queue = PriorityQueue<PathStep>(compareBy { it.pathCost })
         queue.add(PathStep(start, startDir, 0))
@@ -433,7 +433,7 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
         start: Position,
         startDir: Direction,
         end: Position,
-        edgeCost: (PathStep, Direction) -> Long = { cursor, inDir -> connectionsWeight(cursor.pos, cursor.pos + inDir)!! },
+        edgeCost: (PathStep, Direction) -> Long = { cursor, inDir -> connectionWeight(cursor.pos, cursor.pos + inDir)!! },
     ): Sequence<List<Position>> = sequence {
         val minCosts = Matrix.empty<MutableMap<Direction, PathStep>>(nodes.dims)
         fun updateMinCost(step: PathStep) {
