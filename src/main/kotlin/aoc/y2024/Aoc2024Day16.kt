@@ -2,11 +2,9 @@ package aoc.y2024
 
 import aoc.utils.Resource
 import aoc.utils.d2.Direction
-import aoc.utils.d2.Matrix
 import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.MatrixGraph.PathStep
 import aoc.utils.d2.Position
-import java.util.*
 
 fun Resource.day16(): Day16 = Day16(
     Day16.toGraph(matrix2d())
@@ -72,7 +70,7 @@ data class Day16(val maze: MatrixGraph<Char>) {
     }
 
     fun MatrixGraph<Char>.anyShortestPath(): PathStep? =
-        mazeStartAndEnd.let { (start, end) -> anyShortestPath(start, end, ::edgeCost) }
+        mazeStartAndEnd.let { (start, end) -> anyShortestPath(start, Direction.RIGHT, end, ::edgeCost) }
 
     fun MatrixGraph<Char>.countOfAllPositionsOnAllShortestPaths(): Long {
         val positionsOnShortestPaths = allShortestPaths()
@@ -82,57 +80,8 @@ data class Day16(val maze: MatrixGraph<Char>) {
         return positionsOnShortestPaths.size.toLong()
     }
 
-    fun MatrixGraph<Char>.allShortestPaths(): Sequence<List<Position>> = sequence {
-        val (start, end) = mazeStartAndEnd
-
-        val minCosts = Matrix.empty<MutableMap<Direction, PathStep>>(maze.nodes.dims)
-        fun updateMinCost(step: PathStep) {
-            minCosts[step.pos] = (minCosts[step.pos] ?: mutableMapOf()).also {
-                it.merge(step.inDir, step, { prev, next -> if (next.pathCost < prev.pathCost) next else prev })
-            }
-        }
-
-        fun getMinCostPath(step: PathStep): PathStep? =
-            minCosts[step.pos]?.get(step.inDir)
-
-        fun getMinCost(step: PathStep): Long =
-            getMinCostPath(step)?.pathCost ?: MatrixGraph.INFINITE_COST
-
-        var shortestPathCost = MatrixGraph.INFINITE_COST
-
-        val queue = PriorityQueue<PathStep>(compareBy { it.pathCost })
-        queue.add(PathStep(start, Direction.RIGHT, 0))
-
-        while (queue.isNotEmpty()) {
-            val currentStep = queue.poll()
-
-            if (currentStep.pathCost > shortestPathCost) {
-                // the queue is sorter, therefore once it starts returning "too long" results we know we can throw away the rest
-                break
-            }
-
-            if (currentStep.pathCost > getMinCost(currentStep)) {
-                continue
-            }
-
-            updateMinCost(currentStep)
-
-            if (currentStep.pos == end) {
-                shortestPathCost = minOf(shortestPathCost, currentStep.pathCost)
-
-                yield(currentStep.toList().map { it.pos })
-                continue
-            }
-
-            val neighbours = connectionsOf(currentStep.pos)
-                .filter { it != currentStep.prev?.pos } // no 180 flips
-                .map { currentStep.pos.relativeDirectionTo(it)!! to it }
-
-            for ((neighbourDir, neighbourPos) in neighbours) {
-                queue.add(PathStep(neighbourPos, neighbourDir, stepCost = edgeCost(currentStep, neighbourDir), prev = currentStep))
-            }
-        }
-    }
+    fun MatrixGraph<Char>.allShortestPaths(): Sequence<List<Position>> =
+        mazeStartAndEnd.let { (start, end) -> allShortestPaths(start, Direction.RIGHT, end, ::edgeCost) }
 
     fun MatrixGraph<Char>.startAndEnd(): Pair<Position, Position> =
         allPositionsByValues { it == START || it == END }

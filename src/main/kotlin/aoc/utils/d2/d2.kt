@@ -422,11 +422,12 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
 
     fun anyShortestPath(
         start: Position,
+        startDir: Direction,
         end: Position,
         edgeCost: (PathStep, Direction) -> Long = { cursor, inDir -> connectionsWeight(cursor.pos, cursor.pos + inDir)!! },
     ): PathStep? {
         val queue = PriorityQueue<PathStep>(compareBy { it.pathCost })
-        queue.add(PathStep(start, Direction.RIGHT, 0))
+        queue.add(PathStep(start, startDir, 0))
 
         val visited = mutableSetOf<Position>()
 
@@ -455,6 +456,61 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
         }
 
         return null
+    }
+
+    fun allShortestPaths(
+        start: Position,
+        startDir: Direction,
+        end: Position,
+        edgeCost: (PathStep, Direction) -> Long = { cursor, inDir -> connectionsWeight(cursor.pos, cursor.pos + inDir)!! },
+    ): Sequence<List<Position>> = sequence {
+        val minCosts = Matrix.empty<MutableMap<Direction, PathStep>>(nodes.dims)
+        fun updateMinCost(step: PathStep) {
+            minCosts[step.pos] = (minCosts[step.pos] ?: mutableMapOf()).also {
+                it.merge(step.inDir, step, { prev, next -> if (next.pathCost < prev.pathCost) next else prev })
+            }
+        }
+
+        fun getMinCostPath(step: PathStep): PathStep? =
+            minCosts[step.pos]?.get(step.inDir)
+
+        fun getMinCost(step: PathStep): Long =
+            getMinCostPath(step)?.pathCost ?: INFINITE_COST
+
+        var shortestPathCost = INFINITE_COST
+
+        val queue = PriorityQueue<PathStep>(compareBy { it.pathCost })
+        queue.add(PathStep(start, startDir, 0))
+
+        while (queue.isNotEmpty()) {
+            val currentStep = queue.poll()
+
+            if (currentStep.pathCost > shortestPathCost) {
+                // the queue is sorter, therefore once it starts returning "too long" results we know we can throw away the rest
+                break
+            }
+
+            if (currentStep.pathCost > getMinCost(currentStep)) {
+                continue
+            }
+
+            updateMinCost(currentStep)
+
+            if (currentStep.pos == end) {
+                shortestPathCost = minOf(shortestPathCost, currentStep.pathCost)
+
+                yield(currentStep.toList().map { it.pos })
+                continue
+            }
+
+            val neighbours = connectionsOf(currentStep.pos)
+                .filter { it != currentStep.prev?.pos } // no 180 flips
+                .map { currentStep.pos.relativeDirectionTo(it)!! to it }
+
+            for ((neighbourDir, neighbourPos) in neighbours) {
+                queue.add(PathStep(neighbourPos, neighbourDir, stepCost = edgeCost(currentStep, neighbourDir), prev = currentStep))
+            }
+        }
     }
 
     inner class Node(
