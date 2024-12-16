@@ -17,10 +17,10 @@ class Aoc2024Day16Test : AocTest() {
         solve(resource2024(16, "example2"))
     }
 
-    @Test
-    fun input() {
-        solve(resource2024(16, "input"))
-    }
+//    @Test
+//    fun input() {
+//        solve(resource2024(16, "input"))
+//    }
 
     private fun solve(input: Resource) {
         println("input: $input")

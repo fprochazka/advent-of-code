@@ -1,21 +1,10 @@
 package aoc.y2024
 
 import aoc.utils.Resource
-import aoc.utils.containers.popAny
 import aoc.utils.d2.*
-import aoc.y2024.Day16.PathStep.Companion.DEAD_END
 
 fun Resource.day16(): Day16 = Day16(
-    Day16.Graph.ofChars(matrix2d()) { a, b ->
-        when (a.value) {
-            'S', '.', 'E' -> when (b.value) {
-                'S', '.', 'E' -> true
-                else -> false
-            }
-
-            else -> false
-        }
-    }
+    Day16.toGraph(matrix2d())
 )
 
 data class Day16(val maze: Graph<Char>) {
@@ -65,36 +54,42 @@ data class Day16(val maze: Graph<Char>) {
             }
         }
 
-        maze.printPath()
+        maze.toPlainMatrix().also {
+            println()
+            print(it.toString())
+        }
 
         return maze
     }
 
     fun Graph<Char>.bestCostOfMaze(): Long {
-        val startAndEnd = nodes
+        val (start, end) = nodes
             .allPositionsByValues { it.value == 'S' || it.value == 'E' }
             .map { entry -> entry.key.value to entry.key }
             .toMap()
-        val start = startAndEnd['S']!!.position
-        val end = startAndEnd['E']!!.position
+            .let { it['S']!!.position to it['E']!!.position }
 
+        val minCosts = mutableMapOf<Position, Long>()
         var minCost = Long.MAX_VALUE
 
         val visitedPositions = mutableSetOf<Position>()
 
         // start on the Start Tile (marked S) facing East (RIGHT)
+        val startStep = PathStep(start, Direction.RIGHT)
+
         var dfsPath = ArrayDeque<PathStep>()
-        dfsPath.add(
-            PathStep(start, Direction.RIGHT)
-        )
+        dfsPath.add(startStep)
 
         while (dfsPath.isNotEmpty()) {
             val currentStep = dfsPath.last()
             visitedPositions.add(currentStep.pos)
 
+            // We're adding penalty, to account for possible turning needed
+            minCosts.merge(currentStep.pos, currentStep.cost + 2000, ::minOf)
+
             if (currentStep.pos == end) {
                 minCost = currentStep.cost
-                printPath(dfsPath, currentStep.cost)
+//                printPath(dfsPath, currentStep.cost)
 
                 dfsPath.removeLast()
                 visitedPositions.remove(currentStep.pos)
@@ -103,7 +98,8 @@ data class Day16(val maze: Graph<Char>) {
 
             val nextStep = currentStep.nextStep(this, visitedPositions)
             if (nextStep != null) {
-                if (nextStep.cost < minCost) {
+                val minCostForPath = minCosts[nextStep.pos] ?: Long.MAX_VALUE
+                if (nextStep.cost <= minCostForPath) {
                     dfsPath.add(nextStep)
                 }
             } else {
@@ -126,8 +122,11 @@ data class Day16(val maze: Graph<Char>) {
             // They can move forward one tile at a time (increasing their score by 1 point), but never into a wall (#).
             // They can also rotate clockwise or counterclockwise 90 degrees at a time (increasing their score by 1000 points).
 
-            while (remainingDirectionsToTry.isNotEmpty()) {
-                val nextDir = remainingDirectionsToTry.popAny()
+            val turnCostsFromStartingDir = turnCosts[startingDir]!! // sorted by MIN
+            for ((nextDir, turnCost) in turnCostsFromStartingDir) {
+                if (!remainingDirectionsToTry.remove(nextDir)) {
+                    continue // not available anymore
+                }
 
                 val nextPos = pos + nextDir
                 if (nextPos in visited) {
@@ -138,8 +137,6 @@ data class Day16(val maze: Graph<Char>) {
                 if (nextNode == null || nextNode.value == WALL || nextNode.value == DEAD_END) {
                     continue
                 }
-
-                val turnCost = turnCosts[startingDir]!![nextDir]!!
 
                 return PathStep(
                     nextPos,
@@ -152,51 +149,62 @@ data class Day16(val maze: Graph<Char>) {
             return null
         }
 
-        companion object {
-
-            val directions = listOf(Direction.RIGHT, Direction.LEFT, Direction.UP, Direction.DOWN)
-
-            val turnCosts: Map<Direction, Map<Direction, Long>> = buildMap {
-                for (from in directions) {
-                    put(
-                        from,
-                        mutableMapOf<Direction, Long>().apply {
-                            put(from, 0)
-                            put(from.turnRight90(), 1000)
-                            put(from.turnLeft90(), 1000)
-                            put(from.turnLeft90().turnLeft90(), 2000)
-                        }
-                    )
-                }
-            }
-
-            const val WALL = '#'
-            const val DEAD_END = 'x'
-
-        }
-
     }
 
     fun Graph<Char>.printPath(path: Collection<PathStep> = setOf(), cost: Long = 0L) {
-        val graphMatrix = this.nodes
-        val visitedMaze = Matrix.of<Char>(nodes.dims) { '.' }.apply {
-            for ((pos, node) in graphMatrix.entries) {
-                this[pos] = node.value
-            }
-        }
-        path.forEach { step ->
-            when (step.startingDir) {
-                Direction.RIGHT -> visitedMaze[step.pos] = '>'
-                Direction.LEFT -> visitedMaze[step.pos] = '<'
-                Direction.UP -> visitedMaze[step.pos] = '^'
-                Direction.DOWN -> visitedMaze[step.pos] = 'v'
-                else -> {}
-            }
-        }
+        val visitedMaze = this.toPlainMatrix()
+        path.forEach { step -> visitedMaze.setDirection(step.pos, step.startingDir) }
 
         println()
         print(visitedMaze.toString())
         println("Cost: $cost")
+    }
+
+    fun Matrix<Char>.setDirection(pos: Position, dir: Direction) {
+        when (dir) {
+            Direction.RIGHT -> this[pos] = '>'
+            Direction.LEFT -> this[pos] = '<'
+            Direction.UP -> this[pos] = '^'
+            Direction.DOWN -> this[pos] = 'v'
+            else -> error("Unexpected direction: $dir")
+        }
+    }
+
+    companion object {
+
+        const val EMPTY = '.'
+        const val START = 'S'
+        const val END = 'E'
+        const val WALL = '#'
+        const val DEAD_END = 'x'
+
+        val directions = listOf(Direction.RIGHT, Direction.LEFT, Direction.UP, Direction.DOWN)
+
+        val turnCosts: Map<Direction, List<Pair<Direction, Long>>> = buildMap {
+            for (from in directions) {
+                val costs = mutableListOf<Pair<Direction, Long>>().apply {
+                    add(from to 0)
+                    add(from.turnRight90() to 1000)
+                    add(from.turnLeft90() to 1000)
+                    add(from.turnLeft90().turnLeft90() to 2000)
+                }
+
+                put(from, costs)
+            }
+        }
+
+        fun toGraph(matrix: Resource.CharMatrix2d): Graph<Char> =
+            Graph.ofChars(matrix) { a, b ->
+                when (a.value) {
+                    START, EMPTY, END -> when (b.value) {
+                        START, EMPTY, END -> true
+                        else -> false
+                    }
+
+                    else -> false
+                }
+            }
+
     }
 
     class Graph<V : Any>(dims: Dimensions) {
@@ -209,6 +217,15 @@ data class Day16(val maze: Graph<Char>) {
 
         operator fun get(position: Position): Node? =
             nodes[position]
+
+        fun toPlainMatrix(): Matrix<V> = let { graph ->
+            Matrix.empty<V>(nodes.dims).also { copy ->
+                for ((pos, node) in graph.nodes.entries) {
+                    copy[pos] = node.value
+                }
+            }
+        }
+
 
         inner class Node(
             var value: V,
@@ -270,6 +287,5 @@ data class Day16(val maze: Graph<Char>) {
         }
 
     }
-
 
 }
