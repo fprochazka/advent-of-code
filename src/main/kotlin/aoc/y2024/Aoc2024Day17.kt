@@ -4,7 +4,7 @@ import aoc.utils.Resource
 import aoc.utils.strings.toInts
 import aoc.utils.strings.toLongs
 import aoc.y2024.Day17.InstructionOpcode.*
-import java.math.BigInteger
+import java.lang.IllegalStateException
 import kotlin.math.pow
 
 fun Resource.day17(): Day17 = Day17(
@@ -42,29 +42,195 @@ data class Day17(val debugger: Debugger) {
         var operations = 0L
 
         fun fixCorruptedRegisterA(): Long {
-            val mod = BigInteger.valueOf(1_000)
+            // 185639041000 ... (ops=128) [4, 3, 3, 0, 1, 3, 4, 1, 1, 2, 2, 3, 3, 1, 3, 2] (16)
+            //                  expected: [2, 4, 1, 5, 7, 5, 1, 6, 0, 3, 4, 3, 5, 5, 3, 0] (16)
+            //                  inst:     [bst 4, bxl 5, cdv 5, bxl 6, adv 3, bxc 3, out 5, jnz 0] (16)
+            //	                           Bst(4) Bxl(5) Cdv(5) Bxl(6) Adv(3) Bxc    Out(5) Jnz(0)
 
-//          for (i in 35_184_372_000_000L..1_000_000_000_000_000L) {
-//        for (i in 35_185_636_900_000L..1_000_000_000_000_000L) {
-            for (i in 1L..1_000_000_000_000_000L) {
-                val copy = copy(regA = i)
+            val rawInstructions = analyzeInstructions()
+            // to what index can we jump from known jumps?
+            val jumpsByTarget = rawInstructions.withIndex().filter { it.value is Jnz }.associate { (it.value as Jnz).rawArg to it.index }
 
-                copy.run()
+            data class Branch(
+                var halted: Boolean = true,
+                var regA: Long = -1,
+                var regB: Long = -1,
+                var regC: Long = -1,
+                val expectedOut: ArrayDeque<Int> = ArrayDeque(program),
+                var reversePointer: Int = rawInstructions.size - 1,
+            )
 
-                val jackpot = listsAreEqual(copy.output, program)
+            val moduloExponents = 0L until Int.MAX_VALUE
 
-//            println("For regA=$i, output=${output.joinToString(",")}")
-                if (jackpot || BigInteger.valueOf(i).mod(mod).toLong() == 0L) {
-                    println("Tried $i ... (ops=${copy.operations}) ${copy.output} (${copy.output.size}) expected: ${program} (${program.size})")
-                    println("\t\t" + copy.executedInstructions.joinToString(" ") { it.javaClass.simpleName + (if (it is Debugger.SingleArg) "(${it.rawArg})" else "") })
+            /**
+             * DFS search of possible solutions
+             */
+            fun solve(branch: Branch): Branch? {
+                fun deMod8(result: Long, moduloExp: Long = 0): Long = (8 * moduloExp + result).toLong()
+                fun deMod8(result: Int, moduloExp: Long = 0): Long = deMod8(result.toLong(), moduloExp)
+
+                fun deXdv(instruction: SingleArg): Long? {
+                    return when (instruction.rawArg) {
+                        0, 1, 2, 3 -> exp(2, instruction.rawArg)
+
+                        4 -> if (branch.regA == -1L) {
+                            null // uninitialized
+                        } else {
+                            branch.regA * exp(2, branch.regA)
+                        }
+
+                        5 -> if (branch.regB == -1L) {
+                            null // uninitialized
+                        } else {
+                            branch.regA * exp(2, branch.regB)
+                        }
+
+                        6 -> if (branch.regC == -1L) {
+                            null // uninitialized
+                        } else {
+                            branch.regA * exp(2, branch.regC)
+                        }
+
+                        else -> error("The $instruction has invalid combo arg")
+                    }
                 }
 
-                if (jackpot) {
-                    return i
+                fun solveForDeMod8(result: Long, forkBranch: (Long) -> Branch): Branch? {
+                    for (deMod in moduloExponents.asSequence().map { deMod8(result, moduloExp = it) }) {
+                        solve(forkBranch(deMod))?.let {
+                            return it
+                        }
+                    }
+                    return null
                 }
+
+                fun solveComboArgDeMod(result: Long, rawArg: Int): Branch? {
+                    return when (rawArg) {
+                        0, 1, 2, 3 -> TODO()
+
+                        4 -> solveForDeMod8(result) {
+                            branch.copy(regA = it, reversePointer = branch.reversePointer - 2)
+                        }
+
+                        5 -> solveForDeMod8(result) {
+                            branch.copy(regB = it, reversePointer = branch.reversePointer - 2)
+                        }
+
+                        6 -> solveForDeMod8(result) {
+                            branch.copy(regC = it, reversePointer = branch.reversePointer - 2)
+                        }
+
+                        else -> error("Invalid combo arg '$rawArg'")
+                    }
+                }
+
+                while (branch.reversePointer >= 0) {
+                    val instruction = rawInstructions[branch.reversePointer]
+                    when (instruction) {
+                        // op_jnz -> if (regA != 0L) {
+                        //     pointer = literalArg(rawArg()).toInt()
+                        //     continue // do not inc the pointer by +2
+                        // }
+                        is Jnz -> {
+                            if (branch.halted) {
+                                branch.regA = 0
+                            } else {
+                                // noop, just walk left normally
+                            }
+                        }
+
+                        // op_out -> output += mod8(comboArg(rawArg())).toInt()
+                        is Out -> {
+                            val expectedOut = branch.expectedOut.removeLast()
+                            solveComboArgDeMod(expectedOut.toLong(), instruction.rawArg)?.let {
+                                return it
+                            }
+                            return null // dead branch
+                        }
+
+                        // op_adv -> regA = regA / exp(2, comboArg(rawArg()))
+                        is Adv -> {
+                            branch.regA = deXdv(instruction) ?: return null
+                        }
+
+                        // op_bdv -> regB = regA / exp(2, comboArg(rawArg()))
+                        is Bdv -> {
+                            branch.regB = deXdv(instruction) ?: return null
+                        }
+
+                        // op_cdv -> regC = regA / exp(2, comboArg(rawArg()))
+                        is Cdv -> {
+                            branch.regC = deXdv(instruction) ?: return null
+                        }
+
+                        // op_bst -> regB = mod8(comboArg(rawArg()))
+                        is Bst -> {
+                            if (branch.regB == -1L) {
+                                return null // uninitialized
+                            }
+                            solveComboArgDeMod(branch.regB, instruction.rawArg)?.let {
+                                return it
+                            }
+                            return null // dead branch
+                        }
+
+                        // op_bxl -> regB = regB xor literalArg(rawArg())
+                        is Bxl -> {
+                            if (branch.regB == -1L) {
+                                return null // uninitialized
+                            }
+                            branch.regB = branch.regB xor literalArg(instruction.rawArg)
+                        }
+
+                        // op_bxc -> regB = regB xor regC
+                        is Bxc -> {
+                            if (branch.regB == -1L || branch.regC == -1L) {
+                                return null // uninitialized
+                            }
+                            branch.regB = branch.regB xor branch.regC
+                        }
+
+                    }
+
+                    branch.reversePointer -= 1
+                    branch.halted = false
+
+                    if (branch.reversePointer == 0 && branch.expectedOut.isEmpty()) {
+                        return branch
+                    }
+
+                    if (branch.reversePointer in jumpsByTarget) {
+                        // we should really branch this
+                        branch.reversePointer = jumpsByTarget[branch.reversePointer]!!
+                        continue
+                    }
+                }
+
+                return null;
             }
 
-            throw IllegalStateException("NO RESULT")
+            val solution = solve(Branch())
+            val fixedRegisterA = solution?.regA ?: error("Failed to fix register A")
+
+            val fixedOutput = copy(regA = regA).run()
+            if (!listsAreEqual(fixedOutput, program)) {
+                throw IllegalStateException("Output is not equal to the original program: $fixedOutput != $program")
+            }
+
+            return fixedRegisterA
+        }
+
+        fun analyzeInstructions(): List<Instruction> {
+            val result = mutableListOf<Instruction>()
+
+            for (instruction in instructions()) {
+                result += instruction
+                pointer += 2
+            }
+
+            pointer = 0
+
+            return result
         }
 
         fun instructions(): Sequence<Instruction> = sequence {
@@ -95,8 +261,8 @@ data class Day17(val debugger: Debugger) {
 
                 when (instruction) {
                     is RegOpInstruction -> instruction.eval()
-                    is JumpInstruction -> if (instruction.jump()) continue
-                    is OutInstruction -> instruction.eval()
+                    is JumpInstruction -> if (instruction.evalJump()) continue
+                    is OutInstruction -> instruction.evalOut()
                 }
 
                 // Except for jump instructions,
@@ -158,6 +324,7 @@ data class Day17(val debugger: Debugger) {
         }
 
         fun exp(a: Long, b: Long): Long = a.toDouble().pow(b.toDouble()).toLong()
+        fun exp(a: Long, b: Int): Long = exp(a, b.toLong())
 
         fun mod8(a: Long): Long = a.mod(8).toLong()
 
@@ -171,11 +338,11 @@ data class Day17(val debugger: Debugger) {
         }
 
         sealed interface OutInstruction : Instruction {
-            fun eval()
+            fun evalOut()
         }
 
         sealed interface JumpInstruction : Instruction {
-            fun jump(): Boolean
+            fun evalJump(): Boolean
         }
 
         interface SingleArg {
@@ -216,6 +383,8 @@ data class Day17(val debugger: Debugger) {
 
             override fun debug(): String = "adv(combo=${rawArg}) -> regA => expanded{regA / (2^combo(${rawArg()}))} => expanded{regA / (2^${comboArgDesc()})} => expanded{${regA} / (2^${comboArg(rawArg)})} => ${result()} -> regA"
 
+            override fun toString(): String = "Adv($rawArg)"
+
         }
 
         inner class Bxl() : RegOpInstruction, SingleArg {
@@ -233,6 +402,9 @@ data class Day17(val debugger: Debugger) {
             }
 
             override fun debug(): String = "bxl(lit=${rawArg}) -> regB => expanded{regB xor lit} => expanded{${regB} xor ${literalArg(rawArg)}} => ${result()} -> regB"
+
+            override fun toString(): String = "Bxl($rawArg)"
+
         }
 
         inner class Bst() : RegOpInstruction, SingleArg {
@@ -250,6 +422,9 @@ data class Day17(val debugger: Debugger) {
             }
 
             override fun debug(): String = "bst(combo=${rawArg}) -> regB => expanded{combo(${rawArg()}) % 8} => expanded{${comboArgDesc()} % 8} => expanded{${comboArg(rawArg)} % 8} => ${result()} -> regB"
+
+            override fun toString(): String = "Bst($rawArg)"
+
         }
 
         inner class Jnz() : JumpInstruction, SingleArg {
@@ -257,7 +432,7 @@ data class Day17(val debugger: Debugger) {
             override var pos = pointer
             override val rawArg = rawArg()
 
-            override fun jump(): Boolean {
+            override fun evalJump(): Boolean {
                 if (regA != 0L) {
                     pointer = literalArg(rawArg).toInt()
                     return true
@@ -267,6 +442,9 @@ data class Day17(val debugger: Debugger) {
             }
 
             override fun debug(): String = "jnz(lit=${rawArg}) => expanded{jumpTo(lit) if (regA != 0)} => expanded{jumpTo(${rawArg()}) if (${regA} != 0)} => ${if (regA != 0L) "jump to pointer ${literalArg(rawArg)}" else "noop"}"
+
+            override fun toString(): String = "Jnz($rawArg)"
+
         }
 
         inner class Bxc() : RegOpInstruction {
@@ -283,6 +461,9 @@ data class Day17(val debugger: Debugger) {
             }
 
             override fun debug(): String = "bxc() -> regB => expanded{regB xor regC} => expanded{${regB} xor ${regC}} => ${result()} -> regB"
+
+            override fun toString(): String = "Bxc()"
+
         }
 
         inner class Out() : OutInstruction, SingleArg {
@@ -295,11 +476,14 @@ data class Day17(val debugger: Debugger) {
                 return result
             }
 
-            override fun eval() {
+            override fun evalOut() {
                 output += result().toInt()
             }
 
             override fun debug(): String = "out(combo=${rawArg}) -> out => expanded{${comboArgDesc()} % 8} => ${result()} -> out"
+
+            override fun toString(): String = "Out($rawArg)"
+
         }
 
         inner class Bdv() : RegOpInstruction, SingleArg {
@@ -318,7 +502,10 @@ data class Day17(val debugger: Debugger) {
                 regB = result()
             }
 
-            override fun debug(): String = "adv(combo=${rawArg}) -> regB => expanded{regA / (2^combo(${rawArg()}))} => expanded{regA / (2^${comboArgDesc()})} => expanded{${regA} / (2^${comboArg(rawArg)})} => ${result()} -> regB"
+            override fun debug(): String = "bdv(combo=${rawArg}) -> regB => expanded{regA / (2^combo(${rawArg()}))} => expanded{regA / (2^${comboArgDesc()})} => expanded{${regA} / (2^${comboArg(rawArg)})} => ${result()} -> regB"
+
+            override fun toString(): String = "Bdv($rawArg)"
+
         }
 
         inner class Cdv() : RegOpInstruction, SingleArg {
@@ -337,7 +524,10 @@ data class Day17(val debugger: Debugger) {
                 regC = result()
             }
 
-            override fun debug(): String = "adv(combo=${rawArg}) -> regC => expanded{regA / (2^combo(${rawArg()}))} => expanded{regA / (2^${comboArgDesc()})} => expanded{${regA} / (2^${comboArg(rawArg)})} => ${result()} -> regC"
+            override fun debug(): String = "cdv(combo=${rawArg}) -> regC => expanded{regA / (2^combo(${rawArg()}))} => expanded{regA / (2^${comboArgDesc()})} => expanded{${regA} / (2^${comboArg(rawArg)})} => ${result()} -> regC"
+
+            override fun toString(): String = "Cdv($rawArg)"
+
         }
 
     }

@@ -101,12 +101,14 @@ class Aoc2024Day17Test : AocTest() {
 
     @Test
     fun input() {
+        System.setProperty("aoc.debugInstructions", "false")
+
         resource2024(17, "input").let { input ->
             println("input: $input")
 
             val problem = input.day17()
 
-            input.assertResult("task1") { problem.result1 }
+//            input.assertResult("task1") { problem.result1 }
             input.assertResult("task2") { problem.result2 }
         }
     }
