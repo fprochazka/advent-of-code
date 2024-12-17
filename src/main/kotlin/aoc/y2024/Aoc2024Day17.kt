@@ -18,35 +18,7 @@ data class Day17(val debugger: Debugger) {
     // (Always join the values produced by out instructions with commas.)
     val result1 by lazy { debugger.copy().run().joinToString(",") }
 
-    val result2 by lazy { findValueOfRegisterAThatMakesTheProgramOutputItself() }
-
-    fun findValueOfRegisterAThatMakesTheProgramOutputItself(): Long {
-        val expectedStr = debugger.program.joinToString(",")
-
-        val mod = BigInteger.valueOf(10_000)
-
-//          for (i in 35_184_372_000_000L..1_000_000_000_000_000L) {
-//        for (i in 35_185_636_900_000L..1_000_000_000_000_000L) {
-        for (i in 1L..1_000_000_000_000_000L) {
-            val copy = debugger.copy(regA = i)
-
-            copy.run()
-
-            val jackpot = copy.output.size == debugger.program.size && expectedStr == copy.output.joinToString(",")
-
-//            println("For regA=$i, output=${output.joinToString(",")}")
-            if (jackpot || BigInteger.valueOf(i).mod(mod).toLong() == 0L) {
-                 println("Tried $i ... (ops=${copy.operations}) ${copy.output} (${copy.output.size}) expected: ${debugger.program} (${debugger.program.size})")
-                println("\t\t" + copy.executedInstructions.joinToString(" ") { it.javaClass.simpleName + (if (it is Debugger.SingleArg) "(${it.rawArg})" else "") })
-             }
-
-            if (jackpot) {
-                return i
-            }
-        }
-
-        throw IllegalStateException("NO RESULT")
-    }
+    val result2 by lazy { debugger.fixCorruptedRegisterA() }
 
     // This seems to be a 3-bit computer:
     // its program is a list of 3-bit numbers (0 through 7), like 0,1,2,3.
@@ -63,11 +35,37 @@ data class Day17(val debugger: Debugger) {
 
         val debug: Boolean = System.getProperty("aoc.debugInstructions", "false").toBoolean()
 
-        val output = mutableListOf<Long>()
+        val output = mutableListOf<Int>()
         var executedInstructions = mutableListOf<Instruction>()
 
         var pointer = 0
         var operations = 0L
+
+        fun fixCorruptedRegisterA(): Long {
+            val mod = BigInteger.valueOf(10_000)
+
+//          for (i in 35_184_372_000_000L..1_000_000_000_000_000L) {
+//        for (i in 35_185_636_900_000L..1_000_000_000_000_000L) {
+            for (i in 1L..1_000_000_000_000_000L) {
+                val copy = copy(regA = i)
+
+                copy.run()
+
+                val jackpot = listsAreEqual(copy.output, program)
+
+//            println("For regA=$i, output=${output.joinToString(",")}")
+                if (jackpot || BigInteger.valueOf(i).mod(mod).toLong() == 0L) {
+                    println("Tried $i ... (ops=${copy.operations}) ${copy.output} (${copy.output.size}) expected: ${program} (${program.size})")
+                    println("\t\t" + copy.executedInstructions.joinToString(" ") { it.javaClass.simpleName + (if (it is Debugger.SingleArg) "(${it.rawArg})" else "") })
+                }
+
+                if (jackpot) {
+                    return i
+                }
+            }
+
+            throw IllegalStateException("NO RESULT")
+        }
 
         fun instructions(): Sequence<Instruction> = sequence {
             while (pointer < program.size) {
@@ -89,7 +87,7 @@ data class Day17(val debugger: Debugger) {
             }
         }
 
-        fun run(): List<Long> {
+        fun run(): List<Int> {
             for (instruction in instructions()) {
                 if (debug) println("\nState{A=$regA, B=$regB, C=$regC, pointer: $pointer, ops: $operations, outSize: ${output.size}} \n\t" + (instruction.debug().replace(" =>", "\n\t=>")))
 
@@ -112,7 +110,7 @@ data class Day17(val debugger: Debugger) {
             return output
         }
 
-        fun runSimple(): List<Long> {
+        fun runSimple(): List<Int> {
             while (pointer < program.size) {
                 val opcode = InstructionOpcode.entries[program[pointer]]
                 operations++
@@ -153,7 +151,7 @@ data class Day17(val debugger: Debugger) {
                     op_out -> {
                         val arg = comboArg(rawArg())
                         val result = mod8(arg)
-                        output += result
+                        output += result.toInt()
                     }
 
                     op_bdv -> {
@@ -341,7 +339,7 @@ data class Day17(val debugger: Debugger) {
             }
 
             override fun eval() {
-                output += result()
+                output += result().toInt()
             }
 
             override fun debug(): String = "out(combo=${rawArg}) -> out => expanded{${comboArgDesc()} % 8} => ${result()} -> out"
@@ -442,6 +440,17 @@ data class Day17(val debugger: Debugger) {
     }
 
     companion object {
+
+        fun listsAreEqual(actual: List<Int>, expected: List<Int>): Boolean {
+            if (actual.size != expected.size) return false
+
+            for ((index, expectedValue) in expected.withIndex()) {
+                if (actual[index] != expectedValue) return false
+            }
+
+            return true
+        }
+
         fun parseDebugger(lines: List<String>): Debugger {
             val a: Long = lines[0].split(":", limit = 2)[1].toLongs(1).single()
             val b: Long = lines[1].split(":", limit = 2)[1].toLongs(1).single()
