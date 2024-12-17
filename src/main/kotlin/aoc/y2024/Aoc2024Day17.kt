@@ -60,14 +60,11 @@ data class Day17(val debugger: Debugger) {
             return solution
         }
 
-        val naturalNumbers = 0L until Int.MAX_VALUE
-        val reasonableExponentsOfTwo = 0L until 63
-
         /**
          * DFS search of possible solutions
          */
         fun solve(branch: Branch): Branch? {
-            fun solveFor(values: Sequence<Long>, forkBranch: (Long) -> Branch): Branch? {
+            fun <C : Any> solveFor(values: Sequence<C>, forkBranch: (C) -> Branch): Branch? {
                 for (value in values) {
                     solve(forkBranch(value))?.let {
                         return it
@@ -75,15 +72,6 @@ data class Day17(val debugger: Debugger) {
                 }
                 return null
             }
-
-            fun solveFor(values: Iterable<Long>, forkBranch: (Long) -> Branch): Branch? =
-                solveFor(values.asSequence(), forkBranch)
-
-            fun solveForDeMod8(result: Long, forkBranch: (Long) -> Branch): Branch? =
-                solveFor(naturalNumbers.asSequence().map { deMod8(result, moduloExp = it) }, forkBranch)
-
-            fun solveForDeMod8(result: Int, forkBranch: (Long) -> Branch): Branch? =
-                solveForDeMod8(result.toLong(), forkBranch)
 
             while (branch.reversePointer >= 0) {
                 val instruction = rawInstructions[branch.reversePointer]
@@ -109,17 +97,17 @@ data class Day17(val debugger: Debugger) {
                             // expectedOut = (comboArg mod 8) ... I know the left side, but the right side could have been any (0..inf)
 
                             // comboArg is regA where the register had value from (0..inf)
-                            VAL_REG_A -> return solveForDeMod8(expectedOut) {
+                            VAL_REG_A -> return solveFor(deMod8Candidates(expectedOut)) {
                                 branch.copy(regA = it, reversePointer = branch.reversePointer - 1)
                             }
 
                             // comboArg is regB where the register had value from (0..inf)
-                            VAL_REG_B -> return solveForDeMod8(expectedOut) {
+                            VAL_REG_B -> return solveFor(deMod8Candidates(expectedOut)) {
                                 branch.copy(regB = it, reversePointer = branch.reversePointer - 1)
                             }
 
                             // comboArg is regC where the register had value from (0..inf)
-                            VAL_REG_C -> return solveForDeMod8(expectedOut) {
+                            VAL_REG_C -> return solveFor(deMod8Candidates(expectedOut)) {
                                 branch.copy(regC = it, reversePointer = branch.reversePointer - 1)
                             }
                         }
@@ -191,7 +179,7 @@ data class Day17(val debugger: Debugger) {
 
                             // nextRegB = (regA mod 8)
                             // comboArg is regA where the register had value from (0..inf)
-                            VAL_REG_A -> solveForDeMod8(branch.regB) {
+                            VAL_REG_A -> solveFor(deMod8Candidates(branch.regB)) {
                                 branch.copy(regB = -1, regA = it, reversePointer = branch.reversePointer - 1)
                             }
 
@@ -209,7 +197,7 @@ data class Day17(val debugger: Debugger) {
                         branch.regB = branch.regB xor (instruction.rawArg.toLong())
                     }
 
-                    // op_bxc -> nextRregB = prevRegB xor regC
+                    // op_bxc -> nextRegB = prevRegB xor regC
                     is Bxc -> {
                         // XOR is naively reversible
                         branch.regB = branch.regB xor branch.regC
@@ -594,18 +582,21 @@ data class Day17(val debugger: Debugger) {
     enum class InstructionOpcode() {
         /**
          * The adv instruction (opcode 0) performs division. The numerator is the value in the A register.
-         * The denominator is found by raising 2 to the power of the instruction's combo operand. (So, an operand of 2 would divide A by 4 (2^2); an operand of 5 would divide A by 2^B.)
+         * The denominator is found by raising 2 to the power of the instruction's combo operand.
+         * (So, an operand of 2 would divide A by 4 (2^2); an operand of 5 would divide A by 2^B.)
          * The result of the division operation is truncated to an integer and then written to the A register.
          */
         op_adv,
 
         /**
-         * The bxl instruction (opcode 1) calculates the bitwise XOR of register B and the instruction's literal operand, then stores the result in register B.
+         * The bxl instruction (opcode 1) calculates the bitwise XOR of register B and the instruction's literal operand,
+         * then stores the result in register B.
          */
         op_bxl,
 
         /**
-         * The bst instruction (opcode 2) calculates the value of its combo operand modulo 8 (thereby keeping only its lowest 3 bits), then writes that value to the B register.
+         * The bst instruction (opcode 2) calculates the value of its combo operand modulo 8 (thereby keeping only its lowest 3 bits),
+         * then writes that value to the B register.
          */
         op_bst,
 
@@ -644,8 +635,15 @@ data class Day17(val debugger: Debugger) {
 
     companion object {
 
-        fun deMod8(result: Long, moduloExp: Long = 0): Long = (8 * moduloExp + result).toLong()
-        fun deMod8(result: Int, moduloExp: Long = 0): Long = deMod8(result.toLong(), moduloExp)
+        val naturalNumbers = 0L until Int.MAX_VALUE
+        val reasonableExponentsOfTwo = 0L until 63
+
+        // WHEN: result = (val mod 8)
+        // THEN: val = (8 * val + result) where val in (0..inf)
+        fun deMod8(result: Long, i: Long = 0): Long = (8 * i + result).toLong()
+        fun deMod8(result: Int, i: Long = 0): Long = deMod8(result.toLong(), i)
+        fun deMod8Candidates(result: Long): Sequence<Long> = naturalNumbers.asSequence().map { deMod8(result, i = it) }
+        fun deMod8Candidates(result: Int): Sequence<Long> = deMod8Candidates(result.toLong())
 
         fun exp(a: Long, b: Long): Long = a.toDouble().pow(b.toDouble()).toLong()
         fun exp(a: Long, b: Int): Long = exp(a, b.toLong())
