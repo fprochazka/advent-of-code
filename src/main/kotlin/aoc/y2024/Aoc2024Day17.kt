@@ -20,9 +20,7 @@ data class Day17(val debugger: Debugger) {
             if (i % 10000L == 0L) println("Trying $i")
 
             val copy = debugger.copy(regA = i)
-            val output = copy.run { output ->
-                output.size > debugger.program.size
-            }
+            val output = copy.run { copy.output.size > debugger.program.size }
             if (output.equals(debugger.program)) {
                 return i
             }
@@ -43,31 +41,24 @@ data class Day17(val debugger: Debugger) {
         val program: List<Int>,
     ) {
 
+        val output = mutableListOf<Long>()
+
         // the program 0,1,2,3 would
         //     run the instruction whose opcode is 0 and pass it the operand 1,
         //     run the instruction having opcode 2 and pass it the operand 3,
         //     then halt.
 
-        // Here are some examples of instruction operation:
-        //    If register C contains 9, the program 2,6 would set register B to 1.
-        //    If register A contains 10, the program 5,0,5,1,5,4 would output 0,1,2.
-        //    If register A contains 2024, the program 0,1,5,4,3,0 would output 4,2,5,6,7,7,7,7,3,1,0 and leave 0 in register A.
-        //    If register B contains 29, the program 1,7 would set register B to 26.
-        //    If register B contains 2024 and register C contains 43690, the program 4,0 would set register B to 44354.
-
         // run the given program, collecting any output produced by out instructions.
         // (Always join the values produced by out instructions with commas.)
 
-        fun run(haltPrematurely: (List<Long>) -> Boolean = { false }): List<Long> {
-            val output = mutableListOf<Long>()
-
+        fun run(haltPrematurely: () -> Boolean = { false }): List<Long> {
             fun exp(a: Long, b: Long): Long = a.toDouble().pow(b.toDouble()).toLong()
 
-            var instructionPointer = 0
-            while (instructionPointer < program.size && !haltPrematurely(output)) {
+            var pointer = 0
+            while (pointer < program.size && !haltPrematurely()) {
 
                 // The value of a literal operand is the operand itself. For example, the value of the literal operand 7 is the number 7.
-                fun literalArg(): Long = program[instructionPointer + 1].toLong()
+                fun literalArg(): Long = program[pointer + 1].toLong()
 
                 // The value of a combo operand can be found as follows:
                 //    Combo operands 0 through 3 represent literal values 0 through 3.
@@ -75,7 +66,7 @@ data class Day17(val debugger: Debugger) {
                 //    Combo operand 5 represents the value of register B.
                 //    Combo operand 6 represents the value of register C.
                 //    Combo operand 7 is reserved and will not appear in valid programs.
-                fun comboArg(): Long = when (val arg = program[instructionPointer + 1]) {
+                fun comboArg(): Long = when (val arg = program[pointer + 1]) {
                     0, 1, 2, 3 -> arg.toLong()
                     4 -> regA
                     5 -> regB
@@ -84,7 +75,7 @@ data class Day17(val debugger: Debugger) {
                     else -> throw IllegalArgumentException("Invalid combo operand: $arg")
                 }
 
-                val opcode = InstructionOpcode.entries[program[instructionPointer]]
+                val opcode = InstructionOpcode.entries[program[pointer]]
                 when (opcode) {
                     op_adv -> {
                         val arg = comboArg()
@@ -109,7 +100,7 @@ data class Day17(val debugger: Debugger) {
                     op_jnz -> {
                         if (regA != 0L) {
                             val arg = literalArg()
-                            instructionPointer = arg.toInt()
+                            pointer = arg.toInt()
                             continue // do not inc the pointer by +2
                         }
                     }
@@ -145,7 +136,7 @@ data class Day17(val debugger: Debugger) {
                 // Except for jump instructions,
                 // the instruction pointer increases by 2 after each instruction is processed (to move past the instruction's opcode and its operand)
                 // halts, when it tries to read opcode past the end of the program
-                instructionPointer += 2
+                pointer += 2
             }
 
             return output
