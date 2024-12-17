@@ -42,7 +42,7 @@ data class Day17(val debugger: Debugger) {
         var operations = 0L
 
         fun fixCorruptedRegisterA(): Long {
-            val mod = BigInteger.valueOf(10_000)
+            val mod = BigInteger.valueOf(1_000)
 
 //          for (i in 35_184_372_000_000L..1_000_000_000_000_000L) {
 //        for (i in 35_185_636_900_000L..1_000_000_000_000_000L) {
@@ -115,59 +115,16 @@ data class Day17(val debugger: Debugger) {
                 val opcode = InstructionOpcode.entries[program[pointer]]
                 operations++
                 when (opcode) {
-                    op_adv -> {
-                        val arg = comboArg(rawArg())
-                        val numerator = regA
-                        val denominator = exp(2, arg)
-                        val result = numerator / denominator
-                        regA = result
-                    }
-
-                    op_bxl -> {
-                        val arg = literalArg(rawArg())
-                        val result = regB xor arg
-                        regB = result
-                    }
-
-                    op_bst -> {
-                        val arg = comboArg(rawArg())
-                        val result = mod8(arg)
-                        regB = result
-                    }
-
-                    op_jnz -> {
-                        if (regA != 0L) {
-                            val arg = literalArg(rawArg())
-                            pointer = arg.toInt()
-                            continue // do not inc the pointer by +2
-                        }
-                    }
-
-                    op_bxc -> {
-                        val result = regB xor regC
-                        regB = result
-                    }
-
-                    op_out -> {
-                        val arg = comboArg(rawArg())
-                        val result = mod8(arg)
-                        output += result.toInt()
-                    }
-
-                    op_bdv -> {
-                        val arg = comboArg(rawArg())
-                        val numerator = regA
-                        val denominator = exp(2, arg)
-                        val result = numerator / denominator
-                        regB = result
-                    }
-
-                    op_cdv -> {
-                        val arg = comboArg(rawArg())
-                        val numerator = regA
-                        val denominator = exp(2, arg)
-                        val result = numerator / denominator
-                        regC = result
+                    op_adv -> regA = regA / exp(2, comboArg(rawArg()))
+                    op_bdv -> regB = regA / exp(2, comboArg(rawArg()))
+                    op_cdv -> regC = regA / exp(2, comboArg(rawArg()))
+                    op_bxl -> regB = regB xor literalArg(rawArg())
+                    op_bxc -> regB = regB xor regC
+                    op_bst -> regB = mod8(comboArg(rawArg()))
+                    op_out -> output += mod8(comboArg(rawArg())).toInt()
+                    op_jnz -> if (regA != 0L) {
+                        pointer = literalArg(rawArg()).toInt()
+                        continue // do not inc the pointer by +2
                     }
                 }
 
