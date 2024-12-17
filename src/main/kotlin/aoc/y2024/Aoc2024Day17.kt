@@ -1,12 +1,14 @@
 package aoc.y2024
 
 import aoc.utils.Resource
+import aoc.utils.math.deMod
+import aoc.utils.math.deModCandidates
+import aoc.utils.math.pow2
 import aoc.utils.strings.toInts
 import aoc.utils.strings.toLongs
 import aoc.y2024.Day17.Debugger.*
 import aoc.y2024.Day17.Debugger.ComboArgType.*
 import aoc.y2024.Day17.InstructionOpcode.*
-import kotlin.math.pow
 
 fun Resource.day17(): Day17 = Day17(
     Day17.parseDebugger(nonBlankLines())
@@ -118,8 +120,8 @@ data class Day17(val debugger: Debugger) {
                         // restoring previous value of A
                         when (ComboArgType.from(instruction.rawArg)) {
                             VAL_LITERAL -> {
-                                // prevRegA = nextRegA * exp(2, literal)
-                                branch.regA = branch.regA * exp(2, instruction.rawArg)
+                                // prevRegA = nextRegA * pow2(literal)
+                                branch.regA = branch.regA * pow2(instruction.rawArg)
                             }
 
                             VAL_REG_A -> TODO()
@@ -130,42 +132,42 @@ data class Day17(val debugger: Debugger) {
                         }
                     }
 
-                    // op_bdv -> nextRegB = regA / exp(2, comboArg)
+                    // op_bdv -> nextRegB = regA / pow2(comboArg)
                     is Bdv -> {
                         // restoring previous value of B
                         return when (ComboArgType.from(instruction.rawArg)) {
                             // B could have been any (0..inf)
                             VAL_LITERAL -> TODO()
 
-                            // newerRegB = regA / exp(2, regA)
+                            // newerRegB = regA / pow2(regA)
                             VAL_REG_A -> TODO()
 
-                            // newerRegB = regA / exp(2, prevRegB)
+                            // newerRegB = regA / pow2(prevRegB)
                             VAL_REG_B -> TODO()
 
-                            // newerRegB = regA / exp(2, prevRegC)
+                            // newerRegB = regA / pow2(prevRegC)
                             VAL_REG_C -> TODO()
                         }
                     }
 
-                    // op_cdv -> nextRegC = regA / exp(2, comboArg)
+                    // op_cdv -> nextRegC = regA / pow2(comboArg)
                     is Cdv -> {
                         // restoring previous value of C
                         return when (ComboArgType.from(instruction.rawArg)) {
                             // C could have been any (0..inf)
                             VAL_LITERAL -> TODO()
 
-                            // newerRegC = regA / exp(2, regA)
+                            // newerRegC = regA / pow2(regA)
                             VAL_REG_A -> TODO()
 
-                            // newerRegC = regA / exp(2, regB)
+                            // newerRegC = regA / pow2(regB)
                             VAL_REG_B -> {
-                                solveFor(reasonableExponentsOfTwo.asSequence().filter { branch.regC == (branch.regA / exp(2, it)) }) {
+                                solveFor(reasonableExponentsOfTwo.asSequence().filter { branch.regC == (branch.regA / pow2(it)) }) {
                                     branch.copy(regC = it, reversePointer = branch.reversePointer - 1)
                                 }
                             }
 
-                            // newerRegC = regA / exp(2, prevRegC)
+                            // newerRegC = regA / pow2(prevRegC)
                             VAL_REG_C -> TODO()
                         }
                     }
@@ -310,9 +312,9 @@ data class Day17(val debugger: Debugger) {
                 val opcode = InstructionOpcode.entries[program[pointer]]
                 operations++
                 when (opcode) {
-                    op_adv -> regA = regA / exp(2, comboArg(rawArg()))
-                    op_bdv -> regB = regA / exp(2, comboArg(rawArg()))
-                    op_cdv -> regC = regA / exp(2, comboArg(rawArg()))
+                    op_adv -> regA = regA / pow2(comboArg(rawArg()))
+                    op_bdv -> regB = regA / pow2(comboArg(rawArg()))
+                    op_cdv -> regC = regA / pow2(comboArg(rawArg()))
                     op_bxl -> regB = regB xor literalArg(rawArg())
                     op_bxc -> regB = regB xor regC
                     op_bst -> regB = mod8(comboArg(rawArg()))
@@ -416,7 +418,7 @@ data class Day17(val debugger: Debugger) {
 
             inline fun result(): Long {
                 val numerator = regA
-                val denominator = exp(2, comboArg(rawArg))
+                val denominator = pow2(comboArg(rawArg))
                 val result = numerator / denominator
                 return result
             }
@@ -537,7 +539,7 @@ data class Day17(val debugger: Debugger) {
 
             inline fun result(): Long {
                 val numerator = regA
-                val denominator = exp(2, comboArg(rawArg))
+                val denominator = pow2(comboArg(rawArg))
                 val result = numerator / denominator
                 return result
             }
@@ -559,7 +561,7 @@ data class Day17(val debugger: Debugger) {
 
             inline fun result(): Long {
                 val numerator = regA
-                val denominator = exp(2, comboArg(rawArg))
+                val denominator = pow2(comboArg(rawArg))
                 val result = numerator / denominator
                 return result
             }
@@ -640,13 +642,10 @@ data class Day17(val debugger: Debugger) {
 
         // WHEN: result = (val mod 8)
         // THEN: val = (8 * val + result) where val in (0..inf)
-        fun deMod8(result: Long, i: Long = 0): Long = (8 * i + result).toLong()
+        fun deMod8(result: Long, i: Long = 0): Long = deMod(result, 8, i)
         fun deMod8(result: Int, i: Long = 0): Long = deMod8(result.toLong(), i)
-        fun deMod8Candidates(result: Long): Sequence<Long> = naturalNumbers.asSequence().map { deMod8(result, i = it) }
+        fun deMod8Candidates(result: Long): Sequence<Long> = deModCandidates(result, 8)
         fun deMod8Candidates(result: Int): Sequence<Long> = deMod8Candidates(result.toLong())
-
-        fun exp(a: Long, b: Long): Long = a.toDouble().pow(b.toDouble()).toLong()
-        fun exp(a: Long, b: Int): Long = exp(a, b.toLong())
 
         fun mod8(a: Long): Long = a.mod(8).toLong()
 
