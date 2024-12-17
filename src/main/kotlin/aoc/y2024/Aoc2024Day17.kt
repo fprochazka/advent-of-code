@@ -11,6 +11,7 @@ fun Resource.day17(): Day17 = Day17(
     Day17.parseDebugger(nonBlankLines())
 )
 
+@Suppress("NOTHING_TO_INLINE")
 data class Day17(val debugger: Debugger) {
 
     // run the given program, collecting any output produced by out instructions.
@@ -22,7 +23,7 @@ data class Day17(val debugger: Debugger) {
     fun findValueOfRegisterAThatMakesTheProgramOutputItself(): Long {
         val expectedStr = debugger.program.joinToString(",")
 
-        val mod = BigInteger.valueOf(100_000)
+        val mod = BigInteger.valueOf(10_000)
 
 //          for (i in 35_184_372_000_000L..1_000_000_000_000_000L) {
 //        for (i in 35_185_636_900_000L..1_000_000_000_000_000L) {
@@ -31,16 +32,17 @@ data class Day17(val debugger: Debugger) {
 
             copy.run()
 
-            if (copy.output.size == debugger.program.size) {
-                if (copy.output.joinToString(",") == expectedStr) {
-                    return i
-                }
-            }
+            val jackpot = copy.output.size == debugger.program.size && expectedStr == copy.output.joinToString(",")
 
 //            println("For regA=$i, output=${output.joinToString(",")}")
-             if (BigInteger.valueOf(i).mod(mod).toLong() == 0L) {
+            if (jackpot || BigInteger.valueOf(i).mod(mod).toLong() == 0L) {
                  println("Tried $i ... (ops=${copy.operations}) ${copy.output} (${copy.output.size}) expected: ${debugger.program} (${debugger.program.size})")
+                println("\t\t" + copy.executedInstructions.joinToString(" ") { it.javaClass.simpleName + (if (it is Debugger.SingleArg) "(${it.rawArg})" else "") })
              }
+
+            if (jackpot) {
+                return i
+            }
         }
 
         throw IllegalStateException("NO RESULT")
@@ -52,7 +54,6 @@ data class Day17(val debugger: Debugger) {
     // eight instructions, each identified by a 3-bit number (called the instruction's opcode)
     // Each instruction also reads the 3-bit number after it as an input; this is called its operand.
     // instruction pointer identifies the position in the program from which the next opcode will be read; it starts at 0, pointing at the first 3-bit number in the program
-    @Suppress("NOTHING_TO_INLINE")
     data class Debugger(
         var regA: Long,
         var regB: Long,
@@ -60,18 +61,64 @@ data class Day17(val debugger: Debugger) {
         val program: List<Int>,
     ) {
 
+        val debug: Boolean = System.getProperty("aoc.debugInstructions", "false").toBoolean()
+
         val output = mutableListOf<Long>()
+        var executedInstructions = mutableListOf<Instruction>()
 
         var pointer = 0
         var operations = 0L
 
+        fun instructions(): Sequence<Instruction> = sequence {
+            while (pointer < program.size) {
+                val opcode = InstructionOpcode.entries[program[pointer]]
+                operations++
+
+                val instruction = when (opcode) {
+                    op_adv -> Adv()
+                    op_bxl -> Bxl()
+                    op_bst -> Bst()
+                    op_jnz -> Jnz()
+                    op_bxc -> Bxc()
+                    op_out -> Out()
+                    op_bdv -> Bdv()
+                    op_cdv -> Cdv()
+                }
+
+                yield(instruction)
+            }
+        }
+
         fun run(): List<Long> {
+            for (instruction in instructions()) {
+                if (debug) println("\nState{A=$regA, B=$regB, C=$regC, pointer: $pointer, ops: $operations, outSize: ${output.size}} \n\t" + (instruction.debug().replace(" =>", "\n\t=>")))
+
+                executedInstructions += instruction
+
+                when (instruction) {
+                    is RegOpInstruction -> instruction.eval()
+                    is JumpInstruction -> if (instruction.jump()) continue
+                    is OutInstruction -> instruction.eval()
+                }
+
+                // Except for jump instructions,
+                // the instruction pointer increases by 2 after each instruction is processed (to move past the instruction's opcode and its operand)
+                // halts, when it tries to read opcode past the end of the program
+                pointer += 2
+            }
+
+            if (debug) println("\nState{A=$regA, B=$regB, C=$regC, pointer: $pointer, ops: $operations, output: ${output}}")
+
+            return output
+        }
+
+        fun runSimple(): List<Long> {
             while (pointer < program.size) {
                 val opcode = InstructionOpcode.entries[program[pointer]]
                 operations++
                 when (opcode) {
                     op_adv -> {
-                        val arg = comboArg()
+                        val arg = comboArg(rawArg())
                         val numerator = regA
                         val denominator = exp(2, arg)
                         val result = numerator / denominator
@@ -79,20 +126,20 @@ data class Day17(val debugger: Debugger) {
                     }
 
                     op_bxl -> {
-                        val arg = literalArg()
+                        val arg = literalArg(rawArg())
                         val result = regB xor arg
                         regB = result
                     }
 
                     op_bst -> {
-                        val arg = comboArg()
+                        val arg = comboArg(rawArg())
                         val result = mod8(arg)
                         regB = result
                     }
 
                     op_jnz -> {
                         if (regA != 0L) {
-                            val arg = literalArg()
+                            val arg = literalArg(rawArg())
                             pointer = arg.toInt()
                             continue // do not inc the pointer by +2
                         }
@@ -104,13 +151,13 @@ data class Day17(val debugger: Debugger) {
                     }
 
                     op_out -> {
-                        val arg = comboArg()
+                        val arg = comboArg(rawArg())
                         val result = mod8(arg)
                         output += result
                     }
 
                     op_bdv -> {
-                        val arg = comboArg()
+                        val arg = comboArg(rawArg())
                         val numerator = regA
                         val denominator = exp(2, arg)
                         val result = numerator / denominator
@@ -118,7 +165,7 @@ data class Day17(val debugger: Debugger) {
                     }
 
                     op_cdv -> {
-                        val arg = comboArg()
+                        val arg = comboArg(rawArg())
                         val numerator = regA
                         val denominator = exp(2, arg)
                         val result = numerator / denominator
@@ -138,7 +185,7 @@ data class Day17(val debugger: Debugger) {
         inline fun rawArg(): Int = program[pointer + 1].toInt()
 
         // The value of a literal operand is the operand itself. For example, the value of the literal operand 7 is the number 7.
-        inline fun literalArg(): Long = rawArg().toLong()
+        inline fun literalArg(rawArg: Int): Long = rawArg.toLong()
 
         // The value of a combo operand can be found as follows:
         //    Combo operands 0 through 3 represent literal values 0 through 3.
@@ -146,57 +193,64 @@ data class Day17(val debugger: Debugger) {
         //    Combo operand 5 represents the value of register B.
         //    Combo operand 6 represents the value of register C.
         //    Combo operand 7 is reserved and will not appear in valid programs.
-        fun comboArg(): Long = when (val arg = rawArg()) {
-            0, 1, 2, 3 -> arg.toLong()
+        fun comboArg(rawArg: Int): Long = when (rawArg) {
+            0, 1, 2, 3 -> rawArg.toLong()
             4 -> regA
             5 -> regB
             6 -> regC
             7 -> error("reserved combo operand 7")
-            else -> throw IllegalArgumentException("Invalid combo operand: $arg")
-        }
-
-        // The value of a combo operand can be found as follows:
-        //    Combo operands 0 through 3 represent literal values 0 through 3.
-        //    Combo operand 4 represents the value of register A.
-        //    Combo operand 5 represents the value of register B.
-        //    Combo operand 6 represents the value of register C.
-        //    Combo operand 7 is reserved and will not appear in valid programs.
-        fun comboArgDesc(): String = when (val arg = rawArg()) {
-            0, 1, 2, 3 -> "arg"
-            4 -> "regA"
-            5 -> "regB"
-            6 -> "regC"
-            7 -> error("reserved combo operand 7")
-            else -> throw IllegalArgumentException("Invalid combo operand: $arg")
+            else -> throw IllegalArgumentException("Invalid combo operand: $rawArg")
         }
 
         fun exp(a: Long, b: Long): Long = a.toDouble().pow(b.toDouble()).toLong()
 
         fun mod8(a: Long): Long = a.mod(8).toLong()
 
-        sealed interface Symbol {
+        sealed interface Instruction {
+            var pos: Int
             fun debug(): String
         }
 
-        sealed interface RegOpSymbol : Symbol {
+        sealed interface RegOpInstruction : Instruction {
             fun eval()
         }
 
-        sealed interface OutSymbol : Symbol {
+        sealed interface OutInstruction : Instruction {
             fun eval()
         }
 
-        sealed interface JumpSymbol : Symbol {
+        sealed interface JumpInstruction : Instruction {
             fun jump(): Boolean
         }
 
-        inner class Adv() : RegOpSymbol {
+        interface SingleArg {
+            val rawArg: Int
 
-            val arg = comboArg()
+            // The value of a combo operand can be found as follows:
+            //    Combo operands 0 through 3 represent literal values 0 through 3.
+            //    Combo operand 4 represents the value of register A.
+            //    Combo operand 5 represents the value of register B.
+            //    Combo operand 6 represents the value of register C.
+            //    Combo operand 7 is reserved and will not appear in valid programs.
+            fun comboArgDesc(): String = when (rawArg) {
+                0, 1, 2, 3 -> rawArg.toString()
+                4 -> "regA"
+                5 -> "regB"
+                6 -> "regC"
+                7 -> error("reserved combo operand 7")
+                else -> throw IllegalArgumentException("Invalid combo operand: $rawArg")
+            }
+
+        }
+
+        inner class Adv() : RegOpInstruction, SingleArg {
+
+            override var pos = pointer
+            override val rawArg = rawArg()
 
             inline fun result(): Long {
                 val numerator = regA
-                val denominator = exp(2, arg)
+                val denominator = exp(2, comboArg(rawArg))
                 val result = numerator / denominator
                 return result
             }
@@ -205,16 +259,17 @@ data class Day17(val debugger: Debugger) {
                 regA = result()
             }
 
-            override fun debug(): String = "op{adv(combo) -> regA} => expanded{regA / (2^${comboArgDesc()})} => expanded{${regA} / (2^${comboArg()})} => ${result()}"
+            override fun debug(): String = "adv(combo=${rawArg}) -> regA => expanded{regA / (2^combo(${rawArg()}))} => expanded{regA / (2^${comboArgDesc()})} => expanded{${regA} / (2^${comboArg(rawArg)})} => ${result()} -> regA"
 
         }
 
-        inner class Bxl() : RegOpSymbol {
+        inner class Bxl() : RegOpInstruction, SingleArg {
 
-            val arg = literalArg()
+            override var pos = pointer
+            override val rawArg = rawArg()
 
             inline fun result(): Long {
-                val result = regB xor arg
+                val result = regB xor literalArg(rawArg)
                 return result
             }
 
@@ -222,15 +277,16 @@ data class Day17(val debugger: Debugger) {
                 regB = result()
             }
 
-            override fun debug(): String = "op{bxl(lit) -> regB} => expanded{regB xor ${rawArg()}} => expanded{${regB} xor ${literalArg()}} => ${result()}}"
+            override fun debug(): String = "bxl(lit=${rawArg}) -> regB => expanded{regB xor lit} => expanded{${regB} xor ${literalArg(rawArg)}} => ${result()} -> regB"
         }
 
-        inner class Bst() : RegOpSymbol {
+        inner class Bst() : RegOpInstruction, SingleArg {
 
-            val arg = comboArg()
+            override var pos = pointer
+            override val rawArg = rawArg()
 
             inline fun result(): Long {
-                val result = mod8(arg)
+                val result = mod8(comboArg(rawArg))
                 return result
             }
 
@@ -238,31 +294,32 @@ data class Day17(val debugger: Debugger) {
                 regB = result()
             }
 
-            override fun debug(): String = "op{bst(combo) -> regB} => expanded{${comboArgDesc()} % 8} => ${result()}}"
+            override fun debug(): String = "bst(combo=${rawArg}) -> regB => expanded{combo(${rawArg()}) % 8} => expanded{${comboArgDesc()} % 8} => expanded{${comboArg(rawArg)} % 8} => ${result()} -> regB"
         }
 
-        inner class Jnz() : JumpSymbol {
+        inner class Jnz() : JumpInstruction, SingleArg {
 
-            val arg = literalArg()
+            override var pos = pointer
+            override val rawArg = rawArg()
 
             override fun jump(): Boolean {
                 if (regA != 0L) {
-                    pointer = arg.toInt()
+                    pointer = literalArg(rawArg).toInt()
                     return true
                 }
 
                 return false
             }
 
-            override fun debug(): String = "op{jnz(lit)} => expanded{jumpTo(${rawArg()}) if (regA != 0)}  => expanded{jumpTo(${rawArg()}) if (${regA} != 0)} => ${regA != 0L}"
+            override fun debug(): String = "jnz(lit=${rawArg}) => expanded{jumpTo(lit) if (regA != 0)} => expanded{jumpTo(${rawArg()}) if (${regA} != 0)} => ${if (regA != 0L) "jump to pointer ${literalArg(rawArg)}" else "noop"}"
         }
 
-        inner class Bxc() : RegOpSymbol {
+        inner class Bxc() : RegOpInstruction {
 
-            val arg = comboArg()
+            override var pos = pointer
 
             inline fun result(): Long {
-                val result = mod8(arg)
+                val result = regB xor regC
                 return result
             }
 
@@ -270,15 +327,16 @@ data class Day17(val debugger: Debugger) {
                 regB = result()
             }
 
-            override fun debug(): String = "op{bxc(combo) -> regB} => expanded{${comboArgDesc()} % 8} => ${result()}}"
+            override fun debug(): String = "bxc() -> regB => expanded{regB xor regC} => expanded{${regB} xor ${regC}} => ${result()} -> regB"
         }
 
-        inner class Out() : OutSymbol {
+        inner class Out() : OutInstruction, SingleArg {
 
-            val arg = comboArg()
+            override var pos = pointer
+            override val rawArg = rawArg()
 
             inline fun result(): Long {
-                val result = mod8(arg)
+                val result = mod8(comboArg(rawArg))
                 return result
             }
 
@@ -286,16 +344,17 @@ data class Day17(val debugger: Debugger) {
                 output += result()
             }
 
-            override fun debug(): String = "op{out(combo) -> out} => expanded{${comboArgDesc()} % 8} => ${result()}}"
+            override fun debug(): String = "out(combo=${rawArg}) -> out => expanded{${comboArgDesc()} % 8} => ${result()} -> out"
         }
 
-        inner class Bdv() : RegOpSymbol {
+        inner class Bdv() : RegOpInstruction, SingleArg {
 
-            val arg = comboArg()
+            override var pos = pointer
+            override val rawArg = rawArg()
 
             inline fun result(): Long {
                 val numerator = regA
-                val denominator = exp(2, arg)
+                val denominator = exp(2, comboArg(rawArg))
                 val result = numerator / denominator
                 return result
             }
@@ -304,16 +363,17 @@ data class Day17(val debugger: Debugger) {
                 regB = result()
             }
 
-            override fun debug(): String = "op{adv(combo) -> regB} => expanded{regA / (2^${comboArgDesc()})} => expanded{${regA} / (2^${comboArg()})} => ${result()}"
+            override fun debug(): String = "adv(combo=${rawArg}) -> regB => expanded{regA / (2^combo(${rawArg()}))} => expanded{regA / (2^${comboArgDesc()})} => expanded{${regA} / (2^${comboArg(rawArg)})} => ${result()} -> regB"
         }
 
-        inner class Cdv() : RegOpSymbol {
+        inner class Cdv() : RegOpInstruction, SingleArg {
 
-            val arg = comboArg()
+            override var pos = pointer
+            override val rawArg = rawArg()
 
             inline fun result(): Long {
                 val numerator = regA
-                val denominator = exp(2, arg)
+                val denominator = exp(2, comboArg(rawArg))
                 val result = numerator / denominator
                 return result
             }
@@ -322,7 +382,7 @@ data class Day17(val debugger: Debugger) {
                 regC = result()
             }
 
-            override fun debug(): String = "op{adv(combo) -> regC} => expanded{regA / (2^${comboArgDesc()})} => expanded{${regA} / (2^${comboArg()})} => ${result()}"
+            override fun debug(): String = "adv(combo=${rawArg}) -> regC => expanded{regA / (2^combo(${rawArg()}))} => expanded{regA / (2^${comboArgDesc()})} => expanded{${regA} / (2^${comboArg(rawArg)})} => ${result()} -> regC"
         }
 
     }

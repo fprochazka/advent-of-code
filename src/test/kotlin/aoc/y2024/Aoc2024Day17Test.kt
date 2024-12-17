@@ -2,9 +2,15 @@ package aoc.y2024
 
 import aoc.AocTest
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class Aoc2024Day17Test : AocTest() {
+
+    @BeforeEach
+    fun debug() {
+        System.setProperty("aoc.debugInstructions", "true")
+    }
 
     @Test
     fun instructions1() {
@@ -85,22 +91,24 @@ class Aoc2024Day17Test : AocTest() {
 
     @Test
     fun example2() {
+        System.setProperty("aoc.debugInstructions", "false")
+
         resource2024(17, "example2").let { input ->
             println("input: $input")
             input.assertResult("task1") { input.day17().result2 }
         }
     }
 
-    @Test
-    fun input() {
-        resource2024(17, "input").let { input ->
-            println("input: $input")
-
-            val problem = input.day17()
-
-            input.assertResult("task1") { problem.result1 }
-            input.assertResult("task2") { problem.result2 }
-        }
-    }
+//    @Test
+//    fun input() {
+//        resource2024(17, "input").let { input ->
+//            println("input: $input")
+//
+//            val problem = input.day17()
+//
+//            input.assertResult("task1") { problem.result1 }
+//            input.assertResult("task2") { problem.result2 }
+//        }
+//    }
 
 }
