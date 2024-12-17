@@ -24,8 +24,9 @@ data class Day17(val debugger: Debugger) {
     fun fixCorruptedRegisterA(): Long {
         // 185639041000 ... (ops=128) [4, 3, 3, 0, 1, 3, 4, 1, 1, 2, 2, 3, 3, 1, 3, 2] (16)
         //                  expected: [2, 4, 1, 5, 7, 5, 1, 6, 0, 3, 4, 3, 5, 5, 3, 0] (16)
-        //                  inst:     [bst 4, bxl 5, cdv 5, bxl 6, adv 3, bxc 3, out 5, jnz 0] (16)
-        //	                           Bst(4) Bxl(5) Cdv(5) Bxl(6) Adv(3) Bxc    Out(5) Jnz(0)
+
+        // Input:                      Bst(4) Bxl(5) Cdv(5) Bxl(6) Adv(3) Bxc(3) Out(5) Jnz(0)
+        // Example:                                                Adv(3)        Out(4) Jnz(0)
 
         val rawInstructions = debugger.analyzeInstructions()
         // to what index can we jump from known jumps?
@@ -53,7 +54,7 @@ data class Day17(val debugger: Debugger) {
 
             if (solution.regB != debugger.regB || solution.regC != debugger.regC) {
                 println("Found regA=${solution.regA} but the other registers are not as expected: regB(${solution.regB} != ${debugger.regB}), regC(${solution.regC} != ${debugger.regC})")
-                return null
+//                return null
             }
 
             return solution
@@ -105,7 +106,7 @@ data class Day17(val debugger: Debugger) {
                                 // this branch is viable, but we cannot deduce anything from it, because we were mod-ing a constant
                             }
 
-                            // result = (comboArg mod 8) ... I know the left side, but the right side could have been any (0..inf)
+                            // expectedOut = (comboArg mod 8) ... I know the left side, but the right side could have been any (0..inf)
 
                             // comboArg is regA where the register had value from (0..inf)
                             VAL_REG_A -> return solveForDeMod8(expectedOut) {
@@ -124,33 +125,24 @@ data class Day17(val debugger: Debugger) {
                         }
                     }
 
-                    // op_adv -> regA = regA / exp(2, comboArg)
+                    // op_adv -> nextRegA = prevRegA / exp(2, comboArg)
                     is Adv -> {
                         // restoring previous value of A
                         when (ComboArgType.from(instruction.rawArg)) {
                             VAL_LITERAL -> {
+                                // prevRegA = nextRegA * exp(2, literal)
                                 branch.regA = branch.regA * exp(2, instruction.rawArg)
                             }
 
-                            VAL_REG_A -> {
-                                // I know the newerRegA, I need to find prevRegA
-                                // newerRegA = prevRegA / exp(2, prevRegA)
-                                return solveFor(reasonableExponentsOfTwo.asSequence().filter { branch.regA == it / exp(2, it) }) {
-                                    branch.copy(regA = it, reversePointer = branch.reversePointer - 1)
-                                }
-                            }
+                            VAL_REG_A -> TODO()
 
-                            VAL_REG_B -> {
-                                branch.regA = branch.regA * exp(2, branch.regB)
-                            }
+                            VAL_REG_B -> TODO()
 
-                            VAL_REG_C -> {
-                                branch.regA = branch.regA * exp(2, branch.regC)
-                            }
+                            VAL_REG_C -> TODO()
                         }
                     }
 
-                    // op_bdv -> regB = regA / exp(2, comboArg)
+                    // op_bdv -> nextRegB = regA / exp(2, comboArg)
                     is Bdv -> {
                         // restoring previous value of B
                         return when (ComboArgType.from(instruction.rawArg)) {
@@ -168,7 +160,7 @@ data class Day17(val debugger: Debugger) {
                         }
                     }
 
-                    // op_cdv -> regC = regA / exp(2, comboArg)
+                    // op_cdv -> nextRegC = regA / exp(2, comboArg)
                     is Cdv -> {
                         // restoring previous value of C
                         return when (ComboArgType.from(instruction.rawArg)) {
@@ -186,46 +178,38 @@ data class Day17(val debugger: Debugger) {
                             }
 
                             // newerRegC = regA / exp(2, prevRegC)
-                            VAL_REG_C -> {
-                                solveFor(reasonableExponentsOfTwo.asSequence().filter { branch.regC == (branch.regA / exp(2, it)) }) {
-                                    branch.copy(regC = it, reversePointer = branch.reversePointer - 1)
-                                }
-                            }
+                            VAL_REG_C -> TODO()
                         }
                     }
 
-                    // op_bst -> regB = (comboArg mod 8)
+                    // op_bst -> nextRegB = (comboArg mod 8)
                     is Bst -> {
                         return when (ComboArgType.from(instruction.rawArg)) {
+                            // nextRegB = (const mod 8)
                             // the left side could have been anything before the assignment
-                            VAL_LITERAL -> solveFor(naturalNumbers) {
-                                branch.copy(regB = it, reversePointer = branch.reversePointer - 1)
-                            }
+                            VAL_LITERAL -> TODO()
 
+                            // nextRegB = (regA mod 8)
                             // comboArg is regA where the register had value from (0..inf)
                             VAL_REG_A -> solveForDeMod8(branch.regB) {
-                                branch.copy(regA = it, reversePointer = branch.reversePointer - 1)
+                                branch.copy(regB = -1, regA = it, reversePointer = branch.reversePointer - 1)
                             }
 
-                            // result = (result mod 8) ... => result has to be (0..7)
-                            VAL_REG_B -> solveFor(0L..7) {
-                                branch.copy(regB = it, reversePointer = branch.reversePointer - 1)
-                            }
+                            // nextRegB = (prevRegB mod 8)
+                            VAL_REG_B -> TODO()
 
-                            // comboArg is regC where the register had value from (0..inf)
-                            VAL_REG_C -> solveForDeMod8(branch.regB) {
-                                branch.copy(regC = it, reversePointer = branch.reversePointer - 1)
-                            }
+                            // nextRegB = (regC mod 8)
+                            VAL_REG_C -> TODO()
                         }
                     }
 
-                    // op_bxl -> regB = regB xor literalArg
+                    // op_bxl -> nextRegB = prevRegB xor literalArg
                     is Bxl -> {
                         // XOR is naively reversible
                         branch.regB = branch.regB xor (instruction.rawArg.toLong())
                     }
 
-                    // op_bxc -> regB = regB xor regC
+                    // op_bxc -> nextRregB = prevRegB xor regC
                     is Bxc -> {
                         // XOR is naively reversible
                         branch.regB = branch.regB xor branch.regC
@@ -251,7 +235,7 @@ data class Day17(val debugger: Debugger) {
             return null;
         }
 
-        val fixerRegisterA = solve(Branch(regA = 0, regB = 0, regC = 0))?.regA ?: error("Failed to fix register A")
+        val fixerRegisterA = solve(Branch())?.regA ?: error("Failed to fix register A")
         println("Explored $fullSolutionsExplored full solutions")
         return fixerRegisterA
     }
