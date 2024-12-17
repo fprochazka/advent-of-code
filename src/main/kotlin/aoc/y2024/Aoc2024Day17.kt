@@ -4,6 +4,7 @@ import aoc.utils.Resource
 import aoc.utils.strings.toInts
 import aoc.utils.strings.toLongs
 import aoc.y2024.Day17.InstructionOpcode.*
+import java.math.BigInteger
 import kotlin.math.pow
 
 fun Resource.day17(): Day17 = Day17(
@@ -12,24 +13,39 @@ fun Resource.day17(): Day17 = Day17(
 
 data class Day17(val debugger: Debugger) {
 
+    // run the given program, collecting any output produced by out instructions.
+    // (Always join the values produced by out instructions with commas.)
     val result1 by lazy { debugger.copy().run().joinToString(",") }
+
     val result2 by lazy { findValueOfRegisterAThatMakesTheProgramOutputItself() }
 
     fun findValueOfRegisterAThatMakesTheProgramOutputItself(): Long {
-        for (i in 1L..10_000_000L) {
-            if (i % 10000L == 0L) println("Trying $i")
+        val expectedStr = debugger.program.joinToString(",")
 
+        val mod = BigInteger.valueOf(100_000)
+
+         for (i in 35_184_372_000_000L..1_000_000_000_000_000L) {
             val copy = debugger.copy(regA = i)
-            val output = copy.run { copy.output.size > debugger.program.size }
-            if (output.equals(debugger.program)) {
-                return i
+
+            copy.run { copy.output.size > debugger.program.size }
+
+            if (copy.output.size == debugger.program.size) {
+                if (copy.output.joinToString(",") == expectedStr) {
+                    return i
+                }
             }
+
+//            println("For regA=$i, output=${output.joinToString(",")}")
+             if (BigInteger.valueOf(i).mod(mod).toLong() == 0L) {
+                 println("Tried $i ... ${copy.output} (${copy.output.size}) expected: ${debugger.program} (${debugger.program.size})")
+             }
         }
 
         throw IllegalStateException("NO RESULT")
     }
 
-    // This seems to be a 3-bit computer: its program is a list of 3-bit numbers (0 through 7), like 0,1,2,3.
+    // This seems to be a 3-bit computer:
+    // its program is a list of 3-bit numbers (0 through 7), like 0,1,2,3.
     // registers named A, B, and C, but these registers aren't limited to 3 bits and can instead hold any integer
     // eight instructions, each identified by a 3-bit number (called the instruction's opcode)
     // Each instruction also reads the 3-bit number after it as an input; this is called its operand.
@@ -43,16 +59,10 @@ data class Day17(val debugger: Debugger) {
 
         val output = mutableListOf<Long>()
 
-        // the program 0,1,2,3 would
-        //     run the instruction whose opcode is 0 and pass it the operand 1,
-        //     run the instruction having opcode 2 and pass it the operand 3,
-        //     then halt.
-
-        // run the given program, collecting any output produced by out instructions.
-        // (Always join the values produced by out instructions with commas.)
-
         fun run(haltPrematurely: () -> Boolean = { false }): List<Long> {
             fun exp(a: Long, b: Long): Long = a.toDouble().pow(b.toDouble()).toLong()
+
+            fun mod8(a: Long): Long = a.mod(8).toLong()
 
             var pointer = 0
             while (pointer < program.size && !haltPrematurely()) {
@@ -93,7 +103,7 @@ data class Day17(val debugger: Debugger) {
 
                     op_bst -> {
                         val arg = comboArg()
-                        val result = arg.mod(8).toLong()
+                        val result = mod8(arg)
                         regB = result
                     }
 
@@ -112,7 +122,7 @@ data class Day17(val debugger: Debugger) {
 
                     op_out -> {
                         val arg = comboArg()
-                        val result = arg.mod(8).toLong()
+                        val result = mod8(arg)
                         output += result
                     }
 
