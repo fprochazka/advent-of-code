@@ -108,7 +108,7 @@ class Aoc2024Day17Test : AocTest() {
 
             val problem = input.day17()
 
-//            input.assertResult("task1") { problem.result1 }
+            input.assertResult("task1") { problem.result1 }
             input.assertResult("task2") { problem.result2 }
         }
     }
