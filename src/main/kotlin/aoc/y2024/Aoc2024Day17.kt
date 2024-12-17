@@ -3,8 +3,9 @@ package aoc.y2024
 import aoc.utils.Resource
 import aoc.utils.strings.toInts
 import aoc.utils.strings.toLongs
+import aoc.y2024.Day17.Debugger.*
+import aoc.y2024.Day17.Debugger.ComboArgType.*
 import aoc.y2024.Day17.InstructionOpcode.*
-import java.lang.IllegalStateException
 import kotlin.math.pow
 
 fun Resource.day17(): Day17 = Day17(
@@ -18,7 +19,250 @@ data class Day17(val debugger: Debugger) {
     // (Always join the values produced by out instructions with commas.)
     val result1 by lazy { debugger.copy().run().joinToString(",") }
 
-    val result2 by lazy { debugger.fixCorruptedRegisterA() }
+    val result2 by lazy { fixCorruptedRegisterA() }
+
+    fun fixCorruptedRegisterA(): Long {
+        // 185639041000 ... (ops=128) [4, 3, 3, 0, 1, 3, 4, 1, 1, 2, 2, 3, 3, 1, 3, 2] (16)
+        //                  expected: [2, 4, 1, 5, 7, 5, 1, 6, 0, 3, 4, 3, 5, 5, 3, 0] (16)
+        //                  inst:     [bst 4, bxl 5, cdv 5, bxl 6, adv 3, bxc 3, out 5, jnz 0] (16)
+        //	                           Bst(4) Bxl(5) Cdv(5) Bxl(6) Adv(3) Bxc    Out(5) Jnz(0)
+
+        val rawInstructions = debugger.analyzeInstructions()
+        // to what index can we jump from known jumps?
+        val jumpsByTarget = rawInstructions.withIndex().filter { it.value is Jnz }.associate { (it.value as Jnz).rawArg to it.index }
+
+        data class Branch(
+            var halted: Boolean = true,
+            var regA: Long = -1,
+            var regB: Long = -1,
+            var regC: Long = -1,
+            val expectedOut: ArrayDeque<Int> = ArrayDeque(debugger.program),
+            var reversePointer: Int = rawInstructions.size - 1,
+        )
+
+        fun validateSolution(solution: Branch): Branch? {
+            val fixedOutput = debugger.copy(regA = solution.regA).run()
+            if (listsAreEqual(fixedOutput, debugger.program)) {
+                return solution
+            }
+
+            println("regA=${solution.regA} is not usable, because $fixedOutput != ${debugger.program}")
+            return null
+        }
+
+        val naturalNumbers = 0L until Int.MAX_VALUE
+        val reasonableExponentsOfTwo = 0L until 63
+
+        /**
+         * DFS search of possible solutions
+         */
+        fun solve(branch: Branch): Branch? {
+            fun solveFor(values: Sequence<Long>, forkBranch: (Long) -> Branch): Branch? {
+                for (value in values) {
+                    solve(forkBranch(value))?.let {
+                        return it
+                    }
+                }
+                return null
+            }
+
+            fun solveFor(values: Iterable<Long>, forkBranch: (Long) -> Branch): Branch? =
+                solveFor(values.asSequence(), forkBranch)
+
+            fun solveForDeMod8(result: Long, forkBranch: (Long) -> Branch): Branch? =
+                solveFor(naturalNumbers.asSequence().map { deMod8(result, moduloExp = it) }, forkBranch)
+
+            fun solveForDeMod8(result: Int, forkBranch: (Long) -> Branch): Branch? =
+                solveForDeMod8(result.toLong(), forkBranch)
+
+            while (branch.reversePointer >= 0) {
+                val instruction = rawInstructions[branch.reversePointer]
+                when (instruction) {
+                    // op_jnz -> if (regA != 0L) { pointer = literalArg.toInt() }
+                    is Jnz -> {
+                        if (branch.halted) {
+                            branch.regA = 0
+                        } else {
+                            // noop, just walk left normally
+                        }
+                    }
+
+                    // op_out -> output += (comboArg mod 8)
+                    is Out -> {
+                        val expectedOut = branch.expectedOut.removeLast()
+                        val solution = when (ComboArgType.from(instruction.rawArg)) {
+                            VAL_LITERAL -> {
+                                // there is no unknown or forking, this branch is viable
+                                // but we cannot deduce anything from it, because we were mod-ing a constant
+                                null
+                            }
+
+                            // result = (comboArg mod 8) ... I know the left side, but the right side could have been any (0..inf)
+
+                            // comboArg is regA where the register had value from (0..inf)
+                            VAL_REG_A -> solveForDeMod8(expectedOut) {
+                                branch.copy(regA = it, reversePointer = branch.reversePointer - 1)
+                            }
+
+                            // comboArg is regB where the register had value from (0..inf)
+                            VAL_REG_B -> solveForDeMod8(expectedOut) {
+                                branch.copy(regB = it, reversePointer = branch.reversePointer - 1)
+                            }
+
+                            // comboArg is regC where the register had value from (0..inf)
+                            VAL_REG_C -> solveForDeMod8(expectedOut) {
+                                branch.copy(regC = it, reversePointer = branch.reversePointer - 1)
+                            }
+                        }
+
+                        if (solution != null) return solution
+                    }
+
+                    // op_adv -> regA = regA / exp(2, comboArg)
+                    is Adv -> {
+                        // restoring previous value of A
+                        branch.regA = when (ComboArgType.from(instruction.rawArg)) {
+                            VAL_LITERAL -> branch.regA * exp(2, instruction.rawArg)
+
+                            VAL_REG_A -> if (branch.regA == -1L) {
+                                return null // uninitialized
+                            } else {
+                                // newerRegA = prevRegA / exp(2, prevRegA)
+                                TODO() // we have to search all naturalNumbers
+                            }
+
+                            VAL_REG_B -> if (branch.regB == -1L) {
+                                return null // uninitialized
+                            } else {
+                                branch.regA * exp(2, branch.regB)
+                            }
+
+                            VAL_REG_C -> if (branch.regC == -1L) {
+                                return null // uninitialized
+                            } else {
+                                branch.regA * exp(2, branch.regC)
+                            }
+                        }
+                    }
+
+                    // op_bdv -> regB = regA / exp(2, comboArg)
+                    is Bdv -> {
+                        // restoring previous value of B
+                        val solution = when (ComboArgType.from(instruction.rawArg)) {
+                            // B could have been any (0..inf)
+                            VAL_LITERAL -> TODO()
+                            VAL_REG_A -> TODO()
+                            VAL_REG_C -> TODO()
+
+                            // newerRegB = regA / exp(2, prevRegB)
+                            VAL_REG_B -> if (branch.regB <= 0L || branch.regA == -1L) {
+                                null // unsolvable
+                            } else {
+                                // I know the newerRegB and regA, I need to find prevRegB
+                                // exp(2, prevRegB) = regA / newerRegB
+                                solveFor(reasonableExponentsOfTwo.asSequence().filter { exp(2, it) == (branch.regA / branch.regB) }) {
+                                    branch.copy(regB = it, reversePointer = branch.reversePointer - 1)
+                                }
+                            }
+                        }
+
+                        if (solution != null) return solution
+                    }
+
+                    // op_cdv -> regC = regA / exp(2, comboArg)
+                    is Cdv -> {
+                        // restoring previous value of C
+                        val solution = when (ComboArgType.from(instruction.rawArg)) {
+                            // C could have been any (0..inf)
+                            VAL_LITERAL -> TODO()
+                            VAL_REG_A -> TODO()
+                            VAL_REG_B -> TODO()
+
+                            // newerRegC = regA / exp(2, prevRegC)
+                            VAL_REG_C -> if (branch.regC <= 0L || branch.regA == -1L) {
+                                return null // unsolvable
+                            } else {
+                                // I know the newerRegC and regA, I need to find prevRegC
+                                // exp(2, prevRegC) = regA / newerRegC
+                                solveFor(reasonableExponentsOfTwo.asSequence().filter { exp(2, it) == (branch.regA / branch.regC) }) {
+                                    branch.copy(regC = it, reversePointer = branch.reversePointer - 1)
+                                }
+                            }
+                        }
+
+                        if (solution != null) return solution
+                    }
+
+                    // op_bst -> regB = (comboArg mod 8)
+                    is Bst -> {
+                        if (branch.regB == -1L) {
+                            return null // uninitialized
+                        }
+
+                        val solution = when (ComboArgType.from(instruction.rawArg)) {
+                            // the left side could have been anything before the assignment
+                            VAL_LITERAL -> solveFor(naturalNumbers) {
+                                branch.copy(regB = it, reversePointer = branch.reversePointer - 1)
+                            }
+
+                            // comboArg is regA where the register had value from (0..inf)
+                            VAL_REG_A -> solveForDeMod8(branch.regB) {
+                                branch.copy(regA = it, reversePointer = branch.reversePointer - 1)
+                            }
+
+                            // result = (result mod 8) ... => result has to be (0..7)
+                            VAL_REG_B -> solveFor(0L..7) {
+                                branch.copy(regB = it, reversePointer = branch.reversePointer - 1)
+                            }
+
+                            // comboArg is regC where the register had value from (0..inf)
+                            VAL_REG_C -> solveForDeMod8(branch.regB) {
+                                branch.copy(regC = it, reversePointer = branch.reversePointer - 1)
+                            }
+                        }
+
+                        if (solution != null) return solution
+                    }
+
+                    // op_bxl -> regB = regB xor literalArg
+                    is Bxl -> {
+                        if (branch.regB == -1L) {
+                            return null // uninitialized
+                        }
+                        // XOR is naively reversible
+                        branch.regB = branch.regB xor (instruction.rawArg.toLong())
+                    }
+
+                    // op_bxc -> regB = regB xor regC
+                    is Bxc -> {
+                        if (branch.regB == -1L || branch.regC == -1L) {
+                            return null // uninitialized
+                        }
+                        // XOR is naively reversible
+                        branch.regB = branch.regB xor branch.regC
+                    }
+
+                }
+
+                branch.reversePointer -= 1
+                branch.halted = false
+
+                if (branch.reversePointer == 0 && branch.expectedOut.isEmpty()) {
+                    validateSolution(branch)?.let { return it }
+                }
+
+                if (branch.reversePointer in jumpsByTarget) {
+                    // TODO: this should be branched
+                    branch.reversePointer = jumpsByTarget[branch.reversePointer]!!
+                    continue
+                }
+            }
+
+            return null;
+        }
+
+        return solve(Branch())?.regA ?: error("Failed to fix register A")
+    }
 
     // This seems to be a 3-bit computer:
     // its program is a list of 3-bit numbers (0 through 7), like 0,1,2,3.
@@ -40,185 +284,6 @@ data class Day17(val debugger: Debugger) {
 
         var pointer = 0
         var operations = 0L
-
-        fun fixCorruptedRegisterA(): Long {
-            // 185639041000 ... (ops=128) [4, 3, 3, 0, 1, 3, 4, 1, 1, 2, 2, 3, 3, 1, 3, 2] (16)
-            //                  expected: [2, 4, 1, 5, 7, 5, 1, 6, 0, 3, 4, 3, 5, 5, 3, 0] (16)
-            //                  inst:     [bst 4, bxl 5, cdv 5, bxl 6, adv 3, bxc 3, out 5, jnz 0] (16)
-            //	                           Bst(4) Bxl(5) Cdv(5) Bxl(6) Adv(3) Bxc    Out(5) Jnz(0)
-
-            val rawInstructions = analyzeInstructions()
-            // to what index can we jump from known jumps?
-            val jumpsByTarget = rawInstructions.withIndex().filter { it.value is Jnz }.associate { (it.value as Jnz).rawArg to it.index }
-
-            data class Branch(
-                var halted: Boolean = true,
-                var regA: Long = -1,
-                var regB: Long = -1,
-                var regC: Long = -1,
-                val expectedOut: ArrayDeque<Int> = ArrayDeque(program),
-                var reversePointer: Int = rawInstructions.size - 1,
-            )
-
-            val moduloExponents = 0L until Int.MAX_VALUE
-
-            /**
-             * DFS search of possible solutions
-             */
-            fun solve(branch: Branch): Branch? {
-                fun deMod8(result: Long, moduloExp: Long = 0): Long = (8 * moduloExp + result).toLong()
-                fun deMod8(result: Int, moduloExp: Long = 0): Long = deMod8(result.toLong(), moduloExp)
-
-                fun deXdv(instruction: SingleArg): Long? {
-                    return when (instruction.rawArg) {
-                        0, 1, 2, 3 -> exp(2, instruction.rawArg)
-
-                        4 -> if (branch.regA == -1L) {
-                            null // uninitialized
-                        } else {
-                            branch.regA * exp(2, branch.regA)
-                        }
-
-                        5 -> if (branch.regB == -1L) {
-                            null // uninitialized
-                        } else {
-                            branch.regA * exp(2, branch.regB)
-                        }
-
-                        6 -> if (branch.regC == -1L) {
-                            null // uninitialized
-                        } else {
-                            branch.regA * exp(2, branch.regC)
-                        }
-
-                        else -> error("The $instruction has invalid combo arg")
-                    }
-                }
-
-                fun solveForDeMod8(result: Long, forkBranch: (Long) -> Branch): Branch? {
-                    for (deMod in moduloExponents.asSequence().map { deMod8(result, moduloExp = it) }) {
-                        solve(forkBranch(deMod))?.let {
-                            return it
-                        }
-                    }
-                    return null
-                }
-
-                fun solveComboArgDeMod(result: Long, rawArg: Int): Branch? {
-                    return when (rawArg) {
-                        0, 1, 2, 3 -> TODO()
-
-                        4 -> solveForDeMod8(result) {
-                            branch.copy(regA = it, reversePointer = branch.reversePointer - 2)
-                        }
-
-                        5 -> solveForDeMod8(result) {
-                            branch.copy(regB = it, reversePointer = branch.reversePointer - 2)
-                        }
-
-                        6 -> solveForDeMod8(result) {
-                            branch.copy(regC = it, reversePointer = branch.reversePointer - 2)
-                        }
-
-                        else -> error("Invalid combo arg '$rawArg'")
-                    }
-                }
-
-                while (branch.reversePointer >= 0) {
-                    val instruction = rawInstructions[branch.reversePointer]
-                    when (instruction) {
-                        // op_jnz -> if (regA != 0L) {
-                        //     pointer = literalArg(rawArg()).toInt()
-                        //     continue // do not inc the pointer by +2
-                        // }
-                        is Jnz -> {
-                            if (branch.halted) {
-                                branch.regA = 0
-                            } else {
-                                // noop, just walk left normally
-                            }
-                        }
-
-                        // op_out -> output += mod8(comboArg(rawArg())).toInt()
-                        is Out -> {
-                            val expectedOut = branch.expectedOut.removeLast()
-                            solveComboArgDeMod(expectedOut.toLong(), instruction.rawArg)?.let {
-                                return it
-                            }
-                            return null // dead branch
-                        }
-
-                        // op_adv -> regA = regA / exp(2, comboArg(rawArg()))
-                        is Adv -> {
-                            branch.regA = deXdv(instruction) ?: return null
-                        }
-
-                        // op_bdv -> regB = regA / exp(2, comboArg(rawArg()))
-                        is Bdv -> {
-                            branch.regB = deXdv(instruction) ?: return null
-                        }
-
-                        // op_cdv -> regC = regA / exp(2, comboArg(rawArg()))
-                        is Cdv -> {
-                            branch.regC = deXdv(instruction) ?: return null
-                        }
-
-                        // op_bst -> regB = mod8(comboArg(rawArg()))
-                        is Bst -> {
-                            if (branch.regB == -1L) {
-                                return null // uninitialized
-                            }
-                            solveComboArgDeMod(branch.regB, instruction.rawArg)?.let {
-                                return it
-                            }
-                            return null // dead branch
-                        }
-
-                        // op_bxl -> regB = regB xor literalArg(rawArg())
-                        is Bxl -> {
-                            if (branch.regB == -1L) {
-                                return null // uninitialized
-                            }
-                            branch.regB = branch.regB xor literalArg(instruction.rawArg)
-                        }
-
-                        // op_bxc -> regB = regB xor regC
-                        is Bxc -> {
-                            if (branch.regB == -1L || branch.regC == -1L) {
-                                return null // uninitialized
-                            }
-                            branch.regB = branch.regB xor branch.regC
-                        }
-
-                    }
-
-                    branch.reversePointer -= 1
-                    branch.halted = false
-
-                    if (branch.reversePointer == 0 && branch.expectedOut.isEmpty()) {
-                        return branch
-                    }
-
-                    if (branch.reversePointer in jumpsByTarget) {
-                        // we should really branch this
-                        branch.reversePointer = jumpsByTarget[branch.reversePointer]!!
-                        continue
-                    }
-                }
-
-                return null;
-            }
-
-            val solution = solve(Branch())
-            val fixedRegisterA = solution?.regA ?: error("Failed to fix register A")
-
-            val fixedOutput = copy(regA = regA).run()
-            if (!listsAreEqual(fixedOutput, program)) {
-                throw IllegalStateException("Output is not equal to the original program: $fixedOutput != $program")
-            }
-
-            return fixedRegisterA
-        }
 
         fun analyzeInstructions(): List<Instruction> {
             val result = mutableListOf<Instruction>()
@@ -314,19 +379,36 @@ data class Day17(val debugger: Debugger) {
         //    Combo operand 5 represents the value of register B.
         //    Combo operand 6 represents the value of register C.
         //    Combo operand 7 is reserved and will not appear in valid programs.
-        fun comboArg(rawArg: Int): Long = when (rawArg) {
-            0, 1, 2, 3 -> rawArg.toLong()
-            4 -> regA
-            5 -> regB
-            6 -> regC
-            7 -> error("reserved combo operand 7")
-            else -> throw IllegalArgumentException("Invalid combo operand: $rawArg")
+        fun comboArg(rawArg: Int): Long = when (ComboArgType.from(rawArg)) {
+            VAL_LITERAL -> literalArg(rawArg)
+            VAL_REG_A -> regA
+            VAL_REG_B -> regB
+            VAL_REG_C -> regC
         }
 
-        fun exp(a: Long, b: Long): Long = a.toDouble().pow(b.toDouble()).toLong()
-        fun exp(a: Long, b: Int): Long = exp(a, b.toLong())
+        enum class ComboArgType {
+            VAL_LITERAL,
+            VAL_REG_A,
+            VAL_REG_B,
+            VAL_REG_C,
+            ;
 
-        fun mod8(a: Long): Long = a.mod(8).toLong()
+            companion object {
+
+                fun from(value: Long) = from(value.toInt())
+
+                fun from(value: Int): ComboArgType = when (value) {
+                    0, 1, 2, 3 -> VAL_LITERAL
+                    4 -> VAL_REG_A
+                    5 -> VAL_REG_B
+                    6 -> VAL_REG_C
+                    7 -> error("reserved combo operand 7")
+                    else -> error("Invalid combo arg: $value")
+                }
+
+            }
+
+        }
 
         sealed interface Instruction {
             var pos: Int
@@ -354,13 +436,11 @@ data class Day17(val debugger: Debugger) {
             //    Combo operand 5 represents the value of register B.
             //    Combo operand 6 represents the value of register C.
             //    Combo operand 7 is reserved and will not appear in valid programs.
-            fun comboArgDesc(): String = when (rawArg) {
-                0, 1, 2, 3 -> rawArg.toString()
-                4 -> "regA"
-                5 -> "regB"
-                6 -> "regC"
-                7 -> error("reserved combo operand 7")
-                else -> throw IllegalArgumentException("Invalid combo operand: $rawArg")
+            fun comboArgDesc(): String = when (ComboArgType.from(rawArg)) {
+                VAL_LITERAL -> rawArg.toString()
+                VAL_REG_A -> "regA"
+                VAL_REG_B -> "regB"
+                VAL_REG_C -> "regC"
             }
 
         }
@@ -587,6 +667,14 @@ data class Day17(val debugger: Debugger) {
     }
 
     companion object {
+
+        fun deMod8(result: Long, moduloExp: Long = 0): Long = (8 * moduloExp + result).toLong()
+        fun deMod8(result: Int, moduloExp: Long = 0): Long = deMod8(result.toLong(), moduloExp)
+
+        fun exp(a: Long, b: Long): Long = a.toDouble().pow(b.toDouble()).toLong()
+        fun exp(a: Long, b: Int): Long = exp(a, b.toLong())
+
+        fun mod8(a: Long): Long = a.mod(8).toLong()
 
         fun listsAreEqual(actual: List<Int>, expected: List<Int>): Boolean {
             if (actual.size != expected.size) return false
