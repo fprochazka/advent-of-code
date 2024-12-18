@@ -1,6 +1,7 @@
 package aoc.utils.d2
 
 import aoc.utils.Resource
+import aoc.utils.containers.PriorityQueueSet
 import aoc.utils.containers.popAny
 import aoc.utils.d2.Direction.entries
 import aoc.utils.math.remEuclid
@@ -10,6 +11,7 @@ import java.util.*
 import javax.imageio.ImageIO
 import kotlin.collections.ArrayDeque
 import kotlin.io.path.extension
+import kotlin.math.abs
 
 open class Matrix<V : Any> protected constructor(
     val dims: Dimensions,
@@ -50,6 +52,12 @@ open class Matrix<V : Any> protected constructor(
 
     operator fun get(position: Position): V? =
         if (position in this) matrix[dims.matrixIndex(position)] else null
+
+    fun getValue(position: Position): V =
+        this[position] ?: error("$position has no associated value")
+
+    fun getOrDefault(position: Position, default: V): V =
+        this[position] ?: default
 
     operator fun contains(position: Position): Boolean =
         position.x > -1 && position.y > -1
@@ -255,6 +263,12 @@ data class Position(val x: Long, val y: Long) {
     fun stepInDirection(direction: Direction, length: Int): Position = when (length) {
         1 -> this.plus(direction)
         else -> Position(this.x + (direction.vector.xDiff * length), this.y + (direction.vector.yDiff * length))
+    }
+
+    fun manhattanDistanceTo(end: Position): Long {
+        val dx = abs(this.x - end.x)
+        val dy = abs(this.y - end.y)
+        return dx + dy
     }
 
     val left: Position
@@ -517,6 +531,58 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
                 visited.add(neighbour)
                 parents[neighbour] = current
                 queue.add(neighbour)
+            }
+        }
+
+        return null
+    }
+
+    fun anyShortestPathAStar(
+        start: Position,
+        end: Position,
+    ): List<Position>? {
+        fun reconstructPath(cameFrom: Map<Position, Position>, current: Position): List<Position> {
+            val path = mutableListOf<Position>()
+            var node: Position? = current
+            while (node != null) {
+                path.add(node)
+                node = cameFrom[node]
+            }
+            return path.reversed()
+        }
+
+        // Parent map to reconstruct path
+        val cameFrom = mutableMapOf<Position, Position>()
+
+        val distanceFromStart = Matrix.empty<Long>(nodes.dims).also { it[start] = 0L }
+        val estRemainingCost = Matrix.empty<Long>(nodes.dims).also { it[start] = start.manhattanDistanceTo(end) }
+        val queue = PriorityQueueSet<Position>().also { it[start] = estRemainingCost.getValue(start) }
+
+        while (queue.isNotEmpty()) {
+            val currentPos = queue.removeFirst()
+            if (currentPos == end) {
+                return reconstructPath(cameFrom, currentPos)
+            }
+
+            for (neighborPos in connectionsOf(currentPos)) {
+                val stepCost = distanceFromStart.getOrDefault(currentPos, INFINITE_COST) + (connectionWeight(currentPos, neighborPos) ?: 1)
+                if (stepCost >= distanceFromStart.getOrDefault(neighborPos, INFINITE_COST)) {
+                    continue
+                }
+
+                val estRemainingStepCost = stepCost + neighborPos.manhattanDistanceTo(end)
+
+                // update distance and estimated cost
+                distanceFromStart[neighborPos] = stepCost
+                estRemainingCost[neighborPos] = estRemainingStepCost
+
+                // Record the path
+                cameFrom[neighborPos] = currentPos
+
+                // Add to the open set if not already present
+                if (neighborPos !in queue) {
+                    queue[neighborPos] = estRemainingStepCost
+                }
             }
         }
 
