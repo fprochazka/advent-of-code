@@ -20,49 +20,41 @@ data class Day18(
 ) {
 
     val initiallyCorruptedMemory by lazy {
-        simulateFallingBytes(simulateInitiallyCorrupted)
-//            .also { println(it.toPlainMatrix()); println() }
+        initMemoryWithCorruptedBytes(simulateInitiallyCorrupted)
+        // .also { println(it.toPlainMatrix()); println() }
+    }
+
+    val remainingCorruptedBytes by lazy {
+        corruptedBytes.drop(simulateInitiallyCorrupted)
     }
 
     val result1 by lazy {
-        shortestPathTo(
-            initiallyCorruptedMemory,
-            dims.topLeft,
-            dims.bottomRight
-        )?.size ?: error("No path found")
+        initiallyCorruptedMemory.shortestPathToEnd()
+            ?.size
+            ?: error("No path found")
     }
 
     val result2 by lazy {
-        findFirstCorruptedByteThatCutsOffAllPaths(
-            initiallyCorruptedMemory,
-            corruptedBytes.drop(simulateInitiallyCorrupted),
-            dims.topLeft,
-            dims.bottomRight
-        )?.let { p -> "${p.x},${p.y}" } ?: error("No such byte")
+        findFirstCorruptedByteThatCutsOffAllPaths(initiallyCorruptedMemory, remainingCorruptedBytes)
+            ?.let { p -> "${p.x},${p.y}" }
+            ?: error("No such byte")
     }
 
     fun findFirstCorruptedByteThatCutsOffAllPaths(
         memory: MatrixGraph<Char>,
-        moreCorruptedBytes: List<Position>,
-        start: Position,
-        end: Position
+        moreCorruptedBytes: List<Position>
     ): Position? {
         fun corrupt(adr: Position) {
+            memory.disconnectAll(adr)
             memory[adr] = CORRUPTED_BYTE
-
-            val corruptedNode = memory[adr]!!
-            for (neighbourNodes in corruptedNode.connectedNodes) {
-                neighbourNodes.weightedConnections.remove(corruptedNode.position)
-            }
-            corruptedNode.weightedConnections.clear()
         }
 
-        var goodPath = shortestPathTo(memory, start, end)?.toSet() ?: error("No good path found")
+        var goodPath = memory.shortestPathToEnd() ?: error("No good path found")
         for (adr in moreCorruptedBytes) {
             corrupt(adr)
 
             if (adr in goodPath) {
-                val otherPath = shortestPathTo(memory, start, end)?.toSet()
+                val otherPath = memory.shortestPathToEnd()
                 if (otherPath == null) {
                     return adr
                 } else {
@@ -74,10 +66,10 @@ data class Day18(
         return null
     }
 
-    fun shortestPathTo(memory: MatrixGraph<Char>, start: Position, end: Position): List<Position>? =
-        memory.anyShortestPathBfs(start, end)?.drop(1)
+    fun MatrixGraph<Char>.shortestPathToEnd(): Set<Position>? =
+        anyShortestPathBfs(dims.topLeft, dims.bottomRight)?.drop(1)?.toSet()
 
-    fun simulateFallingBytes(rounds: Int): MatrixGraph<Char> {
+    fun initMemoryWithCorruptedBytes(rounds: Int): MatrixGraph<Char> {
         val memory = MatrixGraph.empty<Char>(dims, Direction.entriesCardinal)
 
         for (adr in memory.positions) {

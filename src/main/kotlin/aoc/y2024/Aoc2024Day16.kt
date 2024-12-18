@@ -53,8 +53,7 @@ data class Day16(val maze: MatrixGraph<Char>) {
                 nodesWithOneConnection.remove(deadEndPos)
 
                 // update connections
-                deadEndNode.weightedConnections.clear()
-                previousNode.weightedConnections.remove(deadEndPos)
+                maze.disconnectMutually(deadEndNode, previousNode)
 
                 // put prev node back in cache
                 nodesByConnections[previousNode.weightedConnections.size]!!.add(previousNode.position)

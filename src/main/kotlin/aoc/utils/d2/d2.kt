@@ -376,7 +376,12 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
         get() = nodes.dims.matrixPositions
 
     operator fun set(position: Position, value: V) {
-        nodes[position] = Node(value, position)
+        val existingNode = nodes[position]
+        if (existingNode != null) {
+            existingNode.value = value
+        } else {
+            nodes[position] = Node(value, position)
+        }
     }
 
     operator fun get(position: Position): Node? =
@@ -387,6 +392,28 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
 
     fun connectionWeight(from: Position, to: Position): Long? =
         nodes[from]?.weightedConnections?.get(to)
+
+    fun disconnectMutually(a: Position, b: Position) {
+        disconnectMutually(nodes[a]!!, nodes[b]!!)
+    }
+
+    fun disconnectMutually(a: Node, b: Node) {
+        a.weightedConnections.remove(b.position)
+        b.weightedConnections.remove(a.position)
+    }
+
+    fun disconnectAll(pos: Position) {
+        disconnectAll(nodes[pos]!!)
+    }
+
+    fun disconnectAll(node: Node) {
+        // remove any connections pointing at the node
+        for (neighbourPos in node.neighbourPositionsValid()) {
+            this[neighbourPos.position]?.weightedConnections?.remove(node.position)
+        }
+        // remove all connections going out from this node
+        node.weightedConnections.clear()
+    }
 
     fun updateAllConnections(edges: (MatrixGraph<V>.Node, MatrixGraph<V>.Node) -> Pair<Boolean, Long>) {
         for (position in positions) {
