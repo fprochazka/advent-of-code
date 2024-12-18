@@ -7,7 +7,7 @@ import aoc.utils.d2.Position
 import aoc.utils.d2.graph.createDeadEndEliminator
 import aoc.utils.d2.graph.path.PathStep
 import aoc.utils.d2.graph.path.allShortest.allShortestPaths
-import aoc.utils.d2.graph.path.anyShortest.anyShortestPathWeighted
+import aoc.utils.d2.graph.path.anyShortest.anyShortestPathDijkstra
 
 fun Resource.day16(): Day16 = Day16(
     Day16.toGraph(matrix2d())
@@ -28,7 +28,7 @@ data class Day16(val maze: MatrixGraph<Char>) {
 
     fun MatrixGraph<Char>.shortestPathCost(): Long =
         mazeStartAndEnd
-            .let { (start, end) -> anyShortestPathWeighted(start, Direction.RIGHT, end, ::edgeCost) }
+            .let { (start, end) -> anyShortestPathDijkstra(start, Direction.RIGHT, end, ::edgeCost) }
             ?.pathCost
             ?: error("No path found")
 

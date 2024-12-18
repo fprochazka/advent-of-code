@@ -6,7 +6,7 @@ import aoc.utils.d2.Position
 import aoc.utils.d2.graph.path.PathStep
 import java.util.*
 
-fun <V : Any> MatrixGraph<V>.anyShortestPathWeighted(
+fun <V : Any> MatrixGraph<V>.anyShortestPathDijkstra(
     start: Position,
     startDir: Direction,
     end: Position,
