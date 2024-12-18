@@ -5,9 +5,9 @@ import aoc.utils.d2.Direction
 import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
 import aoc.utils.d2.graph.createDeadEndEliminator
-import aoc.utils.d2.graph.path.GraphPathStep
-import aoc.utils.d2.graph.path.allShortest.allShortestPathsModifiedDijkstra
-import aoc.utils.d2.graph.path.anyShortest.anyShortestPathDijkstra
+import aoc.utils.d2.graph.path.GraphPathOrientedStep
+import aoc.utils.d2.graph.path.allShortest.allShortestOrientedPathsModifiedDijkstra
+import aoc.utils.d2.graph.path.anyShortest.anyShortestOrientedPathDijkstra
 
 fun Resource.day16(): Day16 = Day16(
     Day16.toGraph(matrix2d())
@@ -28,13 +28,13 @@ data class Day16(val maze: MatrixGraph<Char>) {
 
     fun MatrixGraph<Char>.shortestPathCost(): Long =
         mazeStartAndEnd
-            .let { (start, end) -> anyShortestPathDijkstra(start, Direction.RIGHT, end, ::edgeCost) }
+            .let { (start, end) -> anyShortestOrientedPathDijkstra(start, Direction.RIGHT, end, ::edgeCost) }
             ?.pathCost
             ?: error("No path found")
 
     fun MatrixGraph<Char>.countOfAllPositionsOnAllShortestPaths(): Long {
         val positionsOnShortestPaths = mazeStartAndEnd
-            .let { (start, end) -> allShortestPathsModifiedDijkstra(start, Direction.RIGHT, end, ::edgeCost) }
+            .let { (start, end) -> allShortestOrientedPathsModifiedDijkstra(start, Direction.RIGHT, end, ::edgeCost) }
             .flatMap { it.toList().map { it.pos } }
             .toSet()
 
@@ -53,7 +53,7 @@ data class Day16(val maze: MatrixGraph<Char>) {
         const val WALL = '#'
         const val DEAD_END = 'x'
 
-        fun edgeCost(current: GraphPathStep, inDir: Direction): Long =
+        fun edgeCost(current: GraphPathOrientedStep, inDir: Direction): Long =
             1 + turnCost(current.inDir, inDir)
 
         fun turnCost(from: Direction, to: Direction): Long =

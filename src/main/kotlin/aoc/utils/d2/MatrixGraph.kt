@@ -10,8 +10,11 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
 
     val nodes: Matrix<Node> = Matrix.empty<Node>(dims)
 
+    val dims: Dimensions
+        get() = nodes.dims
+
     val positions: Sequence<Position>
-        get() = nodes.dims.matrixPositions
+        get() = dims.matrixPositions
 
     operator fun set(position: Position, value: V) {
         val existingNode = nodes[position]
@@ -25,7 +28,7 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
     operator fun get(position: Position): Node? =
         nodes[position]
 
-    fun connectionsOf(pos: Position): List<Position> =
+    fun connectionsFrom(pos: Position): List<Position> =
         nodes[pos]?.connections ?: emptyList()
 
     fun connectionWeight(from: Position, to: Position): Long? =
@@ -69,7 +72,7 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
     }
 
     fun toPlainMatrix(): Matrix<V> = let { graph ->
-        Matrix.empty<V>(nodes.dims).also { copy ->
+        Matrix.empty<V>(dims).also { copy ->
             for ((pos, node) in graph.nodes.entries) {
                 copy[pos] = node.value
             }

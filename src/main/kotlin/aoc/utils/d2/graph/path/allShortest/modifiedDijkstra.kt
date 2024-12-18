@@ -1,42 +1,24 @@
 package aoc.utils.d2.graph.path.allShortest
 
 import aoc.utils.d2.Direction
-import aoc.utils.d2.Matrix
 import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.MatrixGraph.Companion.INFINITE_COST
 import aoc.utils.d2.Position
-import aoc.utils.d2.graph.path.GraphPathStep
+import aoc.utils.d2.graph.path.GraphPathOrientedMinCostsMatrix
+import aoc.utils.d2.graph.path.GraphPathOrientedStep
 import java.util.*
 
-fun <V : Any> MatrixGraph<V>.allShortestPathsModifiedDijkstra(
+fun <V : Any> MatrixGraph<V>.allShortestOrientedPathsModifiedDijkstra(
     start: Position,
     startDir: Direction,
     end: Position,
-    edgeCost: (GraphPathStep, Direction) -> Long = { cursor, inDir -> connectionWeight(cursor.pos, cursor.pos + inDir)!! },
-): Sequence<GraphPathStep> = sequence {
-    class GraphMinCostsMatrix {
-
-        private val minCosts = Matrix.empty<MutableMap<Direction, GraphPathStep>>(nodes.dims)
-
-        fun update(step: GraphPathStep) {
-            minCosts[step.pos] = (minCosts[step.pos] ?: mutableMapOf()).also {
-                it.merge(step.inDir, step, { prev, next -> if (next.pathCost < prev.pathCost) next else prev })
-            }
-        }
-
-        fun getPath(step: GraphPathStep): GraphPathStep? =
-            minCosts[step.pos]?.get(step.inDir)
-
-        operator fun get(step: GraphPathStep): Long =
-            getPath(step)?.pathCost ?: INFINITE_COST
-
-    }
-
-    val minCosts = GraphMinCostsMatrix()
+    edgeCost: (GraphPathOrientedStep, Direction) -> Long,
+): Sequence<GraphPathOrientedStep> = sequence {
+    val minCosts = GraphPathOrientedMinCostsMatrix(this@allShortestOrientedPathsModifiedDijkstra)
     var shortestPathCost = INFINITE_COST
 
-    val queue = PriorityQueue<GraphPathStep>(compareBy { it.pathCost }).apply {
-        add(GraphPathStep(start, startDir, 0))
+    val queue = PriorityQueue<GraphPathOrientedStep>(compareBy { it.pathCost }).apply {
+        add(GraphPathOrientedStep(start, startDir, 0))
     }
 
     while (queue.isNotEmpty()) {
@@ -60,16 +42,15 @@ fun <V : Any> MatrixGraph<V>.allShortestPathsModifiedDijkstra(
             continue
         }
 
-        val neighbours = connectionsOf(currentStep.pos)
+        val neighbours = connectionsFrom(currentStep.pos)
             .filter { it != currentStep.prev?.pos } // no 180 flips
             .map { currentStep.pos.relativeDirectionTo(it)!! to it }
 
         for ((neighbourDir, neighbourPos) in neighbours) {
-            val nextStep = GraphPathStep(
+            val nextStep = currentStep.next(
                 neighbourPos,
                 neighbourDir,
                 stepCost = edgeCost(currentStep, neighbourDir),
-                prev = currentStep
             )
             queue.add(nextStep)
         }

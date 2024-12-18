@@ -3,19 +3,18 @@ package aoc.utils.d2.graph.path.anyShortest
 import aoc.utils.d2.Direction
 import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
-import aoc.utils.d2.graph.path.GraphPathStep
+import aoc.utils.d2.graph.path.GraphPathOrientedStep
 import java.util.*
 
-fun <V : Any> MatrixGraph<V>.anyShortestPathDijkstra(
+fun <V : Any> MatrixGraph<V>.anyShortestOrientedPathDijkstra(
     start: Position,
     startDir: Direction,
     end: Position,
-    edgeCost: (GraphPathStep, Direction) -> Long = { cursor, inDir -> connectionWeight(cursor.pos, cursor.pos + inDir)!! },
-): GraphPathStep? {
-    val queue = PriorityQueue<GraphPathStep>(compareBy { it.pathCost }).apply {
-        add(GraphPathStep(start, startDir, 0))
+    edgeCost: (GraphPathOrientedStep, Direction) -> Long,
+): GraphPathOrientedStep? {
+    val queue = PriorityQueue<GraphPathOrientedStep>(compareBy { it.pathCost }).apply {
+        add(GraphPathOrientedStep(start, startDir, 0))
     }
-
     val visited = mutableSetOf<Position>()
 
     while (queue.isNotEmpty()) {
@@ -26,17 +25,16 @@ fun <V : Any> MatrixGraph<V>.anyShortestPathDijkstra(
             return currentStep
         }
 
-        val neighbours = connectionsOf(currentStep.pos)
+        val neighbours = connectionsFrom(currentStep.pos)
             .filter { it != currentStep.prev?.pos } // no 180 flips
             .filter { it !in visited }
             .map { currentStep.pos.relativeDirectionTo(it)!! to it }
 
         for ((neighbourDir, neighbourPos) in neighbours) {
-            val nextStep = GraphPathStep(
+            val nextStep = currentStep.next(
                 neighbourPos,
                 neighbourDir,
                 stepCost = edgeCost(currentStep, neighbourDir),
-                prev = currentStep
             )
             queue.add(nextStep)
         }
