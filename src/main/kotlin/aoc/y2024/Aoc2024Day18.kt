@@ -80,7 +80,7 @@ data class Day18(
     }
 
     fun MatrixGraph<Char>.shortestPathToEnd(): Set<Position>? =
-        anyShortestPathAStar(dims.topLeft, dims.bottomRight)?.drop(1)?.toSet()
+        anyShortestPathBfs(dims.topLeft, dims.bottomRight)?.drop(1)?.toSet()
 
     fun initMemoryWithCorruptedBytes(rounds: Int): MatrixGraph<Char> {
         val memory = MatrixGraph.empty<Char>(dims, Direction.entriesCardinal)
