@@ -5,7 +5,7 @@ import aoc.utils.d2.Dimensions
 import aoc.utils.d2.Direction
 import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
-import aoc.utils.d2.graph.anyShortestPathBfs
+import aoc.utils.d2.graph.path.anyShortest.anyShortestPathBfs
 import aoc.utils.d2.graph.createDeadEndEliminator
 import aoc.utils.strings.toLongs
 

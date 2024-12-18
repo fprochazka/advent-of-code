@@ -3,10 +3,11 @@ package aoc.y2024
 import aoc.utils.Resource
 import aoc.utils.d2.Direction
 import aoc.utils.d2.MatrixGraph
-import aoc.utils.d2.MatrixGraph.PathStep
 import aoc.utils.d2.Position
-import aoc.utils.d2.graph.allShortestPaths
 import aoc.utils.d2.graph.createDeadEndEliminator
+import aoc.utils.d2.graph.path.PathStep
+import aoc.utils.d2.graph.path.allShortest.allShortestPaths
+import aoc.utils.d2.graph.path.anyShortest.anyShortestPathWeighted
 
 fun Resource.day16(): Day16 = Day16(
     Day16.toGraph(matrix2d())

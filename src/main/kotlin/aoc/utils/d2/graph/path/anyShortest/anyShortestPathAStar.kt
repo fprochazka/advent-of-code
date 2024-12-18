@@ -1,4 +1,4 @@
-package aoc.utils.d2.graph
+package aoc.utils.d2.graph.path.anyShortest
 
 import aoc.utils.containers.PriorityQueueSet
 import aoc.utils.d2.Matrix
