@@ -12,6 +12,15 @@ data class Distance(val xDiff: Long, val yDiff: Long) {
     fun asDirection(): Direction? =
         toDirectionCache[this]
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Distance) return false
+        return (xDiff == other.xDiff) && (yDiff == other.yDiff)
+    }
+
+    override fun hashCode(): Int =
+        31 * xDiff.hashCode() + yDiff.hashCode()
+
     override fun toString(): String = "(x=$xDiff, y=$yDiff)"
 
     companion object {
