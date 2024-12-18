@@ -200,6 +200,8 @@ class DirectionBitSet : Iterable<Direction> {
             .filter { it in this }
             .iterator()
 
+    override fun toString(): String = toSet().toString()
+
     companion object {
 
         fun maskOf(dir: Direction): Int =
@@ -289,6 +291,12 @@ data class Dimensions(val w: Long, val h: Long) {
 
     val area = w * h
 
+    val topLeft: Position
+        get() = Position(0, 0)
+
+    val bottomRight: Position
+        get() = Position(maxX, maxY)
+
     fun matrixIndex(position: Position): Int =
         Math.toIntExact((position.y * w) + position.x)
 
@@ -364,6 +372,9 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
 
     val nodes: Matrix<Node> = Matrix.empty<Node>(dims)
 
+    val positions: Sequence<Position>
+        get() = nodes.dims.matrixPositions
+
     operator fun set(position: Position, value: V) {
         nodes[position] = Node(value, position)
     }
@@ -376,6 +387,21 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
 
     fun connectionWeight(from: Position, to: Position): Long? =
         nodes[from]?.weightedConnections?.get(to)
+
+    fun updateAllConnections(edges: (MatrixGraph<V>.Node, MatrixGraph<V>.Node) -> Pair<Boolean, Long>) {
+        for (position in positions) {
+            val node = this[position]!!
+            node.weightedConnections.clear()
+
+            for (neighbourPosition in node.neighbourPositionsValid()) {
+                val candidate = this[neighbourPosition.position]!!
+                val (isConnected, weight) = edges(node, candidate)
+                if (isConnected) {
+                    node.weightedConnections[candidate.position] = weight
+                }
+            }
+        }
+    }
 
     fun toPlainMatrix(): Matrix<V> = let { graph ->
         Matrix.empty<V>(nodes.dims).also { copy ->
@@ -390,7 +416,7 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
             .map { entry -> entry.key.value to entry.value }
             .toMap()
 
-    fun anyShortestPath(
+    fun anyShortestPathWeighted(
         start: Position,
         startDir: Direction,
         end: Position,
@@ -423,6 +449,42 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
                     prev = currentStep
                 )
                 queue.add(nextStep)
+            }
+        }
+
+        return null
+    }
+
+    fun anyShortestPathBfs(
+        start: Position,
+        end: Position,
+    ): List<Position>? {
+        val queue = ArrayDeque<Position>().apply { add(start) }
+        val visited = mutableSetOf<Position>().apply { add(start) }
+
+        val parents = mutableMapOf<Position, Position>()
+
+        while (queue.isNotEmpty()) {
+            val current = queue.poll()!!
+            visited.add(current)
+
+            if (current == end) {
+                val path = mutableListOf<Position>()
+                var node: Position? = end
+                while (node != null) {
+                    path.add(node)
+                    node = parents[node]
+                }
+                return path.reversed()
+            }
+
+            val neighbours = connectionsOf(current)
+                .filter { it !in visited }
+
+            for (neighbour in neighbours) {
+                visited.add(neighbour)
+                parents[neighbour] = current
+                queue.add(neighbour)
             }
         }
 
@@ -508,6 +570,9 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
         val connections
             get() = weightedConnections.keys.toList()
 
+        val connectedNodes
+            get() = weightedConnections.keys.mapNotNull { nodes[it] }
+
         fun vacantSidesIncludingOutOfMatrix(): Iterable<OrientedPosition> { // O(4 + 4)
             val result = mutableSetOf<OrientedPosition>()
 
@@ -539,7 +604,7 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
         val stepCost: Long,
         val pathCost: Long,
         val prev: PathStep? = null
-    ) {
+    ) : Comparable<PathStep> {
 
         constructor(pos: Position, inDir: Direction, stepCost: Long) : this(pos, inDir, stepCost, stepCost, prev = null)
 
@@ -554,6 +619,9 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
         fun toList(): List<PathStep> =
             generateSequence(this) { it.prev }.toList().reversed()
 
+        override fun compareTo(other: PathStep): Int =
+            this.pathCost.compareTo(other.pathCost)
+
         override fun toString(): String = "($inDir -> $pos, cost=$pathCost, prev=${prev?.pos})"
 
     }
@@ -562,7 +630,27 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
 
         const val INFINITE_COST = (Long.MAX_VALUE / 2)
 
+        fun <V : Any> empty(
+            dims: Dimensions,
+            neighbourSides: Set<Direction>,
+        ): MatrixGraph<V> {
+            return MatrixGraph<V>(dims, neighbourSides)
+        }
+
         fun <V : Any> of(
+            matrix: Resource.CharMatrix2d,
+            neighbourSides: Set<Direction>,
+            nodeValues: (Char) -> V,
+            edges: (MatrixGraph<V>.Node, MatrixGraph<V>.Node) -> Boolean,
+        ): MatrixGraph<V> =
+            withWeights(matrix, neighbourSides, nodeValues) { node, neighbour ->
+                when (edges(node, neighbour)) {
+                    true -> true to 1L
+                    false -> false to INFINITE_COST
+                }
+            }
+
+        fun <V : Any> withWeights(
             matrix: Resource.CharMatrix2d,
             neighbourSides: Set<Direction>,
             nodeValues: (Char) -> V,
@@ -574,17 +662,7 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
                 result[position] = nodeValues(value)
             }
 
-            for (position in result.nodes.positions) {
-                val node = result[position]!!
-
-                for (neighbourPosition in node.neighbourPositionsValid()) {
-                    val candidate = result[neighbourPosition.position]!!
-                    val (isConnected, weight) = edges(node, candidate)
-                    if (isConnected) {
-                        node.weightedConnections[candidate.position] = weight
-                    }
-                }
-            }
+            result.updateAllConnections(edges)
 
             return result
         }

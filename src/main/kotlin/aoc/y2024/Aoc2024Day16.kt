@@ -66,7 +66,7 @@ data class Day16(val maze: MatrixGraph<Char>) {
 
     fun MatrixGraph<Char>.shortestPathCost(): Long =
         mazeStartAndEnd
-            .let { (start, end) -> anyShortestPath(start, Direction.RIGHT, end, ::edgeCost) }
+            .let { (start, end) -> anyShortestPathWeighted(start, Direction.RIGHT, end, ::edgeCost) }
             ?.pathCost
             ?: error("No path found")
 
@@ -114,11 +114,11 @@ data class Day16(val maze: MatrixGraph<Char>) {
             MatrixGraph.of(matrix, Direction.entriesCardinal, { it }) { a, b ->
                 when (a.value) {
                     START, EMPTY, END -> when (b.value) {
-                        START, EMPTY, END -> true to 1
-                        else -> false to MatrixGraph.INFINITE_COST
+                        START, EMPTY, END -> true
+                        else -> false
                     }
 
-                    else -> false to MatrixGraph.INFINITE_COST
+                    else -> false
                 }
             }
 
