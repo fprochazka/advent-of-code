@@ -8,7 +8,7 @@ import aoc.utils.d2.Position
 import aoc.utils.d2.graph.path.PathStep
 import java.util.*
 
-fun <V : Any> MatrixGraph<V>.allShortestPaths(
+fun <V : Any> MatrixGraph<V>.allShortestPathsModifiedDijkstra(
     start: Position,
     startDir: Direction,
     end: Position,
@@ -75,4 +75,3 @@ fun <V : Any> MatrixGraph<V>.allShortestPaths(
         }
     }
 }
-

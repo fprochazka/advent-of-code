@@ -6,7 +6,7 @@ import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
 import aoc.utils.d2.graph.createDeadEndEliminator
 import aoc.utils.d2.graph.path.PathStep
-import aoc.utils.d2.graph.path.allShortest.allShortestPaths
+import aoc.utils.d2.graph.path.allShortest.allShortestPathsModifiedDijkstra
 import aoc.utils.d2.graph.path.anyShortest.anyShortestPathDijkstra
 
 fun Resource.day16(): Day16 = Day16(
@@ -34,7 +34,7 @@ data class Day16(val maze: MatrixGraph<Char>) {
 
     fun MatrixGraph<Char>.countOfAllPositionsOnAllShortestPaths(): Long {
         val positionsOnShortestPaths = mazeStartAndEnd
-            .let { (start, end) -> allShortestPaths(start, Direction.RIGHT, end, ::edgeCost) }
+            .let { (start, end) -> allShortestPathsModifiedDijkstra(start, Direction.RIGHT, end, ::edgeCost) }
             .flatMap { it.toList().map { it.pos } }
             .toSet()
 
