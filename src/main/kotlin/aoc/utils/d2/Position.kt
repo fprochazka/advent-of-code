@@ -68,17 +68,8 @@ data class Position(val x: Long, val y: Long) {
         return (x == other.x) && (y == other.y)
     }
 
-    private var hashCode: Int = 0; // volatile not required for 32-bit sized primitives
-
-    override fun hashCode(): Int {
-        // "Racy Single-check idiom" (Item 71, Effective Java 2nd ed.)
-        var h = hashCode
-        if (h == 0) {
-            h = 31 * x.hashCode() + y.hashCode()
-            hashCode = h
-        }
-        return h
-    }
+    override fun hashCode(): Int =
+        31 * x.hashCode() + y.hashCode()
 
     override fun toString(): String = "(x=$x, y=$y)"
 
