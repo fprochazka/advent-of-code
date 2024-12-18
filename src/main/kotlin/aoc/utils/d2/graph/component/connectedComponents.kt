@@ -1,12 +1,10 @@
-package aoc.utils.d2.graph
+package aoc.utils.d2.graph.component
 
 import aoc.utils.containers.popAny
 import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
 
-fun <V : Any> MatrixGraph<V>.groupToConnectedComponents(): List<GraphComponent<V>> {
-    val result = mutableListOf<GraphComponent<V>>()
-
+fun <V : Any> MatrixGraph<V>.groupToConnectedComponents(): Sequence<GraphComponent<V>> = sequence {
     val remainingPositions = nodes.positions.toMutableSet()
     while (remainingPositions.isNotEmpty()) {
         val connectedComponent = mutableSetOf<Position>()
@@ -28,21 +26,7 @@ fun <V : Any> MatrixGraph<V>.groupToConnectedComponents(): List<GraphComponent<V
                 .forEach { neighboursQueue.addLast(it) }
         }
 
-        result.add(GraphComponent(this, connectedComponent))
+        yield(GraphComponent(this@groupToConnectedComponents, connectedComponent))
     }
-
-    return result
 }
 
-class GraphComponent<V : Any>(
-    private val graph: MatrixGraph<V>,
-    val positions: Set<Position>
-) {
-
-    val nodes: List<MatrixGraph<V>.Node>
-        get() = positions.map { graph.nodes[it]!! }
-
-    val size: Int
-        get() = positions.size
-
-}

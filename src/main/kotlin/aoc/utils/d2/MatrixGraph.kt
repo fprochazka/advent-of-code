@@ -1,8 +1,6 @@
 package aoc.utils.d2
 
 import aoc.utils.Resource
-import aoc.utils.d2.graph.path.PathStep
-import java.util.*
 
 class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
 

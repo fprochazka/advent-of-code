@@ -3,17 +3,17 @@ package aoc.utils.d2.graph.path.anyShortest
 import aoc.utils.d2.Direction
 import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
-import aoc.utils.d2.graph.path.PathStep
+import aoc.utils.d2.graph.path.GraphPathStep
 import java.util.*
 
 fun <V : Any> MatrixGraph<V>.anyShortestPathDijkstra(
     start: Position,
     startDir: Direction,
     end: Position,
-    edgeCost: (PathStep, Direction) -> Long = { cursor, inDir -> connectionWeight(cursor.pos, cursor.pos + inDir)!! },
-): PathStep? {
-    val queue = PriorityQueue<PathStep>(compareBy { it.pathCost }).apply {
-        add(PathStep(start, startDir, 0))
+    edgeCost: (GraphPathStep, Direction) -> Long = { cursor, inDir -> connectionWeight(cursor.pos, cursor.pos + inDir)!! },
+): GraphPathStep? {
+    val queue = PriorityQueue<GraphPathStep>(compareBy { it.pathCost }).apply {
+        add(GraphPathStep(start, startDir, 0))
     }
 
     val visited = mutableSetOf<Position>()
@@ -32,7 +32,7 @@ fun <V : Any> MatrixGraph<V>.anyShortestPathDijkstra(
             .map { currentStep.pos.relativeDirectionTo(it)!! to it }
 
         for ((neighbourDir, neighbourPos) in neighbours) {
-            val nextStep = PathStep(
+            val nextStep = GraphPathStep(
                 neighbourPos,
                 neighbourDir,
                 stepCost = edgeCost(currentStep, neighbourDir),

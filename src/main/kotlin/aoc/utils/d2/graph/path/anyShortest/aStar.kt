@@ -20,12 +20,17 @@ fun <V : Any> MatrixGraph<V>.anyShortestPathAStar(
         return path.reversed()
     }
 
-    // Parent map to reconstruct path
-    val cameFrom = mutableMapOf<Position, Position>()
+    val cameFrom = mutableMapOf<Position, Position>() // Parent map to reconstruct path
 
-    val distanceFromStart = Matrix.empty<Long>(nodes.dims).also { it[start] = 0L }
-    val estRemainingCost = Matrix.empty<Long>(nodes.dims).also { it[start] = start.manhattanDistanceTo(end) }
-    val queue = PriorityQueueSet<Position>().also { it[start] = estRemainingCost.getValue(start) }
+    val distanceFromStart = Matrix.empty<Long>(nodes.dims).also {
+        it[start] = 0L
+    }
+    val estRemainingCost = Matrix.empty<Long>(nodes.dims).also {
+        it[start] = start.manhattanDistanceTo(end)
+    }
+    val queue = PriorityQueueSet<Position>().also {
+        it[start] = estRemainingCost.getValue(start)
+    }
 
     while (queue.isNotEmpty()) {
         val currentPos = queue.removeFirst()
