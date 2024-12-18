@@ -20,3 +20,13 @@ fun <V> MutableCollection<V>.addAllNotNull(vararg values: V?) {
         if (value != null) add(value)
     }
 }
+
+fun <V : Any> List<V>.isEqualTo(expected: List<Int>): Boolean {
+    if (this.size != expected.size) return false
+
+    for ((index, expectedValue) in expected.withIndex()) {
+        if (this[index] != expectedValue) return false
+    }
+
+    return true
+}

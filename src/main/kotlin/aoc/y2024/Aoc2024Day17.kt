@@ -1,6 +1,7 @@
 package aoc.y2024
 
 import aoc.utils.Resource
+import aoc.utils.containers.isEqualTo
 import aoc.utils.math.deMod
 import aoc.utils.math.deModCandidates
 import aoc.utils.math.pow2
@@ -59,7 +60,8 @@ data class Day17(val debugger: Debugger) {
 
         val program = debugger.program
 
-        fun run(a: Long): List<Int> = debugger.copy(regA = a).run()
+        fun simulate(a: Long): List<Int> =
+            debugger.copy(regA = a).run()
 
         fun solve(a: Long, len: Int): Long? {
             if (len > program.size) {
@@ -68,11 +70,14 @@ data class Day17(val debugger: Debugger) {
 
             val expectedForLen = program.takeLast(len)
 
+            // reverse of A <- A >> 3
+            val aIteration = a shl 3
+
+            // reverse mod 8
             for (i in 0L until 8) {
-                val a2 = (a shl 3) or i
-                val runOutput = run(a2)
-                if (listsAreEqual(runOutput, expectedForLen)) {
-                    val result = solve(a2, len + 1)
+                val aCandidate = aIteration or i
+                if (simulate(aCandidate).isEqualTo(expectedForLen)) {
+                    val result = solve(aCandidate, len + 1)
                     if (result != null) {
                         return result
                     }
@@ -503,16 +508,6 @@ data class Day17(val debugger: Debugger) {
         fun deMod8Candidates(result: Int): Sequence<Long> = deMod8Candidates(result.toLong())
 
         fun mod8(a: Long): Long = a.mod(8).toLong()
-
-        fun listsAreEqual(actual: List<Int>, expected: List<Int>): Boolean {
-            if (actual.size != expected.size) return false
-
-            for ((index, expectedValue) in expected.withIndex()) {
-                if (actual[index] != expectedValue) return false
-            }
-
-            return true
-        }
 
         fun parseDebugger(lines: List<String>): Debugger {
             val a: Long = lines[0].split(":", limit = 2)[1].toLongs(1).single()
