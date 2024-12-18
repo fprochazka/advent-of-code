@@ -21,14 +21,72 @@ data class Day17(val debugger: Debugger) {
     // (Always join the values produced by out instructions with commas.)
     val result1 by lazy { debugger.copy().run().joinToString(",") }
 
-    val result2 by lazy { fixCorruptedRegisterA() }
+    val result2 by lazy { findRegisterABasedOnProgramKnowledge() }
 
-    fun fixCorruptedRegisterA(): Long {
+    fun findRegisterABasedOnProgramKnowledge(): Long {
         // 185639041000 ... (ops=128) [4, 3, 3, 0, 1, 3, 4, 1, 1, 2, 2, 3, 3, 1, 3, 2] (16)
         //                  expected: [2, 4, 1, 5, 7, 5, 1, 6, 0, 3, 4, 3, 5, 5, 3, 0] (16)
 
         // Input:                      Bst(4) Bxl(5) Cdv(5) Bxl(6) Adv(3) Bxc(3) Out(5) Jnz(0)
         // Example:                                                Adv(3)        Out(4) Jnz(0)
+
+        // A / 2^B ... A >> B
+
+        // B <- (A mod 8) xor 5      ... B in (0 .. 7)
+        // C <- A >> B               ... C in (0 .. (A shr (0 .. 7)) )
+        // B <- B xor 6
+        // A <- A >> 3
+        // B <- B xor C
+        // OUT <- B mod 8            ... OUT in (0 .. 7)
+        // IF A != 0 THEN JMP 0
+
+        //    0 xor  5 =   5      ....     b00000000 xor b00000101 = b00000101
+        //    1 xor  5 =   4      ....     b00000001 xor b00000101 = b00000100
+        //    2 xor  5 =   7      ....     b00000010 xor b00000101 = b00000111
+        //    3 xor  5 =   6      ....     b00000011 xor b00000101 = b00000110
+        //    4 xor  5 =   1      ....     b00000100 xor b00000101 = b00000001
+        //    5 xor  5 =   0      ....     b00000101 xor b00000101 = b00000000
+        //    6 xor  5 =   3      ....     b00000110 xor b00000101 = b00000011
+        //    7 xor  5 =   2      ....     b00000111 xor b00000101 = b00000010
+
+        //    0 xor  6 =   6      ....     b00000000 xor b00000110 = b00000110
+        //    1 xor  6 =   7      ....     b00000001 xor b00000110 = b00000111
+        //    2 xor  6 =   4      ....     b00000010 xor b00000110 = b00000100
+        //    3 xor  6 =   5      ....     b00000011 xor b00000110 = b00000101
+        //    4 xor  6 =   2      ....     b00000100 xor b00000110 = b00000010
+        //    5 xor  6 =   3      ....     b00000101 xor b00000110 = b00000011
+        //    6 xor  6 =   0      ....     b00000110 xor b00000110 = b00000000
+        //    7 xor  6 =   1      ....     b00000111 xor b00000110 = b00000001
+
+        val program = debugger.program
+
+        fun run(a: Long): List<Int> = debugger.copy(regA = a).run()
+
+        fun solve(a: Long, len: Int): Long? {
+            if (len > program.size) {
+                return a
+            }
+
+            val expectedForLen = program.takeLast(len)
+
+            for (i in 0L until 8) {
+                val a2 = (a shl 3) or i
+                val runOutput = run(a2)
+                if (listsAreEqual(runOutput, expectedForLen)) {
+                    val result = solve(a2, len + 1)
+                    if (result != null) {
+                        return result
+                    }
+                }
+            }
+
+            return null
+        }
+
+        return solve(0, 1) ?: error("Failed to find register A")
+    }
+
+    fun fixCorruptedRegisterA(): Long {
 
         val rawInstructions = debugger.analyzeInstructions()
         // to what index can we jump from known jumps?
