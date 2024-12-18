@@ -184,6 +184,9 @@ class DirectionBitSet : Iterable<Direction> {
 
     private var set = 0
 
+    val size: Int
+        get() = set.countOneBits()
+
     operator fun contains(dir: Direction): Boolean =
         set and maskOf(dir) != 0
 
@@ -586,12 +589,110 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
 
     }
 
+    fun createDeadEndEliminator(deadEndMarker: V, isPrunable: (Node) -> Boolean): DeadEndEliminator =
+        DeadEndEliminator(deadEndMarker, isPrunable)
+
+    inner class DeadEndEliminator(
+        val deadEndMarker: V,
+        val isPrunable: (Node) -> Boolean,
+    ) {
+
+        private val nodesByConnections = mutableMapOf<Int, MutableSet<Position>>().apply {
+            for (i in 1..neighbourSides.size) {
+                put(i, mutableSetOf())
+            }
+
+            for ((pos, node) in nodes.entries) {
+                if (node.weightedConnections.isNotEmpty()) {
+                    get(node.weightedConnections.size)!!.add(pos)
+                }
+            }
+        }
+
+        private fun updateCache(node: Node, previousSize: Int) {
+            val newSize = node.weightedConnections.size
+            if (previousSize != newSize) {
+                nodesByConnections[previousSize]!!.remove(node.position)
+                if (newSize > 0) {
+                    nodesByConnections[newSize]!!.add(node.position)
+                }
+            }
+        }
+
+        fun runEliminationRound(): DeadEndEliminator {
+            var eliminated = 0
+
+            val nodesWithOneConnection = nodesByConnections[1]!!
+            while (nodesWithOneConnection.isNotEmpty()) {
+                for (deadEndPos in nodesWithOneConnection.toMutableList()) {
+                    val deadEndNode = nodes[deadEndPos]!!
+                    val previousNode = nodes[deadEndNode.connections.first()]!!
+
+                    if (!isPrunable(deadEndNode)) {
+                        nodesWithOneConnection.remove(deadEndPos)
+                        continue
+                    }
+
+                    updateNode(deadEndNode) {
+                        it.value = deadEndMarker
+                        it.removeConnectionTo(previousNode)
+                    }
+
+                    updateNode(previousNode) {
+                        it.removeConnectionTo(deadEndNode)
+                    }
+
+                    eliminated++
+                }
+            }
+
+            // toPlainMatrix().let { println(it); println() }
+            // println("Eliminated dead ends: $eliminated")
+
+            return this
+        }
+
+        fun updateNodeAndMutuals(pos: Position, updater: (Node) -> Unit) {
+            updateNodeAndMutuals(nodes[pos]!!, updater)
+        }
+
+        fun updateNodeAndMutuals(node: Node, updater: (Node) -> Unit) {
+            val previousConnectionsWithSizes = node.neighbourPositionsValid()
+                .mapNotNull { nodes[it.position] }
+                .map { it to it.weightedConnections.size }
+
+            updateNode(node, updater)
+
+            for ((node, previousSize) in previousConnectionsWithSizes) {
+                updateCache(node, previousSize)
+            }
+        }
+
+        fun updateNode(pos: Position, updater: (Node) -> Unit) {
+            updateNode(nodes[pos]!!, updater)
+        }
+
+        fun updateNode(node: Node, updater: (Node) -> Unit) {
+            // remove from cache
+            val previousSize = node.weightedConnections.size
+
+            // update
+            updater(node)
+
+            // update cache
+            updateCache(node, previousSize)
+        }
+
+    }
+
     inner class Node(
         var value: V,
         val position: Position,
     ) {
 
-        // position to weight
+        /**
+         * DO NOT MODIFY THIS DIRECTLY
+         */
         val weightedConnections = mutableMapOf<Position, Long>()
 
         val connections
@@ -599,6 +700,18 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
 
         val connectedNodes
             get() = weightedConnections.keys.mapNotNull { nodes[it] }
+
+        fun disconnectAll() {
+            disconnectAll(this)
+        }
+
+        fun removeConnectionTo(node: Node) {
+            removeConnectionTo(node.position)
+        }
+
+        fun removeConnectionTo(pos: Position) {
+            weightedConnections.remove(pos)
+        }
 
         fun vacantSidesIncludingOutOfMatrix(): Iterable<OrientedPosition> { // O(4 + 4)
             val result = mutableSetOf<OrientedPosition>()

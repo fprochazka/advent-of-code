@@ -7,7 +7,7 @@ import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
 import aoc.utils.strings.toLongs
 
-fun Resource.day18(dims: Dimensions, simulateInitiallyCorrupted: Int): Day18 = Day18(
+fun Resource.day18(dims: Dimensions = Dimensions(71, 71), simulateInitiallyCorrupted: Int = 1024): Day18 = Day18(
     Day18.parsePositions(nonBlankLines()),
     dims,
     simulateInitiallyCorrupted,
@@ -44,9 +44,18 @@ data class Day18(
         memory: MatrixGraph<Char>,
         moreCorruptedBytes: List<Position>
     ): Position? {
+        val start = dims.topLeft
+        val end = dims.bottomRight
+
+        val deadEndEliminator = memory
+            .createDeadEndEliminator(DEAD_END) { it.position != start && it.position != end }
+            .runEliminationRound()
+
         fun corrupt(adr: Position) {
-            memory.disconnectAll(adr)
-            memory[adr] = CORRUPTED_BYTE
+            deadEndEliminator.updateNodeAndMutuals(adr) {
+                it.disconnectAll()
+                it.value = CORRUPTED_BYTE
+            }
         }
 
         var goodPath = memory.shortestPathToEnd() ?: error("No good path found")
@@ -54,12 +63,16 @@ data class Day18(
             corrupt(adr)
 
             if (adr in goodPath) {
+                deadEndEliminator.runEliminationRound()
+
                 val otherPath = memory.shortestPathToEnd()
                 if (otherPath == null) {
                     return adr
                 } else {
                     goodPath = otherPath
                 }
+
+                // memory.also { println(it.toPlainMatrix()); println() }
             }
         }
 
@@ -95,6 +108,7 @@ data class Day18(
 
         const val EMPTY = '.'
         const val CORRUPTED_BYTE = '#'
+        const val DEAD_END = 'x'
 
         // list of distances
         fun parsePositions(lines: List<String>): List<Position> =

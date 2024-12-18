@@ -13,55 +13,15 @@ fun Resource.day16(): Day16 = Day16(
 data class Day16(val maze: MatrixGraph<Char>) {
 
     init {
-        eliminateDeadEnds()
+        maze
+            .createDeadEndEliminator(DEAD_END) { it.value != START && it.value != END }
+            .runEliminationRound()
     }
 
     val mazeStartAndEnd by lazy { maze.startAndEnd() }
 
     val result1 by lazy { maze.shortestPathCost() }
     val result2 by lazy { maze.countOfAllPositionsOnAllShortestPaths() }
-
-    fun eliminateDeadEnds(): MatrixGraph<Char> {
-        val nodesByConnections = mutableMapOf<Int, MutableSet<Position>>().apply {
-            put(1, mutableSetOf())
-            put(2, mutableSetOf())
-            put(3, mutableSetOf())
-            put(4, mutableSetOf())
-        }
-        for ((pos, node) in maze.nodes.entries) {
-            if (node.weightedConnections.isNotEmpty()) {
-                nodesByConnections[node.weightedConnections.size]!!.add(pos)
-            }
-        }
-
-        while (nodesByConnections[1]!!.isNotEmpty()) {
-            val nodesWithOneConnection = nodesByConnections[1]!!
-
-            for (deadEndPos in nodesWithOneConnection.toMutableList()) {
-                val deadEndNode = maze.nodes[deadEndPos]!!
-                val previousNode = maze.nodes[deadEndNode.connections.first()]!!
-
-                if (deadEndNode.value == START || deadEndNode.value == END) {
-                    nodesWithOneConnection.remove(deadEndPos)
-                    continue
-                }
-
-                deadEndNode.value = DEAD_END
-
-                // remove from cache
-                nodesByConnections[previousNode.weightedConnections.size]!!.remove(previousNode.position)
-                nodesWithOneConnection.remove(deadEndPos)
-
-                // update connections
-                maze.disconnectMutually(deadEndNode, previousNode)
-
-                // put prev node back in cache
-                nodesByConnections[previousNode.weightedConnections.size]!!.add(previousNode.position)
-            }
-        }
-
-        return maze
-    }
 
     fun MatrixGraph<Char>.shortestPathCost(): Long =
         mazeStartAndEnd
