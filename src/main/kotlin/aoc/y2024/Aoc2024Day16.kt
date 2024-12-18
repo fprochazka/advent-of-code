@@ -5,6 +5,8 @@ import aoc.utils.d2.Direction
 import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.MatrixGraph.PathStep
 import aoc.utils.d2.Position
+import aoc.utils.d2.graph.allShortestPaths
+import aoc.utils.d2.graph.createDeadEndEliminator
 
 fun Resource.day16(): Day16 = Day16(
     Day16.toGraph(matrix2d())

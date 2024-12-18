@@ -5,6 +5,7 @@ import aoc.utils.Resource.CharMatrix2d
 import aoc.utils.d2.Direction
 import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
+import aoc.utils.d2.graph.groupToConnectedComponents
 
 fun Resource.day12(): Day12 = Day12.parse(matrix2d())
 

@@ -5,6 +5,8 @@ import aoc.utils.d2.Dimensions
 import aoc.utils.d2.Direction
 import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
+import aoc.utils.d2.graph.anyShortestPathBfs
+import aoc.utils.d2.graph.createDeadEndEliminator
 import aoc.utils.strings.toLongs
 
 fun Resource.day18(dims: Dimensions = Dimensions(71, 71), simulateInitiallyCorrupted: Int = 1024): Day18 = Day18(
