@@ -40,7 +40,7 @@ class PriorityQueueSet<V : Any>(comparator: Comparator<Entry<V>> = naturalOrder(
     override fun isEmpty(): Boolean =
         valuesSet.isEmpty()
 
-    override operator fun contains(value: V): Boolean = value in valuesSet
+    override operator fun contains(value: V): Boolean = valuesSet.contains(value)
 
     override fun containsAll(elements: Collection<V>): Boolean =
         valuesSet.containsAll(elements)
