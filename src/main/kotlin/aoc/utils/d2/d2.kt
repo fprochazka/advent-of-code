@@ -1,12 +1,14 @@
 package aoc.utils.d2
 
 import aoc.utils.Resource
+import aoc.utils.containers.popAny
 import aoc.utils.d2.Direction.entries
 import aoc.utils.math.remEuclid
 import java.awt.image.BufferedImage
 import java.nio.file.Path
 import java.util.*
 import javax.imageio.ImageIO
+import kotlin.collections.ArrayDeque
 import kotlin.io.path.extension
 
 open class Matrix<V : Any> protected constructor(
@@ -495,7 +497,7 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
         val parents = mutableMapOf<Position, Position>()
 
         while (queue.isNotEmpty()) {
-            val current = queue.poll()!!
+            val current = queue.removeFirst()
             visited.add(current)
 
             if (current == end) {
@@ -682,6 +684,46 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
             // update cache
             updateCache(node, previousSize)
         }
+
+    }
+
+    fun groupToConnectedComponents(): List<Component> {
+        val result = mutableListOf<Component>()
+
+        val remainingPositions = nodes.positions.toMutableSet()
+        while (remainingPositions.isNotEmpty()) {
+            val connectedComponent = mutableSetOf<Position>()
+
+            val neighboursQueue = ArrayDeque<Position>()
+            neighboursQueue.add(remainingPositions.popAny())
+
+            while (neighboursQueue.isNotEmpty()) {
+                val position = neighboursQueue.removeFirst()
+
+                remainingPositions.remove(position) // remove from candidates to find separate areas
+
+                if (!connectedComponent.add(position)) {
+                    continue // already visited
+                }
+
+                nodes[position]!!.connections
+                    .filter { it !in connectedComponent }
+                    .forEach { neighboursQueue.addLast(it) }
+            }
+
+            result.add(Component(connectedComponent))
+        }
+
+        return result
+    }
+
+    inner class Component(val positions: Set<Position>) {
+
+        val nodes: List<Node>
+            get() = positions.map { this@MatrixGraph.nodes[it]!! }
+
+        val size: Int
+            get() = positions.size
 
     }
 
