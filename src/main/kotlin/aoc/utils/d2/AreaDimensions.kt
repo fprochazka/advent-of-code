@@ -44,6 +44,12 @@ data class AreaDimensions(val w: Long, val h: Long) {
     fun positionFor(x: Long, y: Long): Position =
         Position(x, y)
 
+    fun positionFor(x: Int, y: Int): Position =
+        positionFor(x.toLong(), y.toLong())
+
+    fun positionFor(x: String, y: String): Position =
+        positionFor(x.toLong(), y.toLong())
+
     override fun toString(): String = "($w x $h)"
 
 }

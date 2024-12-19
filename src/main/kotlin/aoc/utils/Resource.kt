@@ -66,13 +66,15 @@ data class Resource(val name: String) {
                 content.lines().let { fromLines(it) }
 
             fun fromLines(lines: List<String>): CharMatrix2d =
-                CharMatrix2d(
-                    lines.asSequence()
-                        .flatMapIndexed { y, line ->
-                            line.mapIndexed { x, char -> aoc.utils.d2.Position(x, y) to char }
-                        },
-                    aoc.utils.d2.AreaDimensions(lines.size, lines.first().length)
-                )
+                aoc.utils.d2.AreaDimensions(lines.size, lines.first().length).let { dims ->
+                    CharMatrix2d(
+                        lines.asSequence()
+                            .flatMapIndexed { y, line ->
+                                line.mapIndexed { x, char -> dims.positionFor(x, y) to char }
+                            },
+                        dims
+                    )
+                }
 
         }
 
