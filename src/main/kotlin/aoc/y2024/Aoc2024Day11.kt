@@ -27,7 +27,7 @@ data class Day11(
         // If none of the other rules apply, the stone is replaced by a new stone; the old stone's number multiplied by 2024 is engraved on the new stone.
 
         // [(number, iterations) => parts]
-        val cache = mutableMapOf<Pair<Long, Int>, Long>()
+        val cache = HashMap<Pair<Long, Int>, Long>()
         fun countAfterExpansion(number: Long, remaining: Int): Long =
             cache.getOrPut(number to remaining) {
                 when {

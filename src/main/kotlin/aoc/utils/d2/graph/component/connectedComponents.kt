@@ -7,7 +7,7 @@ import aoc.utils.d2.Position
 fun <V : Any> MatrixGraph<V>.groupToConnectedComponents(): Sequence<GraphComponent<V>> = sequence {
     val remainingPositions = nodes.positions.toMutableSet()
     while (remainingPositions.isNotEmpty()) {
-        val connectedComponent = mutableSetOf<Position>()
+        val connectedComponent = HashSet<Position>()
 
         val neighboursQueue = ArrayDeque<Position>()
         neighboursQueue.add(remainingPositions.popAny())

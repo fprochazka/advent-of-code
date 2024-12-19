@@ -49,8 +49,8 @@ class MatrixGraph<V : Any>(dims: AreaDimensions, neighbourSides: Set<Direction>)
 
     fun disconnectAll(node: Node) {
         // remove any connections pointing at the node
-        for (neighbourPos in node.neighbourPositionsValid()) {
-            this[neighbourPos.position]?.weightedConnections?.remove(node.position)
+        for (neighbourPos in node.neighbourPositions) {
+            this[neighbourPos]?.weightedConnections?.remove(node.position)
         }
         // remove all connections going out from this node
         node.weightedConnections.clear()
@@ -61,8 +61,8 @@ class MatrixGraph<V : Any>(dims: AreaDimensions, neighbourSides: Set<Direction>)
             val node = this[position]!!
             node.weightedConnections.clear()
 
-            for (neighbourPosition in node.neighbourPositionsValid()) {
-                val candidate = this[neighbourPosition.position]!!
+            for (neighbourPos in node.neighbourPositions) {
+                val candidate = this[neighbourPos]!!
                 val (isConnected, weight) = edges(node, candidate)
                 if (isConnected) {
                     node.weightedConnections[candidate.position] = weight
@@ -92,13 +92,13 @@ class MatrixGraph<V : Any>(dims: AreaDimensions, neighbourSides: Set<Direction>)
         /**
          * DO NOT MODIFY THIS DIRECTLY
          */
-        val weightedConnections = mutableMapOf<Position, Long>()
+        val weightedConnections: MutableMap<Position, Long> = HashMap<Position, Long>(neighbourSides.size, 1.0f)
 
         val connections
             get() = weightedConnections.keys.toList()
 
         val connectedNodes
-            get() = weightedConnections.keys.mapNotNull { nodes[it] }
+            get() = weightedConnections.keys.mapNotNullTo(HashSet<Node>(neighbourSides.size, 1.0f)) { nodes[it] }
 
         fun disconnectAll() {
             disconnectAll(this)
@@ -113,9 +113,9 @@ class MatrixGraph<V : Any>(dims: AreaDimensions, neighbourSides: Set<Direction>)
         }
 
         fun vacantSidesIncludingOutOfMatrix(): Iterable<OrientedPosition> { // O(4 + 4)
-            val result = mutableSetOf<OrientedPosition>()
+            val result = HashSet<OrientedPosition>(neighbourSides.size, 1.0f)
 
-            for (neighbourPosition in neighbourPositionsIncludingOutOfMatrix()) {  // O(4)
+            for (neighbourPosition in neighbourPositionsIncludingOutOfMatrix) {  // O(4)
                 if (neighbourPosition.position !in weightedConnections) {
                     result.add(neighbourPosition)
                 }
@@ -124,14 +124,26 @@ class MatrixGraph<V : Any>(dims: AreaDimensions, neighbourSides: Set<Direction>)
             return result
         }
 
-        fun vacantSidesValid(): Iterable<OrientedPosition> = // O(4)
-            vacantSidesIncludingOutOfMatrix().filter { it.position in dims }
+        /**
+         * Neighbour means on matrix, doesn't mean the nodes are connected
+         */
+        val neighbourPositions: List<Position>
+            get() = buildList(neighbourSides.size) {
+                for (side in neighbourSides) {
+                    (position + side).takeIf { it in dims }?.let { add(it) }
+                }
+            }
 
-        fun neighbourPositionsIncludingOutOfMatrix(): Iterable<OrientedPosition> = // O(4)
-            neighbourSides.map { OrientedPosition(position + it, it) }
-
-        fun neighbourPositionsValid(): Iterable<OrientedPosition> = // O(4)
-            neighbourPositionsIncludingOutOfMatrix().filter { it.position in dims }
+        /**
+         * Neighbour means on matrix, doesn't mean the nodes are connected
+         */
+        val neighbourPositionsIncludingOutOfMatrix: List<OrientedPosition> by lazy(LazyThreadSafetyMode.NONE) {
+            buildList(neighbourSides.size) {
+                for (side in neighbourSides) {
+                    add(OrientedPosition(position + side, side))
+                }
+            }
+        }
 
         override fun toString(): String = "'$value' at $position"
 

@@ -10,8 +10,11 @@ class DirectionBitSet : Iterable<Direction> {
     operator fun contains(dir: Direction): Boolean =
         set and maskOf(dir) != 0
 
-    fun add(dir: Direction) {
-        set = set or maskOf(dir)
+    fun add(dir: Direction): Boolean {
+        val dirMask = maskOf(dir)
+        val contains = set and dirMask != 0
+        set = set or dirMask
+        return !contains
     }
 
     fun remove(dir: Direction) {

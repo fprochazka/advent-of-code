@@ -46,6 +46,11 @@ open class Matrix<V : Any> protected constructor(
     operator fun get(position: Position): V? =
         if (position in dims) matrix[dims.matrixIndex(position)] else null
 
+    fun getOrPut(position: Position, defaultValue: () -> V): V {
+        val value = get(position)
+        return value ?: defaultValue().also { set(position, it) }
+    }
+
     fun getValue(position: Position): V =
         this[position] ?: error("$position has no associated value")
 
@@ -71,9 +76,6 @@ open class Matrix<V : Any> protected constructor(
 
         return image
     }
-
-    fun withValuesIndex(): WithValuesIndex<V> =
-        WithValuesIndex<V>(dims).apply { putAll(this@apply) }
 
     override fun toString(): String =
         positions
@@ -103,26 +105,4 @@ open class Matrix<V : Any> protected constructor(
 
     }
 
-    class WithValuesIndex<V : Any> internal constructor(dims: AreaDimensions) : Matrix<V>(dims) {
-
-        private val positionsByValue: MutableMap<V, MutableSet<Position>> = mutableMapOf()
-
-        val uniqueValues: Set<V>
-            get() = positionsByValue.keys.toSet()
-
-        override fun allPositionsOfValue(value: V): Set<Position> =
-            positionsByValue[value] ?: emptySet()
-
-        override fun allPositionsByValues(valueFilter: (V) -> Boolean): Map<V, Set<Position>> =
-            positionsByValue.filterKeys(valueFilter)
-
-        override fun set(position: Position, value: V) {
-            val oldValue = this[position]
-
-            super.set(position, value)
-
-            positionsByValue[oldValue]?.remove(position)
-            positionsByValue.getOrPut(value) { mutableSetOf() }.add(position)
-        }
-    }
 }

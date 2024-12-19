@@ -1,10 +1,7 @@
 package aoc.y2024
 
 import aoc.utils.Resource
-import aoc.utils.d2.Direction
-import aoc.utils.d2.Matrix
-import aoc.utils.d2.OrientedPosition
-import aoc.utils.d2.Position
+import aoc.utils.d2.*
 import kotlinx.coroutines.*
 
 fun Resource.day06(): Day06 =
@@ -21,7 +18,7 @@ data class Day06(
     val result2 by lazy { findObstaclePlacementToCreateLoops().size }
 
     fun Matrix<Char>.predictPatrol(patrolStart: OrientedPosition): List<OrientedPosition> {
-        val patrolPath = mutableSetOf<OrientedPosition>()
+        val patrolPath = mutableListOf<OrientedPosition>()
 
         var current = patrolStart
         while (true) {

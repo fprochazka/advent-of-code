@@ -15,7 +15,7 @@ fun <V : Any> MatrixGraph<V>.anyShortestOrientedPathDijkstra(
     val queue = PriorityQueue<GraphPathOrientedStep>(compareBy { it.pathCost }).apply {
         add(GraphPathOrientedStep(start, startDir, 0))
     }
-    val visited = mutableSetOf<Position>()
+    val visited = HashSet<Position>()
 
     while (queue.isNotEmpty()) {
         val currentStep = queue.poll()!!
