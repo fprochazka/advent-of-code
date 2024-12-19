@@ -17,8 +17,8 @@ data class AreaDimensions(val w: Long, val h: Long) {
     val bottomRight: Position
         get() = positionFor(x = maxX, y = maxY)
 
-    fun matrixIndex(position: Position): Int =
-        matrixIndex(position.x, position.y)
+    fun matrixIndex(pos: Position): Int =
+        matrixIndex(pos.x, pos.y)
 
     fun matrixIndex(x: Long, y: Long): Int =
         Math.toIntExact((y * w) + x)
@@ -38,9 +38,6 @@ data class AreaDimensions(val w: Long, val h: Long) {
     fun positionFor(index: Long): Position =
         positionFor(index.toInt())
 
-    fun positionFor(index: Int): Position =
-        positionFor(index % w, index / w)
-
     fun positionFor(x: Long, y: Long): Position =
         Position(x, y)
 
@@ -49,6 +46,9 @@ data class AreaDimensions(val w: Long, val h: Long) {
 
     fun positionFor(x: String, y: String): Position =
         positionFor(x.toLong(), y.toLong())
+
+    fun positionFor(index: Int): Position =
+        positionFor(index % w, index / w)
 
     override fun toString(): String = "($w x $h)"
 
