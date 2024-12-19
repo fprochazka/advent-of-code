@@ -125,13 +125,13 @@ class MatrixGraph<V : Any>(dims: AreaDimensions, neighbourSides: Set<Direction>)
         }
 
         fun vacantSidesValid(): Iterable<OrientedPosition> = // O(4)
-            vacantSidesIncludingOutOfMatrix().filter { it.position in nodes }
+            vacantSidesIncludingOutOfMatrix().filter { it.position in dims }
 
         fun neighbourPositionsIncludingOutOfMatrix(): Iterable<OrientedPosition> = // O(4)
             neighbourSides.map { OrientedPosition(position + it, it) }
 
         fun neighbourPositionsValid(): Iterable<OrientedPosition> = // O(4)
-            neighbourPositionsIncludingOutOfMatrix().filter { it.position in nodes }
+            neighbourPositionsIncludingOutOfMatrix().filter { it.position in dims }
 
         override fun toString(): String = "'$value' at $position"
 

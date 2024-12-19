@@ -38,7 +38,7 @@ data class Day08(
         for ((_, antennas) in antennasByFrequency) {
             for ((posA, posB) in antennas.variationsWithoutRepetition(2)) {
                 antinodes(posA, posB)
-                    .takeWhile { it in antennasMap }
+                    .takeWhile { it in antennasMap.dims }
                     .forEach(result::add)
             }
         }

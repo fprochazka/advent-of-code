@@ -32,6 +32,12 @@ data class AreaDimensions(val w: Long, val h: Long) {
     val matrixPositions: Sequence<Position>
         get() = matrixIndices.map { matrixIndexToPosition(it) }
 
+    fun contains(x: Long, y: Long): Boolean =
+        x > -1 && y > -1 && x <= maxX && y <= maxY
+
+    operator fun contains(pos: Position): Boolean =
+        contains(pos.x, pos.y)
+
     override fun toString(): String = "($w x $h)"
 
 }

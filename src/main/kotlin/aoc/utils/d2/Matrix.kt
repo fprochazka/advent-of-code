@@ -13,6 +13,9 @@ open class Matrix<V : Any> protected constructor(
 
     private val matrix: MutableList<V?> = MutableList(Math.toIntExact(dims.area)) { null }
 
+    val positions: Sequence<Position>
+        get() = dims.matrixPositions
+
     open fun allPositionsOfValue(value: V): Set<Position> =
         matrix.withIndex()
             .filter { it.value == value }
@@ -30,32 +33,25 @@ open class Matrix<V : Any> protected constructor(
 
     fun entriesInDirection(startInclusive: Position, direction: Direction): Sequence<Pair<Position, V>> =
         generateSequence(startInclusive) { it + direction }
-            .takeWhile { it in this } // only for coordinates within matrix
+            .takeWhile { it in dims } // only for coordinates within matrix
             .map { it to this[it]!! }
-
-    val positions: Sequence<Position>
-        get() = dims.matrixPositions
 
     fun putAll(other: Matrix<V>) =
         other.entries.forEach { (position, value) -> this[position] = value }
 
     open operator fun set(position: Position, value: V) {
-        require(position in this) { "$position is not in matrix${dims}" }
+        require(position in dims) { "$position is not in matrix${dims}" }
         matrix[dims.matrixIndex(position)] = value
     }
 
     operator fun get(position: Position): V? =
-        if (position in this) matrix[dims.matrixIndex(position)] else null
+        if (position in dims) matrix[dims.matrixIndex(position)] else null
 
     fun getValue(position: Position): V =
         this[position] ?: error("$position has no associated value")
 
     fun getOrDefault(position: Position, default: V): V =
         this[position] ?: default
-
-    operator fun contains(position: Position): Boolean =
-        position.x > -1 && position.y > -1
-          && position.x <= dims.maxX && position.y <= dims.maxY
 
     fun copy(): Matrix<V> =
         Matrix<V>(dims).also {

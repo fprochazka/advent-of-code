@@ -30,7 +30,7 @@ data class Day06(
                 val next = current.step()
 
                 current = when {
-                    next.position !in this -> break
+                    next.position !in this.dims -> break
                     isObstacle(this[next.position]) -> current.turnRight90()
                     else -> next
                 }
@@ -50,7 +50,7 @@ data class Day06(
         while (true) {
             val nextPosition = currentPosition + direction
             when {
-                nextPosition !in this -> {
+                nextPosition !in this.dims -> {
                     return false
                 }
 

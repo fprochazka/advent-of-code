@@ -37,7 +37,7 @@ data class Day10(val data: TerrainMap) {
             fun Matrix<Int>.validSteps(previous: Position): List<Position> =
                 directions
                     .map { previous + it }
-                    .filter { it in map }
+                    .filter { it in map.dims }
                     .filter { (map[it]!! - map[previous]!!) == 1 } // ascending numbers
 
             fun Matrix<Int>.dfs(steps: List<Position>) {
