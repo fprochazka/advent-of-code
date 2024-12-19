@@ -8,6 +8,7 @@ plugins {
 //    kotlin("plugin.allopen") version "2.1.0"
     application
     id("org.graalvm.buildtools.native") version "0.10.4"
+    id("me.champeau.jmh") version "0.7.2"
 }
 
 kotlin {
@@ -56,6 +57,15 @@ tasks.register<JavaExec>("benchmarkJvm") {
     }
 }
 
+tasks.register("benchmarkJmh") {
+    group = "benchmark"
+    description = "Runs the JMH benchmark"
+
+    dependsOn("jmh")
+
+    outputs.upToDateWhen { false }
+}
+
 tasks.register("benchmarkNative") {
     group = "benchmark"
     description = "Runs the benchmark using native image build by GraalVM"
@@ -99,4 +109,11 @@ graalvmNative {
     binaries.all {
         buildArgs.add("--verbose")
     }
+}
+
+jmh { // https://github.com/melix/jmh-gradle-plugin
+    jmhVersion = "1.37" // Specifies JMH version
+    resultsFile = layout.projectDirectory.file("src/jmh/jmh_results.txt")
+    verbosity = "EXTRA"
+    benchmarkMode = listOf("avgt")
 }

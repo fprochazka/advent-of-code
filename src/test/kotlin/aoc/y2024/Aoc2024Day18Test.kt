@@ -11,7 +11,7 @@ class Aoc2024Day18Test : AocTest() {
         resource2024(18, "example1").let { input ->
             println("input: ${input}")
 
-            val problem = input.day18(AreaDimensions(7, 7), simulateInitiallyCorrupted = 12)
+            val problem = input.day18Custom(AreaDimensions(7, 7), simulateInitiallyCorrupted = 12)
 
             input.assertResult("task1") { problem.result1 }
             input.assertResult("task2") { problem.result2 }

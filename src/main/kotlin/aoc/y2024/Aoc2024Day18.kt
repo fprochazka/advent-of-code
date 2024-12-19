@@ -9,7 +9,12 @@ import aoc.utils.d2.graph.createDeadEndEliminator
 import aoc.utils.d2.graph.path.anyShortest.anyShortestPathBfs
 import aoc.utils.strings.toLongs
 
-fun Resource.day18(dims: AreaDimensions = AreaDimensions(71, 71), simulateInitiallyCorrupted: Int = 1024): Day18 = Day18(
+fun Resource.day18(): Day18 = day18Custom(
+    dims = Day18.DEFAULT_DIMENSIONS,
+    simulateInitiallyCorrupted = Day18.DEFAULT_SIMULATE_INITIALLY_CORRUPTED
+)
+
+fun Resource.day18Custom(dims: AreaDimensions, simulateInitiallyCorrupted: Int): Day18 = Day18(
     dims,
     Day18.parsePositions(nonBlankLines(), dims),
     simulateInitiallyCorrupted,
@@ -117,6 +122,10 @@ data class Day18(
             lines
                 .map { it.toLongs(limit = 2) }
                 .map { (x, y) -> dims.positionFor(x, y) }
+
+        val DEFAULT_DIMENSIONS = AreaDimensions(71, 71)
+        const val DEFAULT_SIMULATE_INITIALLY_CORRUPTED = 1024
+
     }
 
 }
