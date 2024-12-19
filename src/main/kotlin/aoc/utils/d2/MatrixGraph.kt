@@ -2,7 +2,11 @@ package aoc.utils.d2
 
 import aoc.utils.Resource
 
-class MatrixGraph<V : Any>(dims: AreaDimensions, neighbourSides: Set<Direction>) {
+class MatrixGraph<V : Any>(
+    dims: AreaDimensions,
+    neighbourSides: Set<Direction>,
+    private val valueClass: Class<V>,
+) {
 
     val neighbourSides = DirectionBitSet().apply {
         neighbourSides.forEach { add(it) }
@@ -72,7 +76,7 @@ class MatrixGraph<V : Any>(dims: AreaDimensions, neighbourSides: Set<Direction>)
     }
 
     fun toPlainMatrix(): Matrix<V> = let { graph ->
-        Matrix.empty<V>(dims).also { copy ->
+        Matrix.empty<V>(dims, valueClass).also { copy ->
             for ((pos, node) in graph.nodes.entries) {
                 copy[pos] = node.value
             }
@@ -153,33 +157,59 @@ class MatrixGraph<V : Any>(dims: AreaDimensions, neighbourSides: Set<Direction>)
 
         const val INFINITE_COST = (Long.MAX_VALUE / 2)
 
-        fun <V : Any> empty(
+        inline fun <reified V : Any> empty(
             dims: AreaDimensions,
             neighbourSides: Set<Direction>,
         ): MatrixGraph<V> {
-            return MatrixGraph<V>(dims, neighbourSides)
+            return empty(dims, neighbourSides, V::class.java)
         }
+
+        fun <V : Any> empty(
+            dims: AreaDimensions,
+            neighbourSides: Set<Direction>,
+            valueClass: Class<V>,
+        ): MatrixGraph<V> {
+            return MatrixGraph<V>(dims, neighbourSides, valueClass)
+        }
+
+        inline fun <reified V : Any> of(
+            matrix: Resource.CharMatrix2d,
+            neighbourSides: Set<Direction>,
+            noinline nodeValues: (Char) -> V,
+            noinline edges: (MatrixGraph<V>.Node, MatrixGraph<V>.Node) -> Boolean,
+        ): MatrixGraph<V> =
+            of(matrix, neighbourSides, V::class.java, nodeValues, edges)
 
         fun <V : Any> of(
             matrix: Resource.CharMatrix2d,
             neighbourSides: Set<Direction>,
+            valueClass: Class<V>,
             nodeValues: (Char) -> V,
             edges: (MatrixGraph<V>.Node, MatrixGraph<V>.Node) -> Boolean,
         ): MatrixGraph<V> =
-            withWeights(matrix, neighbourSides, nodeValues) { node, neighbour ->
+            withWeights(matrix, neighbourSides, valueClass, nodeValues) { node, neighbour ->
                 when (edges(node, neighbour)) {
                     true -> true to 1L
                     false -> false to INFINITE_COST
                 }
             }
 
+        inline fun <reified V : Any> withWeights(
+            matrix: Resource.CharMatrix2d,
+            neighbourSides: Set<Direction>,
+            noinline nodeValues: (Char) -> V,
+            noinline edges: (MatrixGraph<V>.Node, MatrixGraph<V>.Node) -> Pair<Boolean, Long>,
+        ): MatrixGraph<V> =
+            withWeights(matrix, neighbourSides, V::class.java, nodeValues, edges)
+
         fun <V : Any> withWeights(
             matrix: Resource.CharMatrix2d,
             neighbourSides: Set<Direction>,
+            valueClass: Class<V>,
             nodeValues: (Char) -> V,
             edges: (MatrixGraph<V>.Node, MatrixGraph<V>.Node) -> Pair<Boolean, Long>,
         ): MatrixGraph<V> {
-            val result = MatrixGraph<V>(matrix.dims, neighbourSides)
+            val result = MatrixGraph<V>(matrix.dims, neighbourSides, valueClass)
 
             for ((position, value) in matrix.entries) {
                 result[position] = nodeValues(value)

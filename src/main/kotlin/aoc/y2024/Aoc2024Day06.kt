@@ -41,7 +41,7 @@ data class Day06(
     }
 
     fun Matrix<Char>.isPatrolLooping(patrolStart: OrientedPosition): Boolean {
-        val patrolPath = HashSet<Pair<Position, Direction>>()
+        val patrolPath = HashMap<Position, DirectionBitSet>(32)
 
         var (currentPosition, direction) = patrolStart
         while (true) {
@@ -52,7 +52,8 @@ data class Day06(
                 }
 
                 isObstacle(this[nextPosition]) -> {
-                    if (!patrolPath.add(currentPosition to direction)) {
+                    val visitedDirections = patrolPath.getOrPut(currentPosition) { DirectionBitSet() }
+                    if (!visitedDirections.add(direction)) {
                         return true
                     }
                     direction = direction.turnRight90()

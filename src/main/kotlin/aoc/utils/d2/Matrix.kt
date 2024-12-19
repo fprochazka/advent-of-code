@@ -9,9 +9,23 @@ import kotlin.io.path.extension
 
 open class Matrix<V : Any> protected constructor(
     val dims: AreaDimensions,
+    private val valueClass: Class<V>,
 ) {
 
-    private val matrix: MutableList<V?> = MutableList(Math.toIntExact(dims.area)) { null }
+    @Suppress("UNCHECKED_CAST")
+    private val matrix: Array<V?> = Math.toIntExact(dims.area).let { size ->
+        when {
+            !valueClass.isPrimitive -> java.lang.reflect.Array.newInstance(valueClass, size)
+            valueClass == Char::class.javaPrimitiveType -> arrayOfNulls<Char?>(size)
+            valueClass == Int::class.javaPrimitiveType -> arrayOfNulls<Int?>(size)
+            valueClass == Long::class.javaPrimitiveType -> arrayOfNulls<Long?>(size)
+            valueClass == Boolean::class.javaPrimitiveType -> arrayOfNulls<Boolean?>(size)
+            valueClass == Double::class.javaPrimitiveType -> arrayOfNulls<Double?>(size)
+            valueClass == Short::class.javaPrimitiveType -> arrayOfNulls<Short?>(size)
+            valueClass == Byte::class.javaPrimitiveType -> arrayOfNulls<Byte?>(size)
+            else -> TODO("not supported")
+        } as Array<V?>
+    }
 
     val positions: Sequence<Position>
         get() = dims.matrixPositions
@@ -58,9 +72,8 @@ open class Matrix<V : Any> protected constructor(
         this[position] ?: default
 
     fun copy(): Matrix<V> =
-        Matrix<V>(dims).also {
-            it.matrix.clear()
-            it.matrix.addAll(this.matrix)
+        Matrix<V>(dims, valueClass).also {
+            this.matrix.copyInto(it.matrix)
         }
 
     fun draw(file: Path, valueToPixel: (V) -> Color) {
@@ -84,22 +97,31 @@ open class Matrix<V : Any> protected constructor(
 
     companion object {
 
-        fun <V : Any> empty(dims: AreaDimensions): Matrix<V> =
-            Matrix<V>(dims)
+        inline fun <reified V : Any> empty(dims: AreaDimensions): Matrix<V> =
+            empty(dims, V::class.java)
 
-        fun <V : Any> of(dims: AreaDimensions, initialValue: () -> V): Matrix<V> =
-            Matrix<V>(dims).apply {
+        fun <V : Any> empty(dims: AreaDimensions, valueClass: Class<V>): Matrix<V> =
+            Matrix<V>(dims, valueClass)
+
+        inline fun <reified V : Any> of(dims: AreaDimensions, noinline initialValue: () -> V): Matrix<V> =
+            of(dims, V::class.java, initialValue)
+
+        fun <V : Any> of(dims: AreaDimensions, valueClass: Class<V>, initialValue: () -> V): Matrix<V> =
+            Matrix<V>(dims, valueClass).apply {
                 positions.forEach { this[it] = initialValue() }
             }
 
         fun ofChars(cells: Resource.CharMatrix2d): Matrix<Char> =
-            of(cells, { it })
+            of(cells, Char::class.java, { it })
 
         fun ofInts(cells: Resource.CharMatrix2d): Matrix<Int> =
-            of(cells, { it.digitToInt() })
+            of(cells, Int::class.java, { it.digitToInt() })
 
-        fun <V : Any> of(cells: Resource.CharMatrix2d, toValue: (Char) -> V): Matrix<V> =
-            Matrix<V>(cells.dims).apply {
+        inline fun <reified V : Any> of(cells: Resource.CharMatrix2d, noinline toValue: (Char) -> V): Matrix<V> =
+            of(cells, V::class.java, toValue)
+
+        fun <V : Any> of(cells: Resource.CharMatrix2d, valueClass: Class<V>, toValue: (Char) -> V): Matrix<V> =
+            Matrix<V>(cells.dims, valueClass).apply {
                 cells.entries.forEach { (pos, char) -> this[pos] = toValue(char) }
             }
 

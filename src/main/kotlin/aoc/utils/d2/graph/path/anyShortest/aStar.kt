@@ -11,7 +11,7 @@ fun <V : Any> MatrixGraph<V>.anyShortestPathAStar(
     start: Position,
     end: Position,
 ): List<Position>? {
-    val cameFrom = GraphPathParents()
+    val cameFrom = GraphPathParents(dims)
 
     val distanceFromStart = Matrix.empty<Long>(dims).also {
         it[start] = 0L

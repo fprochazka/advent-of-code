@@ -9,8 +9,8 @@ fun <V : Any> MatrixGraph<V>.anyShortestPathBfs(
     end: Position,
 ): List<Position>? {
     val queue = ArrayDeque<Position>().apply { add(start) }
-    val visited = HashSet<Position>().apply { add(start) }
-    val cameFrom = GraphPathParents()
+    val visited = HashSet<Position>(dims.area.toInt(), 1.0f).apply { add(start) }
+    val cameFrom = GraphPathParents(dims)
 
     while (queue.isNotEmpty()) {
         val current = queue.removeFirst()

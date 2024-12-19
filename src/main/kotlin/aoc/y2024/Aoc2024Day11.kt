@@ -26,8 +26,37 @@ data class Day11(
         //       (The new numbers don't keep extra leading zeroes: 1000 would become stones 10 and 0.)
         // If none of the other rules apply, the stone is replaced by a new stone; the old stone's number multiplied by 2024 is engraved on the new stone.
 
+        // 1 shl 12  = 4096
+        // 1 shl 13  = 8192
+        // 1 shl 14  = 16384
+        // 1 shl 15  = 32768
+        // 1 shl 16  = 65536
+        // 1 shl 17  = 131072
+        // 1 shl 18  = 262144
+        // 1 shl 19  = 524288
+
+        // for input:
+        // 20 iters => cache size 2187
+        // 25 iters => cache size 3865 ... 1.7
+        // 30 iters => cache size 6732 ... 1.7
+        // 35 iters => cache size 11640 ... 1.7
+        // 40 iters => cache size 19151 ... 1.6
+        // 45 iters => cache size 29807 ... 1.5
+        // 50 iters => cache size 43225 ... 1.4
+        // 55 iters => cache size 58769 ... 1.3
+        // 60 iters => cache size 75814 ... 1.3
+        // 65 iters => cache size 93721 ... 1.2
+        // 70 iters => cache size 112183 ... 1.2
+        // 75 iters => cache size 130970 ... 1.2
+        // 80 iters => cache size 149921 ... 1.1
+
+        // 25 => shl 13, 75 => shl 18
+        val initialCapacity = 1 shl (13 + maxOf(0, (iterations - 25) / 10))
+
         // [(number, iterations) => parts]
-        val cache = HashMap<Pair<Long, Int>, Long>()
+        val cache = HashMap<Pair<Long, Int>, Long>(initialCapacity, 1f)
+        // println("using cache size capacity=${initialCapacity}")
+
         fun countAfterExpansion(number: Long, remaining: Int): Long =
             cache.getOrPut(number to remaining) {
                 when {
@@ -38,7 +67,10 @@ data class Day11(
                 }
             }
 
-        return numbers.sumOf { countAfterExpansion(it, iterations) }
+        val sum = numbers.sumOf { countAfterExpansion(it, iterations) }
+        // println("$iterations iters => cache size ${cache.size}")
+
+        return sum
     }
 
 }

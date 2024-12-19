@@ -19,7 +19,7 @@ data class Day19(
     }
 
     fun possiblePatterns(): Int {
-        val possible = HashMap<String, Boolean>().apply {
+        val possible = HashMap<String, Boolean>(desiredPatterns.size * 4).apply {
             put("", true)
             availablePatterns.forEach { put(it, true) }
         }
@@ -52,7 +52,7 @@ data class Day19(
     }
 
     fun howManyWaysYouCanMakeEachPattern(): Long {
-        val waysToMakeCache = HashMap<String, Long>()
+        val waysToMakeCache = HashMap<String, Long>(desiredPatterns.size * 4)
 
         fun countPossible(desired: String): Long {
             waysToMakeCache[desired]?.let { return it }
