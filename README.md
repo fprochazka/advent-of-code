@@ -43,6 +43,8 @@
  17.    2.       input:         0.23ms         0.47ms         0.13ms
  18.    1.       input:         2.33ms         2.78ms         1.70ms
  18.    2.       input:        12.80ms        17.49ms        11.15ms
+ 19.    1.       input:         0.00ms         0.00ms         0.00ms
+ 19.    2.       input:         0.00ms         0.00ms         0.00ms
 
 Sum of average times for normal inputs: 314.682ms
 ```
