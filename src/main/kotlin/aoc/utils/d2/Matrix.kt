@@ -40,7 +40,6 @@ open class Matrix<V : Any> protected constructor(
         other.entries.forEach { (position, value) -> this[position] = value }
 
     open operator fun set(position: Position, value: V) {
-        require(position in dims) { "$position is not in matrix${dims}" }
         matrix[dims.matrixIndex(position)] = value
     }
 

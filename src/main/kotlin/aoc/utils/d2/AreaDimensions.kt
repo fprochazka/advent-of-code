@@ -39,7 +39,7 @@ data class AreaDimensions(val w: Long, val h: Long) {
         positionFor(index.toInt())
 
     fun positionFor(x: Long, y: Long): Position =
-        Position(x, y)
+        positionFor(matrixIndex(x, y))
 
     fun positionFor(x: Int, y: Int): Position =
         positionFor(x.toLong(), y.toLong())
@@ -48,8 +48,18 @@ data class AreaDimensions(val w: Long, val h: Long) {
         positionFor(x.toLong(), y.toLong())
 
     fun positionFor(index: Int): Position =
-        positionFor(index % w, index / w)
+        positionsCache[index] ?: createPositionFromMatrixIndex(index).also {
+            positionsCache[index] = it
+        }
+
+    private val positionsCache = Array<Position?>(area.toInt()) { null }
+
+    private fun createPositionFromMatrixIndex(index: Int): Position =
+        Position(index % w, index / w, areaDims = this)
 
     override fun toString(): String = "($w x $h)"
 
 }
+
+fun AreaDimensions?.positionFlyweight(x: Long, y: Long): Position =
+    if (this != null && contains(x, y)) positionFor(x, y) else Position(x, y, this)

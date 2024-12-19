@@ -6,26 +6,26 @@ import kotlin.math.abs
 /**
  * zero indexed
  */
-data class Position(val x: Long, val y: Long) {
+data class Position(val x: Long, val y: Long, private val areaDims: AreaDimensions? = null) {
 
-    constructor(x: Int, y: Int) : this(x.toLong(), y.toLong())
+    constructor(x: Int, y: Int, areaDims: AreaDimensions? = null) : this(x.toLong(), y.toLong(), areaDims)
 
-    constructor(x: String, y: String) : this(x.toLong(), y.toLong())
+    constructor(x: String, y: String, areaDims: AreaDimensions? = null) : this(x.toLong(), y.toLong(), areaDims)
 
     operator fun plus(other: Position): Position =
-        Position(this.x + other.x, this.y + other.y)
+        areaDims.positionFlyweight(x + other.x, y + other.y)
 
     operator fun plus(other: Direction): Position =
         this.plus(other.vector)
 
     operator fun plus(other: Distance): Position =
-        Position(this.x + other.xDiff, this.y + other.yDiff)
+        areaDims.positionFlyweight(x + other.xDiff, y + other.yDiff)
 
     /**
      * Fits the position into given dimensions which represent a (w * h) matrix
      */
     operator fun rem(dims: AreaDimensions): Position =
-        Position(
+        dims.positionFlyweight(
             x.remEuclid(dims.w),
             y.remEuclid(dims.h)
         )
@@ -41,7 +41,10 @@ data class Position(val x: Long, val y: Long) {
 
     fun stepInDirection(direction: Direction, length: Int): Position = when (length) {
         1 -> this.plus(direction)
-        else -> Position(this.x + (direction.vector.xDiff * length), this.y + (direction.vector.yDiff * length))
+        else -> areaDims.positionFlyweight(
+            this.x + (direction.vector.xDiff * length),
+            this.y + (direction.vector.yDiff * length)
+        )
     }
 
     fun manhattanDistanceTo(end: Position): Long {
