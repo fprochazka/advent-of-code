@@ -1,5 +1,6 @@
 
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.jetbrains.kotlin.gradle.plugin.kotlinToolingVersion
 
 plugins {
     kotlin("jvm") version "2.1.0"
@@ -45,6 +46,14 @@ tasks.register<JavaExec>("benchmarkJvm") {
     jvmArgs = listOf("-server", "-Xms2g", "-Xmx2g", "-XX:+UseSerialGC")
 
     outputs.upToDateWhen { false }
+
+    doLast {
+        val jdk = javaLauncher.get().metadata
+
+        println()
+        println("Used JDK: ${jdk.jvmVersion} ${jdk.vendor}")
+        println("Used Kotlin version: ${kotlinToolingVersion}")
+    }
 }
 
 tasks.register("benchmarkNative") {
