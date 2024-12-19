@@ -12,31 +12,37 @@ data class AreaDimensions(val w: Long, val h: Long) {
     val area = w * h
 
     val topLeft: Position
-        get() = Position(0, 0)
+        get() = positionFor(x = 0, y = 0)
 
     val bottomRight: Position
-        get() = Position(maxX, maxY)
+        get() = positionFor(x = maxX, y = maxY)
 
     fun matrixIndex(position: Position): Int =
-        Math.toIntExact((position.y * w) + position.x)
+        matrixIndex(position.x, position.y)
 
-    fun matrixIndexToPosition(index: Int): Position =
-        matrixIndexToPosition(index.toLong())
-
-    fun matrixIndexToPosition(index: Long): Position =
-        Position(index % w, index / w)
+    fun matrixIndex(x: Long, y: Long): Int =
+        Math.toIntExact((y * w) + x)
 
     val matrixIndices: Sequence<Long>
         get() = (0L until area).asSequence()
 
     val matrixPositions: Sequence<Position>
-        get() = matrixIndices.map { matrixIndexToPosition(it) }
+        get() = (0 until area.toInt()).asSequence().map { positionFor(it) }
 
     fun contains(x: Long, y: Long): Boolean =
         x > -1 && y > -1 && x <= maxX && y <= maxY
 
     operator fun contains(pos: Position): Boolean =
         contains(pos.x, pos.y)
+
+    fun positionFor(index: Long): Position =
+        positionFor(index.toInt())
+
+    fun positionFor(index: Int): Position =
+        positionFor(index % w, index / w)
+
+    fun positionFor(x: Long, y: Long): Position =
+        Position(x, y)
 
     override fun toString(): String = "($w x $h)"
 

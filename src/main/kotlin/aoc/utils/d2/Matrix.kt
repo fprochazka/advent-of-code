@@ -19,14 +19,14 @@ open class Matrix<V : Any> protected constructor(
     open fun allPositionsOfValue(value: V): Set<Position> =
         matrix.withIndex()
             .filter { it.value == value }
-            .map { dims.matrixIndexToPosition(it.index) }
+            .map { dims.positionFor(it.index) }
             .toSet()
 
     open fun allPositionsByValues(valueFilter: (V) -> Boolean): Map<V, Set<Position>> =
         matrix.withIndex()
             .filter { (_, value) -> value?.let(valueFilter) == true }
             .groupBy({ it.value!! }, { it.index })
-            .mapValues { (_, indices) -> indices.map { dims.matrixIndexToPosition(it) }.toSet() }
+            .mapValues { (_, indices) -> indices.map { dims.positionFor(it) }.toSet() }
 
     val entries: Sequence<Pair<Position, V>>
         get() = positions.map { it to this[it]!! }
