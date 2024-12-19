@@ -1,7 +1,6 @@
 package aoc.y2024
 
 import aoc.utils.Resource
-import kotlin.collections.count
 
 fun Resource.day19(): Day19 = Day19.parse(content())
 
@@ -29,7 +28,7 @@ data class Day19(
         fun isPossible(desired: String): Boolean {
             if (possible.contains(desired)) return true
 
-            val maxLengthToCheck = maxAvailableLength.coerceAtMost(desired.length - 1)
+            val maxLengthToCheck = minOf(maxAvailableLength, desired.length - 1)
             for (l in (1..maxLengthToCheck).reversed()) {
                 val head = desired.take(l)
                 val isHeadPossible = possible.getOrPut(head) { isPossible(head) }
@@ -62,7 +61,7 @@ data class Day19(
 
             var possibleWaysToMake = if (desired in available) 1L else 0L
 
-            val maxLengthToCheck = maxAvailableLength.coerceAtMost(desired.length - 1)
+            val maxLengthToCheck = minOf(maxAvailableLength, desired.length - 1)
             for (l in (1..maxLengthToCheck).reversed()) {
                 val head = desired.take(l)
                 if (head !in available) continue
