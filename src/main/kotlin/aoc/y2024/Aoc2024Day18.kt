@@ -11,7 +11,7 @@ import aoc.utils.strings.toLongs
 
 fun Resource.day18(dims: AreaDimensions = AreaDimensions(71, 71), simulateInitiallyCorrupted: Int = 1024): Day18 = Day18(
     dims,
-    Day18.parsePositions(nonBlankLines()),
+    Day18.parsePositions(nonBlankLines(), dims),
     simulateInitiallyCorrupted,
 )
 
@@ -113,10 +113,10 @@ data class Day18(
         const val DEAD_END = 'x'
 
         // list of distances
-        fun parsePositions(lines: List<String>): List<Position> =
+        fun parsePositions(lines: List<String>, dims: AreaDimensions): List<Position> =
             lines
                 .map { it.toLongs(limit = 2) }
-                .map { (x, y) -> Position(x, y) }
+                .map { (x, y) -> dims.positionFor(x, y) }
     }
 
 }
