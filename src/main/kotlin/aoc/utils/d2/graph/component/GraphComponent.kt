@@ -14,4 +14,6 @@ class GraphComponent<V : Any>(
     val size: Int
         get() = positions.size
 
+    override fun toString(): String = "size = $size"
+
 }

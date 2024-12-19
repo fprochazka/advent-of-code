@@ -2,6 +2,7 @@ package aoc.utils.d2.graph.path.anyShortest
 
 import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
+import aoc.utils.d2.PositionSet
 import aoc.utils.d2.graph.path.GraphPathParents
 
 fun <V : Any> MatrixGraph<V>.anyShortestPathBfs(
@@ -9,7 +10,7 @@ fun <V : Any> MatrixGraph<V>.anyShortestPathBfs(
     end: Position,
 ): List<Position>? {
     val queue = ArrayDeque<Position>().apply { add(start) }
-    val visited = HashSet<Position>(dims.area.toInt(), 1.0f).apply { add(start) }
+    val visited = PositionSet(dims).apply { add(start) }
     val cameFrom = GraphPathParents(dims)
 
     while (queue.isNotEmpty()) {

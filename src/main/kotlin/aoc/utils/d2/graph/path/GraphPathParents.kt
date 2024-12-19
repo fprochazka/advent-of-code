@@ -2,10 +2,11 @@ package aoc.utils.d2.graph.path
 
 import aoc.utils.d2.AreaDimensions
 import aoc.utils.d2.Position
+import aoc.utils.d2.PositionMap
 
 class GraphPathParents(dims: AreaDimensions) {
 
-    val cameFrom = HashMap<Position, Position>(dims.area.toInt(), 1.0f)
+    val cameFrom = PositionMap<Position>(dims)
 
     fun getPathOf(current: Position): List<Position> {
         val path = mutableListOf<Position>()

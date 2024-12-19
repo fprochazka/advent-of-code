@@ -101,20 +101,22 @@ data class Day14(val room: Room) {
 
         fun parseRoom(lines: List<String>): Room =
             lines.headTail().let { (head, tail) ->
-                Room(
-                    parseRoom(head),
-                    tail.map { parseRobot(it) }.toList()
-                )
+                parseRoom(head).let { dims ->
+                    Room(
+                        dims,
+                        tail.map { parseRobot(it, dims) }.toList()
+                    )
+                }
             }
 
         fun parseRoom(input: String): AreaDimensions =
             input.trim().matchEntire(roomPattern) { AreaDimensions(it.groupValues[1], it.groupValues[2]) }
 
         // p=77,66 v=-73,-2
-        fun parseRobot(input: String): Robot =
+        fun parseRobot(input: String, dims: AreaDimensions): Robot =
             input.trim().matchEntire(robotPattern) {
                 Robot(
-                    Position(it.groupValues[1], it.groupValues[2]),
+                    dims.positionFor(it.groupValues[1], it.groupValues[2]),
                     Distance(it.groupValues[3], it.groupValues[4]),
                 )
             }

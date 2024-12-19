@@ -3,6 +3,7 @@ package aoc.utils.d2.graph.path.anyShortest
 import aoc.utils.d2.Direction
 import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
+import aoc.utils.d2.PositionSet
 import aoc.utils.d2.graph.path.GraphPathOrientedStep
 import java.util.*
 
@@ -15,7 +16,7 @@ fun <V : Any> MatrixGraph<V>.anyShortestOrientedPathDijkstra(
     val queue = PriorityQueue<GraphPathOrientedStep>(compareBy { it.pathCost }).apply {
         add(GraphPathOrientedStep(start, startDir, 0))
     }
-    val visited = HashSet<Position>()
+    val visited = PositionSet(dims)
 
     while (queue.isNotEmpty()) {
         val currentStep = queue.poll()!!
