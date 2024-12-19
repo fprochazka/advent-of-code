@@ -5,19 +5,19 @@ import aoc.utils.d2.AreaDimensions
 import aoc.utils.d2.Direction
 import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
-import aoc.utils.d2.graph.path.anyShortest.anyShortestPathBfs
 import aoc.utils.d2.graph.createDeadEndEliminator
+import aoc.utils.d2.graph.path.anyShortest.anyShortestPathBfs
 import aoc.utils.strings.toLongs
 
 fun Resource.day18(dims: AreaDimensions = AreaDimensions(71, 71), simulateInitiallyCorrupted: Int = 1024): Day18 = Day18(
-    Day18.parsePositions(nonBlankLines()),
     dims,
+    Day18.parsePositions(nonBlankLines()),
     simulateInitiallyCorrupted,
 )
 
 data class Day18(
-    val corruptedBytes: List<Position>,
     val dims: AreaDimensions,
+    val corruptedBytes: List<Position>,
     val simulateInitiallyCorrupted: Int
 ) {
 
