@@ -5,21 +5,20 @@ import aoc.utils.Resource
 fun Resource.day19(): Day19 = Day19.parse(content())
 
 data class Day19(
-    val availablePatterns: List<String>,
+    val availablePatterns: Set<String>,
     val desiredPatterns: List<String>
 ) {
 
     val maxAvailableLength by lazy { availablePatterns.maxOf { it.length } }
-    val possiblePatterns by lazy { possiblePatterns() }
 
     val result1 by lazy {
-        possiblePatterns.count()
+        possiblePatterns()
     }
     val result2 by lazy {
         howManyWaysYouCanMakeEachPattern()
     }
 
-    fun possiblePatterns(): List<String> {
+    fun possiblePatterns(): Int {
         val possible = HashMap<String, Boolean>().apply {
             put("", true)
             availablePatterns.forEach { put(it, true) }
@@ -49,22 +48,21 @@ data class Day19(
         val possiblePatterns = desiredPatterns.map {
             it to isPossible(it)
         }
-        return possiblePatterns.filter { it.second }.map { it.first }
+        return possiblePatterns.count { it.second }
     }
 
     fun howManyWaysYouCanMakeEachPattern(): Long {
-        val available = availablePatterns.toSet()
         val waysToMakeCache = HashMap<String, Long>()
 
         fun countPossible(desired: String): Long {
             waysToMakeCache[desired]?.let { return it }
 
-            var possibleWaysToMake = if (desired in available) 1L else 0L
+            var possibleWaysToMake = if (desired in availablePatterns) 1L else 0L
 
             val maxLengthToCheck = minOf(maxAvailableLength, desired.length - 1)
             for (l in (1..maxLengthToCheck).reversed()) {
                 val head = desired.take(l)
-                if (head !in available) continue
+                if (head !in availablePatterns) continue
                 val tail = desired.drop(l)
 
                 possibleWaysToMake += countPossible(tail)
@@ -75,10 +73,11 @@ data class Day19(
             return possibleWaysToMake
         }
 
-        val waysToMake = possiblePatterns.map {
+        val waysToMake = desiredPatterns.map {
             it to countPossible(it)
         }
-        return waysToMake.sumOf { it.second }.toLong()
+
+        return waysToMake.sumOf { it.second }
     }
 
     companion object {
@@ -87,7 +86,7 @@ data class Day19(
             val (available, desired) = content.split("\n\n", limit = 2)
                 .map { it.split("[^a-z]+".toRegex()).filter { it.isNotBlank() } }
 
-            return Day19(available, desired)
+            return Day19(available.toSet(), desired)
         }
     }
 
