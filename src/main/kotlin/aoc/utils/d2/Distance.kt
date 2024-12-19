@@ -16,7 +16,7 @@ data class Distance(val xDiff: Long, val yDiff: Long) {
 
     companion object {
 
-        private val toDirectionCache: Map<Distance, Direction> by lazy {
+        private val toDirectionCache: Map<Distance, Direction> by lazy(LazyThreadSafetyMode.PUBLICATION) {
             Direction.entries.associateBy { it.vector }
         }
 

@@ -42,7 +42,7 @@ enum class Direction(val vector: Distance) {
 
     companion object {
 
-        val size by lazy {
+        val size by lazy(LazyThreadSafetyMode.PUBLICATION) {
             entries.size
         }
 
