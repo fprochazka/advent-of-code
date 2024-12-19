@@ -3,6 +3,7 @@ package aoc.measure
 import aoc.utils.Resource
 import aoc.y2024.*
 import kotlinx.coroutines.DelicateCoroutinesApi
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -173,44 +174,56 @@ object Aoc2024 {
 
     @OptIn(DelicateCoroutinesApi::class)
     fun measureAll() {
-        val executor = Executors.newVirtualThreadPerTaskExecutor();
+        val executor = Executors.newVirtualThreadPerTaskExecutor()!!
 
+        println("Warmup:")
         for (i in 1..20) {
-            print("Iteration ${i.toString().padStart(2, ' ')}: ")
+            measureIteration(i, executor)
+        }
+        resultsByConfig.clear()
 
-            val iterationDuration = measureTime {
-                for (config in runConfigs) {
-                    val solverRuns = resultsByConfig.getOrPut(config) { Runs() }
+        println()
+        println("Measure:")
+        for (i in 1..10) {
+            measureIteration(i, executor)
+        }
+    }
 
-                    var result: Any? = null
-                    var taskDuration = Duration.INFINITE
+    private fun measureIteration(i: Int, executor: ExecutorService) {
+        print("Iteration ${i.toString().padStart(2, ' ')}: ")
 
-                    // this doesn't really kill the solver,
-                    // but it enables us to continue with the other solvers after the timeout
-                    val task = executor.submit {
-                        taskDuration = measureTime {
-                            result = config.solver()
-                        }
-                    }
+        val iterationDuration = measureTime {
+            for (config in runConfigs) {
+                val solverRuns = resultsByConfig.getOrPut(config) { Runs() }
 
-                    try {
-                        task.get(10, TimeUnit.SECONDS)
+                var result: Any? = null
+                var taskDuration = Duration.INFINITE
 
-                        solverRuns.record(result, taskDuration)
-                        print(".")
-
-                    } catch (_: TimeoutException) {
-                        task.cancel(true)
-
-                        solverRuns.record("timeout", Duration.INFINITE)
-                        print("x")
+                // this doesn't really kill the solver,
+                // but it enables us to continue with the other solvers after the timeout
+                val task = executor.submit {
+                    taskDuration = measureTime {
+                        result = config.solver()
                     }
                 }
-            }
 
-            print(" ${iterationDuration.toFormattedString().padStart(15)}")
-            println()
+                try {
+                    task.get(10, TimeUnit.SECONDS)
+
+                    solverRuns.record(result, taskDuration)
+                    print(".")
+
+                } catch (_: TimeoutException) {
+                    task.cancel(true)
+
+                    solverRuns.record("timeout", Duration.INFINITE)
+                    print("x")
+                }
+            }
         }
+
+        print(" ${iterationDuration.toFormattedString().padStart(15)}")
+        println()
     }
 
     fun printResults() {
@@ -227,19 +240,18 @@ object Aoc2024 {
             line += " ${config.taskName.padStart(taskColumnWidth)}."
             line += " ${config.inputName.padStart(inputColumnWidth)}"
             line += ":"
-            line += runs.avgTimeOfSecondHalf.toFormattedString().padStart(15)
-            line += runs.worstTimeOfSecondHalf.toFormattedString().padStart(15)
-            line += runs.bestTimeOfSecondHalf.toFormattedString().padStart(15)
+            line += runs.avgTime.toFormattedString().padStart(15)
+            line += runs.worstTime.toFormattedString().padStart(15)
+            line += runs.bestTime.toFormattedString().padStart(15)
             println(line)
 
             if (config.addUpInTotal) {
-                totalRuntime += runs.avgTimeOfSecondHalf
+                totalRuntime += runs.avgTime
             }
         }
 
         println()
         println("Sum of average times for normal inputs: $totalRuntime")
-        println("(first half of runs is considered warmup and skipped)")
 
         val second = 1.toDuration(DurationUnit.SECONDS)
         if (totalRuntime > second) {
@@ -304,17 +316,17 @@ object Aoc2024 {
         val runs: MutableList<Pair<String, Duration>> = mutableListOf(),
     ) {
 
-        val secondHalfOfRunTimes: List<Duration>
+        val runTimes: List<Duration>
             get() = runs.subList(runs.size / 2, runs.size - 1).map { it.second }
 
-        val avgTimeOfSecondHalf: Duration
-            get() = secondHalfOfRunTimes.map { it.toMicroseconds() }.average().toDuration()
+        val avgTime: Duration
+            get() = runTimes.map { it.toMicroseconds() }.average().toDuration()
 
-        val worstTimeOfSecondHalf: Duration
-            get() = secondHalfOfRunTimes.maxBy { it.toMicroseconds() }
+        val worstTime: Duration
+            get() = runTimes.maxBy { it.toMicroseconds() }
 
-        val bestTimeOfSecondHalf: Duration
-            get() = secondHalfOfRunTimes.minBy { it.toMicroseconds() }
+        val bestTime: Duration
+            get() = runTimes.minBy { it.toMicroseconds() }
 
         fun record(result: Any?, duration: Duration) {
             runs += "$result" to duration
