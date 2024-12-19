@@ -24,7 +24,7 @@ data class Position(val x: Long, val y: Long) {
     /**
      * Fits the position into given dimensions which represent a (w * h) matrix
      */
-    operator fun rem(dims: Dimensions): Position =
+    operator fun rem(dims: AreaDimensions): Position =
         Position(
             x.remEuclid(dims.w),
             y.remEuclid(dims.h)

@@ -1,6 +1,6 @@
 package aoc.utils.d2
 
-data class Dimensions(val w: Long, val h: Long) {
+data class AreaDimensions(val w: Long, val h: Long) {
 
     constructor(w: Int, h: Int) : this(w.toLong(), h.toLong())
 

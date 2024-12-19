@@ -8,7 +8,7 @@ import javax.imageio.ImageIO
 import kotlin.io.path.extension
 
 open class Matrix<V : Any> protected constructor(
-    val dims: Dimensions,
+    val dims: AreaDimensions,
 ) {
 
     private val matrix: MutableList<V?> = MutableList(Math.toIntExact(dims.area)) { null }
@@ -87,10 +87,10 @@ open class Matrix<V : Any> protected constructor(
 
     companion object {
 
-        fun <V : Any> empty(dims: Dimensions): Matrix<V> =
+        fun <V : Any> empty(dims: AreaDimensions): Matrix<V> =
             Matrix<V>(dims)
 
-        fun <V : Any> of(dims: Dimensions, initialValue: () -> V): Matrix<V> =
+        fun <V : Any> of(dims: AreaDimensions, initialValue: () -> V): Matrix<V> =
             Matrix<V>(dims).apply {
                 positions.forEach { this[it] = initialValue() }
             }
@@ -108,7 +108,7 @@ open class Matrix<V : Any> protected constructor(
 
     }
 
-    class WithValuesIndex<V : Any> internal constructor(dims: Dimensions) : Matrix<V>(dims) {
+    class WithValuesIndex<V : Any> internal constructor(dims: AreaDimensions) : Matrix<V>(dims) {
 
         private val positionsByValue: MutableMap<V, MutableSet<Position>> = mutableMapOf()
 

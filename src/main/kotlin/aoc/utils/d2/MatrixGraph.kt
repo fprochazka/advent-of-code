@@ -2,7 +2,7 @@ package aoc.utils.d2
 
 import aoc.utils.Resource
 
-class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
+class MatrixGraph<V : Any>(dims: AreaDimensions, neighbourSides: Set<Direction>) {
 
     val neighbourSides = DirectionBitSet().apply {
         neighbourSides.forEach { add(it) }
@@ -10,7 +10,7 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
 
     val nodes: Matrix<Node> = Matrix.empty<Node>(dims)
 
-    val dims: Dimensions
+    val dims: AreaDimensions
         get() = nodes.dims
 
     val positions: Sequence<Position>
@@ -142,7 +142,7 @@ class MatrixGraph<V : Any>(dims: Dimensions, neighbourSides: Set<Direction>) {
         const val INFINITE_COST = (Long.MAX_VALUE / 2)
 
         fun <V : Any> empty(
-            dims: Dimensions,
+            dims: AreaDimensions,
             neighbourSides: Set<Direction>,
         ): MatrixGraph<V> {
             return MatrixGraph<V>(dims, neighbourSides)

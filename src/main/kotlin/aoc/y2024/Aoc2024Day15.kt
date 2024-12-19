@@ -2,7 +2,7 @@ package aoc.y2024
 
 import aoc.utils.Resource
 import aoc.utils.containers.addAllNotNull
-import aoc.utils.d2.Dimensions
+import aoc.utils.d2.AreaDimensions
 import aoc.utils.d2.Direction
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
@@ -182,7 +182,7 @@ data class Day15(
             else -> error("Unexpected value $this")
         }
 
-        val result = Matrix.empty<Char>(dims.let { Dimensions(it.w * 2, it.h) })
+        val result = Matrix.empty<Char>(dims.let { AreaDimensions(it.w * 2, it.h) })
         for ((bigPos, value) in entries.map { (smallPos, value) -> smallPos.copy(x = smallPos.x * 2) to value }) {
             value.scaleUp().let { (left, right) ->
                 result[bigPos] = left

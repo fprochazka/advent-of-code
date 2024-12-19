@@ -57,7 +57,7 @@ data class Resource(val name: String) {
 
     data class CharMatrix2d(
         val entries: Sequence<Pair<aoc.utils.d2.Position, Char>>,
-        val dims: aoc.utils.d2.Dimensions
+        val dims: aoc.utils.d2.AreaDimensions
     ) {
 
         companion object {
@@ -71,7 +71,7 @@ data class Resource(val name: String) {
                         .flatMapIndexed { y, line ->
                             line.mapIndexed { x, char -> aoc.utils.d2.Position(x, y) to char }
                         },
-                    aoc.utils.d2.Dimensions(lines.size, lines.first().length)
+                    aoc.utils.d2.AreaDimensions(lines.size, lines.first().length)
                 )
 
         }

@@ -2,7 +2,7 @@ package aoc.y2024
 
 import aoc.utils.Resource
 import aoc.utils.containers.headTail
-import aoc.utils.d2.Dimensions
+import aoc.utils.d2.AreaDimensions
 import aoc.utils.d2.Distance
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
@@ -39,7 +39,7 @@ data class Day14(val room: Room) {
         // when (11 / 2) => 5, then 5 - 4 => sign +1
         // when (11 / 2) => 5, then 5 - 5 => sign  0 ... middle of the matrix
 
-        fun Dimensions.quadrant(pos: Position): Pair<Int, Int> = ((w / 2) - pos.x).sign to ((h / 2) - pos.y).sign
+        fun AreaDimensions.quadrant(pos: Position): Pair<Int, Int> = ((w / 2) - pos.x).sign to ((h / 2) - pos.y).sign
         fun Robot.quadrant(): Pair<Int, Int>? = room.dims.quadrant(pos).takeIf { (a, b) -> a != 0 && b != 0 }
 
         val robotsInQuadrants = room.tick(afterSeconds).robots
@@ -73,7 +73,7 @@ data class Day14(val room: Room) {
     }
 
     data class Room(
-        val dims: Dimensions,
+        val dims: AreaDimensions,
         val robots: List<Robot>,
     ) {
 
@@ -107,8 +107,8 @@ data class Day14(val room: Room) {
                 )
             }
 
-        fun parseRoom(input: String): Dimensions =
-            input.trim().matchEntire(roomPattern) { Dimensions(it.groupValues[1], it.groupValues[2]) }
+        fun parseRoom(input: String): AreaDimensions =
+            input.trim().matchEntire(roomPattern) { AreaDimensions(it.groupValues[1], it.groupValues[2]) }
 
         // p=77,66 v=-73,-2
         fun parseRobot(input: String): Robot =
