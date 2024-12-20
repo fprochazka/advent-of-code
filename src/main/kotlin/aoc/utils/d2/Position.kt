@@ -53,17 +53,37 @@ data class Position(val x: Long, val y: Long, private val areaDims: AreaDimensio
         return dx + dy
     }
 
-    val left: Position
-        get() = plus(Direction.LEFT)
+    val left: Position get() = plus(Direction.LEFT)
 
-    val right: Position
-        get() = plus(Direction.RIGHT)
+    val right: Position get() = plus(Direction.RIGHT)
 
-    val up: Position
-        get() = plus(Direction.UP)
+    val up: Position get() = plus(Direction.UP)
 
-    val down: Position
-        get() = plus(Direction.DOWN)
+    val down: Position get() = plus(Direction.DOWN)
+
+    val neighboursCardinal: List<Position> by lazy(LazyThreadSafetyMode.PUBLICATION) { neighbours(Direction.entriesCardinal) }
+
+    fun neighboursCardinalIn(targetDims: AreaDimensions): List<Position> = neighboursCardinal.filterByDimension(targetDims)
+
+    val neighboursDiagonal: List<Position> by lazy(LazyThreadSafetyMode.PUBLICATION) { neighbours(Direction.entriesDiagonal) }
+
+    fun neighboursDiagonalIn(targetDims: AreaDimensions): List<Position> = neighboursDiagonal.filterByDimension(targetDims)
+
+    val neighboursAll: List<Position> by lazy(LazyThreadSafetyMode.PUBLICATION) { neighbours(Direction.entries) }
+
+    fun neighboursAllIn(targetDims: AreaDimensions): List<Position> = neighboursAll.filterByDimension(targetDims)
+
+    fun neighbours(directions: Collection<Direction>): List<Position> = buildList(directions.size) {
+        for (dir in directions) {
+            add(this@Position + dir)
+        }
+    }
+
+    private fun List<Position>.filterByDimension(dims: AreaDimensions): List<Position> = buildList(size) {
+        for (element in this@filterByDimension) {
+            if (element in dims) add(element)
+        }
+    }
 
     override fun toString(): String = "(x=$x, y=$y)"
 

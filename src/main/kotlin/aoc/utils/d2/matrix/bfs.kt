@@ -1,6 +1,5 @@
 package aoc.utils.d2.matrix
 
-import aoc.utils.d2.Direction
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
 import aoc.utils.d2.PositionSet
@@ -16,9 +15,7 @@ fun <V : Any> Matrix<V>.anyShortestPathBfs(
     val cameFrom = GraphPathParents(dims)
 
     fun connectionsFrom(pos: Position): List<Position> = buildList(4) {
-        for (dir in Direction.entriesCardinal) {
-            val connection = pos + dir
-            if (connection !in dims) continue
+        for (connection in pos.neighboursCardinalIn(dims)) {
             if (connection in visited) continue
             if (!edge(pos, connection)) continue
             add(connection)
