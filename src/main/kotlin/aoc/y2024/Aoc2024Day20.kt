@@ -42,7 +42,7 @@ data class Day20(
                 if (this[step1]!! != WALL) {
                     continue // we want to walk into a wall with the first step
                 }
-                if (isInRim(step1) || step1 == previous) {
+                if (isOnRim(step1) || step1 == previous) {
                     continue
                 }
 
@@ -53,7 +53,7 @@ data class Day20(
                     if (this[step2] == WALL) {
                         continue // cannot end in a wall
                     }
-                    if (isInRim(step2)) {
+                    if (isOnRim(step2)) {
                         continue
                     }
 
@@ -144,7 +144,7 @@ data class Day20(
     fun Matrix<Char>.findShortestPath(start: Position, end: Position): List<Position> =
         anyShortestPathBfs(start, end) { a, b -> this[b]!! != WALL } ?: error("No honorable path found")
 
-    fun Matrix<Char>.isInRim(pos: Position): Boolean {
+    fun Matrix<Char>.isOnRim(pos: Position): Boolean {
         if (pos.x == 0L || pos.y == 0L) return true
         if (pos.x == dims.maxX || pos.y == dims.maxY) return true
         return false
