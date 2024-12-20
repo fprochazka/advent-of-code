@@ -16,16 +16,18 @@ open class Matrix<V : Any> protected constructor(
     private val matrix: Array<V?> = Math.toIntExact(dims.area).let { size ->
         when {
             !valueClass.isPrimitive -> java.lang.reflect.Array.newInstance(valueClass, size)
-            valueClass == Char::class.javaPrimitiveType -> arrayOfNulls<Char?>(size)
-            valueClass == Int::class.javaPrimitiveType -> arrayOfNulls<Int?>(size)
-            valueClass == Long::class.javaPrimitiveType -> arrayOfNulls<Long?>(size)
-            valueClass == Boolean::class.javaPrimitiveType -> arrayOfNulls<Boolean?>(size)
-            valueClass == Double::class.javaPrimitiveType -> arrayOfNulls<Double?>(size)
-            valueClass == Short::class.javaPrimitiveType -> arrayOfNulls<Short?>(size)
-            valueClass == Byte::class.javaPrimitiveType -> arrayOfNulls<Byte?>(size)
+            valueClass.isPrimitiveOf<Char>() -> arrayOfNulls<Char?>(size)
+            valueClass.isPrimitiveOf<Int>() -> arrayOfNulls<Int?>(size)
+            valueClass.isPrimitiveOf<Long>() -> arrayOfNulls<Long?>(size)
+            valueClass.isPrimitiveOf<Boolean>() -> arrayOfNulls<Boolean?>(size)
+            valueClass.isPrimitiveOf<Double>() -> arrayOfNulls<Double?>(size)
+            valueClass.isPrimitiveOf<Short>() -> arrayOfNulls<Short?>(size)
+            valueClass.isPrimitiveOf<Byte>() -> arrayOfNulls<Byte?>(size)
             else -> TODO("not supported")
         } as Array<V?>
     }
+
+    inline fun <reified R : Any> Class<V>.isPrimitiveOf() = this == R::class.javaPrimitiveType
 
     val positions: Sequence<Position>
         get() = dims.matrixPositions
