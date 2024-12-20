@@ -1,16 +1,11 @@
 package aoc.y2024
 
 import aoc.AocTest
+import aoc.utils.AocDebug
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class Aoc2024Day17Test : AocTest() {
-
-    @BeforeEach
-    fun debug() {
-        System.setProperty("aoc.debugInstructions", "true")
-    }
 
     @Test
     fun instructions1() {
@@ -91,7 +86,7 @@ class Aoc2024Day17Test : AocTest() {
 
     @Test
     fun example2() {
-        System.setProperty("aoc.debugInstructions", "false")
+        AocDebug.enabled = false // too verbose
 
         resource2024(17, "example2").let { input ->
             println("input: $input")
@@ -101,7 +96,7 @@ class Aoc2024Day17Test : AocTest() {
 
     @Test
     fun input() {
-        System.setProperty("aoc.debugInstructions", "false")
+        AocDebug.enabled = false // too verbose
 
         resource2024(17, "input").let { input ->
             println("input: $input")

@@ -2,7 +2,6 @@ package aoc.y2024
 
 import aoc.AocTest
 import aoc.utils.Resource
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class Aoc2024Day20Test : AocTest() {

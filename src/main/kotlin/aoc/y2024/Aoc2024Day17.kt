@@ -1,5 +1,6 @@
 package aoc.y2024
 
+import aoc.utils.AocDebug
 import aoc.utils.Resource
 import aoc.utils.containers.isEqualTo
 import aoc.utils.math.deMod
@@ -103,8 +104,6 @@ data class Day17(val debugger: Debugger) {
         val program: List<Int>,
     ) {
 
-        val debug: Boolean = System.getProperty("aoc.debugInstructions", "false").toBoolean()
-
         val output = mutableListOf<Int>()
         var executedInstructions = mutableListOf<Instruction>()
 
@@ -146,7 +145,7 @@ data class Day17(val debugger: Debugger) {
 
         fun run(): List<Int> {
             for (instruction in instructions()) {
-                if (debug) println("\nState{A=$regA, B=$regB, C=$regC, pointer: $pointer, ops: $operations, outSize: ${output.size}} \n\t" + (instruction.debug().replace(" =>", "\n\t=>")))
+                if (AocDebug.enabled) println("\nState{A=$regA, B=$regB, C=$regC, pointer: $pointer, ops: $operations, outSize: ${output.size}} \n\t" + (instruction.debug().replace(" =>", "\n\t=>")))
 
                 executedInstructions += instruction
 
@@ -162,7 +161,7 @@ data class Day17(val debugger: Debugger) {
                 pointer += 2
             }
 
-            if (debug) println("\nState{A=$regA, B=$regB, C=$regC, pointer: $pointer, ops: $operations, output: ${output}}")
+            if (AocDebug.enabled) println("\nState{A=$regA, B=$regB, C=$regC, pointer: $pointer, ops: $operations, output: ${output}}")
 
             return output
         }

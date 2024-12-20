@@ -1,5 +1,6 @@
 package aoc.y2024
 
+import aoc.utils.AocDebug
 import aoc.utils.Resource
 import aoc.utils.containers.headTail
 import aoc.utils.d2.Matrix
@@ -20,15 +21,13 @@ data class Day20(
     val result1 by lazy {
         racetrackStartAndEnd
             .let { (start, end) -> racetrack.howMany2StepCheatsWouldSaveAtLeastNTime(start, end, saveAtLeastPicoseconds) }
-            .let { printDetails(saveAtLeastPicoseconds, it) }
     }
     val result2 by lazy {
         racetrackStartAndEnd
             .let { (start, end) -> racetrack.howMany20StepCheatsWouldSaveAtLeastNTime(start, end, saveAtLeastPicoseconds) }
-            .let { printDetails(saveAtLeastPicoseconds, it) }
     }
 
-    fun Matrix<Char>.howMany2StepCheatsWouldSaveAtLeastNTime(start: Position, end: Position, saveAtLeast: Int): List<Pair<Int, Int>> {
+    fun Matrix<Char>.howMany2StepCheatsWouldSaveAtLeastNTime(start: Position, end: Position, saveAtLeast: Int): Long {
         val walkedPath = HashSet<Position>()
 
         fun findCheats(current: Position): List<List<Position>> {
@@ -95,13 +94,16 @@ data class Day20(
             current = next
         }
 
-        return triedCheatsCounter.entries
+        val relevantCheats = triedCheatsCounter.entries
             .map { it.key to it.value }
             .filter { it.first >= saveAtLeast }
-            .sortedBy { it.first }
+
+        if (AocDebug.enabled) printDetails(relevantCheats)
+
+        return relevantCheats.sumOf { it.second.toLong() }
     }
 
-    fun Matrix<Char>.howMany20StepCheatsWouldSaveAtLeastNTime(start: Position, end: Position, saveAtLeast: Int): List<Pair<Int, Int>> {
+    fun Matrix<Char>.howMany20StepCheatsWouldSaveAtLeastNTime(start: Position, end: Position, saveAtLeast: Int): Long {
         fun Position.cheatingDistanceTo(other: Position): Int =
             this.distanceTo(other).let { (xDiff, yDiff) -> (xDiff.absoluteValue + yDiff.absoluteValue).toInt() }
 
@@ -144,22 +146,22 @@ data class Day20(
             current = next
         }
 
-        return triedCheatsCounter.entries
+        val relevantCheats = triedCheatsCounter.entries
             .map { it.key to it.value }
             .filter { it.first >= saveAtLeast }
-            .sortedBy { it.first }
+
+        if (AocDebug.enabled) printDetails(relevantCheats)
+
+        return relevantCheats.sumOf { it.second.toLong() }
     }
 
-    fun printDetails(saveAtLeast: Int, relevantCheats: List<Pair<Int, Int>>): String {
-        val cheatsTotal = relevantCheats.sumOf { it.second.toLong() }.let { sum ->
-            "There is total of $sum cheats that save at least $saveAtLeast picoseconds.\n"
-        }
-
-        val cheatsSummary = relevantCheats.joinToString(separator = "\n", prefix = "", postfix = "\n\n") { (savedSteps, variants) ->
-            "# $variants cheats save $savedSteps"
-        }
-
-        return cheatsSummary + cheatsTotal
+    fun printDetails(relevantCheats: List<Pair<Int, Int>>) {
+        val cheatsSummary = relevantCheats
+            .sortedBy { it.first }
+            .joinToString(separator = "\n", prefix = "\n") { (savedSteps, variants) ->
+                "# $variants cheats save $savedSteps"
+            }
+        println(cheatsSummary)
     }
 
     fun Matrix<Char>.findShortestPath(start: Position, end: Position): List<Position> =
