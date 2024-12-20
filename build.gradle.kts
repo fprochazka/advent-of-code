@@ -116,4 +116,7 @@ jmh { // https://github.com/melix/jmh-gradle-plugin
     resultsFile = layout.projectDirectory.file("src/jmh/jmh_results.txt")
     verbosity = "EXTRA"
     benchmarkMode = listOf("avgt")
+
+    fork = 1
+    warmupForks = 1
 }
