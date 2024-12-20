@@ -5,7 +5,7 @@ import aoc.utils.containers.headTail
 import aoc.utils.d2.Direction
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
-import aoc.utils.d2.graph.path.reconstructPathFromParentsMap
+import aoc.utils.d2.matrix.anyShortestPathBfs
 
 fun Resource.day20(): Day20 = Day20.parse(nonBlankLines())
 
@@ -19,15 +19,17 @@ data class Day20(
     val result1 by lazy {
         // input is 141 x 141 and the honorable path is 9335
         racetrackStartAndEnd
-            .let { (start, end) -> racetrack.howManyCheatsWouldSaveAtLeastNTime(start, end, saveAtLeastPicoseconds) }
+            .let { (start, end) -> racetrack.howMany2StepCheatsWouldSaveAtLeastNTime(start, end, saveAtLeastPicoseconds) }
     }
 //    val result2: String by lazy { TODO() }
 
-    fun Matrix<Char>.howManyCheatsWouldSaveAtLeastNTime(start: Position, end: Position, saveAtLeast: Long): String {
+    fun Matrix<Char>.howMany2StepCheatsWouldSaveAtLeastNTime(start: Position, end: Position, saveAtLeast: Long): String {
 
-        val shortestPathState = ShortestPathContinuable(this, end)
-        val honorableShortestPath = shortestPathState.findPathNormally(start) ?: error("No honorable path found")
+        val honorableShortestPath = anyShortestPathBfs(start, end) { a, b -> this[b]!! != WALL } ?: error("No honorable path found")
+        // start => 0, first step => 1, ...
+        val honorablePathPosTime = honorableShortestPath.withIndex().associate { it.value to it.index }
 
+        val walkedPath = HashSet<Position>()
         val triedCheatsCounter = HashMap<Int, Int>() // saved steps => variants
 
         fun isInDimsRin(pos: Position): Boolean {
@@ -50,7 +52,7 @@ data class Day20(
                 if (this[step1]!! != WALL) {
                     continue
                 }
-                if (shortestPathState.isVisited(step1)) {
+                if (step1 in walkedPath) {
                     continue // no walking back
                 }
 
@@ -68,7 +70,7 @@ data class Day20(
                     if (this[step2]!! == WALL) {
                         continue // cannot end in a wall
                     }
-                    if (shortestPathState.isVisited(step2)) {
+                    if (step2 in walkedPath) {
                         continue // no walking back
                     }
 
@@ -85,10 +87,15 @@ data class Day20(
 
             val reasonableCheats = findCheats(current, next)
             for (reasonableCheat in reasonableCheats) {
-                val pathWithCheats = shortestPathState.findPathWithCheats(current, reasonableCheat)
-                val savedSteps = if (pathWithCheats == null) -1 else honorableShortestPath.size - pathWithCheats.size
+                // TODO: validate we're not crossing paths?
 
-//                racetrack.printPath(pathWithCheats ?: shortestPathState.partialPath, reasonableCheat)
+                val cheatEnd = reasonableCheat.last()
+                val timeAtCheat = walkedPath.size + reasonableCheat.size
+
+                val originalTimeAtPosition = honorablePathPosTime[cheatEnd]!!
+                val savedSteps = originalTimeAtPosition - timeAtCheat
+
+//                racetrack.printPath(walkedPath + current, reasonableCheat)
 //                println("Saved $savedSteps steps")
 //                println()
 
@@ -99,7 +106,7 @@ data class Day20(
                 triedCheatsCounter.merge(savedSteps, 1, Int::plus)
             }
 
-            shortestPathState.recordStep(current)
+            walkedPath.add(current)
             current = next
         }
 
@@ -118,92 +125,12 @@ data class Day20(
         return cheatsSummary + cheatsTotal
     }
 
-    fun Matrix<Char>.printPath(path: List<Position>, cheats: Collection<Position> = emptySet()) {
+    fun Matrix<Char>.printPath(path: Collection<Position>, cheats: Collection<Position> = emptySet()) {
         racetrack.copy().also { matrix ->
             path.forEach { pos -> matrix[pos] = 'o' }
             cheats.forEach { pos -> matrix[pos] = 'C' }
             print(matrix.toString())
         }
-    }
-
-    data class ShortestPathContinuable(
-        val racetrack: Matrix<Char>,
-        val end: Position,
-        val partialVisited: MutableSet<Position> = mutableSetOf(),
-        val partialPath: MutableList<Position> = mutableListOf(),
-    ) {
-
-        private val remainingQueue = ArrayDeque<Position>();
-        private val remainingCameFrom = HashMap<Position, Position>()
-        private val remainingVisited = HashSet<Position>();
-
-        fun recordStep(from: Position) {
-            partialPath.add(from)
-            partialVisited.add(from)
-        }
-
-        private fun resetRemaining() {
-            remainingQueue.clear()
-            remainingCameFrom.clear()
-            remainingVisited.clear()
-        }
-
-        fun findPathNormally(start: Position): List<Position>? {
-            return findPath(start).also { resetRemaining() }
-        }
-
-        fun findPathWithCheats(start: Position, cheats: List<Position>): List<Position>? {
-            var currentCheat = start
-            for (nextCheat in cheats) {
-                remainingVisited.add(currentCheat)
-                remainingCameFrom[nextCheat] = currentCheat
-                currentCheat = nextCheat
-            }
-
-            return findPath(currentCheat).also { resetRemaining() }
-        }
-
-        private fun findPath(start: Position): List<Position>? {
-            remainingQueue.add(start)
-
-            while (remainingQueue.isNotEmpty()) {
-                val current = remainingQueue.removeFirst()
-                remainingVisited.add(current)
-
-                if (current == end) {
-                    return reconstructPath(current)
-                }
-
-                val neighbours = connectionsFrom(current)
-                for (neighbour in neighbours) {
-                    remainingVisited.add(neighbour) // eagerly add to not step on it from other nodes
-                    remainingCameFrom[neighbour] = current
-                    remainingQueue.add(neighbour)
-                }
-            }
-
-            return null
-        }
-
-        private fun reconstructPath(end: Position): List<Position> =
-            partialPath + remainingCameFrom.reconstructPathFromParentsMap(end)
-
-        private fun connectionsFrom(current: Position): List<Position> {
-            val result = ArrayList<Position>()
-
-            for (dir in Direction.entriesCardinal) {
-                val neighbours = current + dir
-                if (isVisited(neighbours)) continue
-                if (racetrack[neighbours]!! == WALL) continue
-                result.add(neighbours)
-            }
-
-            return result
-        }
-
-        fun isVisited(pos: Position): Boolean =
-            pos in partialVisited || pos in remainingVisited
-
     }
 
     fun Matrix<Char>.startAndEnd(): Pair<Position, Position> =
