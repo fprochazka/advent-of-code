@@ -63,14 +63,14 @@ data class Day20(
         // start => 0, first step => 1, ...
         val honorablePathPosTime = honorableShortestPath.withIndex().associate { it.value to it.index }
 
+        var cheatsCounter = 0L
         val triedCheatsCounter = HashMap<Int, Int>() // saved steps => variants
 
         var current = start
         for (next in honorableShortestPath.drop(1)) {
             if (next == end) break
 
-            val reasonableCheats = findCheats(current)
-            for (reasonableCheat in reasonableCheats) {
+            for (reasonableCheat in findCheats(current)) {
                 // TODO: validate we're not crossing paths?
 
                 val cheatEnd = reasonableCheat.last()
@@ -83,46 +83,45 @@ data class Day20(
 //                println("Saved $savedSteps steps")
 //                println()
 
-                if (savedSteps <= 0) {
+                if (savedSteps < saveAtLeast) {
                     continue
                 }
 
-                triedCheatsCounter.merge(savedSteps, 1, Int::plus)
+                cheatsCounter++
+                if (AocDebug.enabled) triedCheatsCounter.merge(savedSteps, 1, Int::plus)
             }
 
             walkedPath.add(current)
             current = next
         }
 
-        val relevantCheats = triedCheatsCounter.entries
-            .map { it.key to it.value }
-            .filter { it.first >= saveAtLeast }
+        if (AocDebug.enabled) {
+            printDetails(triedCheatsCounter.entries.map { it.key to it.value })
+        }
 
-        if (AocDebug.enabled) printDetails(relevantCheats)
-
-        return relevantCheats.sumOf { it.second.toLong() }
+        return cheatsCounter
     }
 
     fun Matrix<Char>.howMany20StepCheatsWouldSaveAtLeastNTime(start: Position, end: Position, saveAtLeast: Int): Long {
         fun Position.cheatingDistanceTo(other: Position): Int =
             this.distanceTo(other).let { (xDiff, yDiff) -> (xDiff.absoluteValue + yDiff.absoluteValue).toInt() }
 
-        val walkedPath = HashSet<Position>()
-
         val honorableShortestPath = findShortestPath(start, end)
         // start => 0, first step => 1, ...
         val honorablePathPosTime = honorableShortestPath.withIndex().associate { it.value to it.index }
 
-        fun List<Position>.remainingPositionsFromIndex(index: Int): Sequence<Position> =
-            this.asSequence().drop(index)
+        val walkedPath = HashSet<Position>()
 
+        var cheatsCounter = 0L
         val triedCheatsCounter = HashMap<Int, Int>() // saved steps => variants
 
         var current = start
-        for ((index, next) in honorableShortestPath.asSequence().withIndex().drop(1)) {
-            if (next == end) break
+        for (nextIndex in 1..(honorableShortestPath.lastIndex - 1)) {
+            val next = honorableShortestPath[nextIndex]
 
-            for (cheatEnd in honorableShortestPath.remainingPositionsFromIndex(index + saveAtLeast)) {
+            for (cheatEndIndex in (nextIndex + saveAtLeast)..honorableShortestPath.lastIndex) {
+                val cheatEnd = honorableShortestPath[cheatEndIndex]
+
                 val cheatDistance = current.cheatingDistanceTo(cheatEnd)
                 if (cheatDistance > 20) continue
 
@@ -139,20 +138,19 @@ data class Day20(
                     continue
                 }
 
-                triedCheatsCounter.merge(savedSteps, 1, Int::plus)
+                cheatsCounter++
+                if (AocDebug.enabled) triedCheatsCounter.merge(savedSteps, 1, Int::plus)
             }
 
             walkedPath.add(current)
             current = next
         }
 
-        val relevantCheats = triedCheatsCounter.entries
-            .map { it.key to it.value }
-            .filter { it.first >= saveAtLeast }
+        if (AocDebug.enabled) {
+            printDetails(triedCheatsCounter.entries.map { it.key to it.value })
+        }
 
-        if (AocDebug.enabled) printDetails(relevantCheats)
-
-        return relevantCheats.sumOf { it.second.toLong() }
+        return cheatsCounter
     }
 
     fun printDetails(relevantCheats: List<Pair<Int, Int>>) {
