@@ -111,13 +111,10 @@ data class Day20(
         val honorablePathPosTime = honorableShortestPath.withIndex().associate { it.value to it.index }
 
         var cheatsCounter = 0L
-        // val triedCheatsCounter = HashMap<Int, Int>() // saved steps => variants
-
-        var current = start
         for (nextIndex in 1..(honorableShortestPath.lastIndex - 1)) {
-            val walkedPathLength = nextIndex - 1
-            val next = honorableShortestPath[nextIndex]
+            val current = honorableShortestPath[nextIndex - 1]
             val tryCheatsToIndices = (nextIndex + saveAtLeast)..honorableShortestPath.lastIndex
+            val walkedPathLength = nextIndex - 1
 
             for (cheatEndIndex in tryCheatsToIndices) {
                 val cheatEnd = honorableShortestPath[cheatEndIndex]
@@ -138,16 +135,10 @@ data class Day20(
                     continue
                 }
 
-                cheatsCounter++
                 // if (AocDebug.enabled) triedCheatsCounter.merge(savedSteps, 1, Int::plus)
+                cheatsCounter++
             }
-
-            current = next
         }
-
-//        if (AocDebug.enabled) {
-//            printDetails(triedCheatsCounter.entries.map { it.key to it.value })
-//        }
 
         return cheatsCounter
     }
