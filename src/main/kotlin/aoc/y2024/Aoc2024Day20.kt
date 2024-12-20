@@ -110,22 +110,22 @@ data class Day20(
         // start => 0, first step => 1, ...
         val honorablePathPosTime = honorableShortestPath.withIndex().associate { it.value to it.index }
 
-        val walkedPath = HashSet<Position>()
-
         var cheatsCounter = 0L
-        val triedCheatsCounter = HashMap<Int, Int>() // saved steps => variants
+        // val triedCheatsCounter = HashMap<Int, Int>() // saved steps => variants
 
         var current = start
         for (nextIndex in 1..(honorableShortestPath.lastIndex - 1)) {
+            val walkedPathLength = nextIndex - 1
             val next = honorableShortestPath[nextIndex]
+            val tryCheatsToIndices = (nextIndex + saveAtLeast)..honorableShortestPath.lastIndex
 
-            for (cheatEndIndex in (nextIndex + saveAtLeast)..honorableShortestPath.lastIndex) {
+            for (cheatEndIndex in tryCheatsToIndices) {
                 val cheatEnd = honorableShortestPath[cheatEndIndex]
 
                 val cheatDistance = current.cheatingDistanceTo(cheatEnd)
                 if (cheatDistance > 20) continue
 
-                val timeAtCheat = walkedPath.size + cheatDistance
+                val timeAtCheat = walkedPathLength + cheatDistance
 
                 val originalTimeAtPosition = honorablePathPosTime[cheatEnd]!!
                 val savedSteps = originalTimeAtPosition - timeAtCheat
@@ -139,16 +139,15 @@ data class Day20(
                 }
 
                 cheatsCounter++
-                if (AocDebug.enabled) triedCheatsCounter.merge(savedSteps, 1, Int::plus)
+                // if (AocDebug.enabled) triedCheatsCounter.merge(savedSteps, 1, Int::plus)
             }
 
-            walkedPath.add(current)
             current = next
         }
 
-        if (AocDebug.enabled) {
-            printDetails(triedCheatsCounter.entries.map { it.key to it.value })
-        }
+//        if (AocDebug.enabled) {
+//            printDetails(triedCheatsCounter.entries.map { it.key to it.value })
+//        }
 
         return cheatsCounter
     }
