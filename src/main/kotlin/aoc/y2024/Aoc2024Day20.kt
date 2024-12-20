@@ -33,11 +33,11 @@ data class Day20(
         // start => 0, first step => 1, ...
         val honorablePathPosTime = honorableShortestPath.withIndex().associate { it.value to it.index }
 
-        fun findCheats(currentIndex: Int): List<Pair<Position, Position>> {
+        fun findCheats(currentIndex: Int): List<Position> {
             val current = honorableShortestPath[currentIndex]
             val previous = if (currentIndex > 0) honorableShortestPath[currentIndex - 1] else null
 
-            val result = ArrayList<Pair<Position, Position>>()
+            val result = ArrayList<Position>()
             for (step1 in current.neighboursCardinalIn(dims)) {
                 if (this[step1]!! != WALL) {
                     continue // we want to walk into a wall with the first step
@@ -57,7 +57,7 @@ data class Day20(
                         continue
                     }
 
-                    result.add(step1 to step2)
+                    result.add(step2)
                 }
             }
 
@@ -68,11 +68,10 @@ data class Day20(
         for (currentIndex in 0..(honorableShortestPath.lastIndex - 1)) {
             val walkedPathLength = currentIndex
 
-            for (reasonableCheat in findCheats(currentIndex)) {
-                val cheatEnd = reasonableCheat.second
+            for (cheatJumpTo in findCheats(currentIndex)) {
                 val timeAtCheat = walkedPathLength + 2 // 2 = cheats size
 
-                val originalTimeAtPosition = honorablePathPosTime[cheatEnd]!!
+                val originalTimeAtPosition = honorablePathPosTime[cheatJumpTo]!!
                 val savedSteps = originalTimeAtPosition - timeAtCheat
 
 //                racetrack.printPath(walkedPath + current, reasonableCheat)
@@ -95,8 +94,6 @@ data class Day20(
             this.distanceTo(other).let { (xDiff, yDiff) -> (xDiff.absoluteValue + yDiff.absoluteValue).toInt() }
 
         val honorableShortestPath = findShortestPath(start, end)
-        // start => 0, first step => 1, ...
-        val honorablePathPosTime = honorableShortestPath.withIndex().associate { it.value to it.index }
 
         val parallelism = 8
         return@runBlocking withContext(Dispatchers.Default.limitedParallelism(parallelism)) {
@@ -113,8 +110,7 @@ data class Day20(
                         if (cheatDistance > 20) continue
 
                         val timeAtCheat = walkedPathLength + cheatDistance
-
-                        val originalTimeAtPosition = honorablePathPosTime[cheatEnd]!!
+                        val originalTimeAtPosition = cheatEndIndex
                         val savedSteps = originalTimeAtPosition - timeAtCheat
 
 //                         racetrack.printPath(walkedPath + current, anyShortestPathBfs(current, cheatEnd) { _, _ -> true }!!)
