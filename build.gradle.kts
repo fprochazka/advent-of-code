@@ -117,6 +117,14 @@ jmh { // https://github.com/melix/jmh-gradle-plugin
     verbosity = "EXTRA"
     benchmarkMode = listOf("avgt")
 
-    fork = 1
+    failOnError = true
+    forceGC = false // Should JMH force GC between iterations?
+    jmhTimeout = "30s"
+
     warmupForks = 1
+    warmupIterations = 10
+
+    fork = 1
+    timeOnIteration = "5s"
+    iterations = 10
 }

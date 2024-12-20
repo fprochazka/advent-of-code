@@ -20,9 +20,9 @@ import aoc.y2024.Aoc2024Day16Kt;
 import aoc.y2024.Aoc2024Day17Kt;
 import aoc.y2024.Aoc2024Day18Kt;
 import aoc.y2024.Aoc2024Day19Kt;
+import aoc.y2024.Aoc2024Day20Kt;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
@@ -376,6 +376,24 @@ public class Aoc2024Bench
     {
         bh.consume(
             Aoc2024Day19Kt.day19(inDay19).getResult2()
+        );
+    }
+
+    private final Resource inDay20 = Resource.named("aoc2024/day20/input.txt");
+
+    @Benchmark
+    public void day20_task1(Blackhole bh)
+    {
+        bh.consume(
+            Aoc2024Day20Kt.day20(inDay20).getResult1()
+        );
+    }
+
+    @Benchmark
+    public void day20_task2(Blackhole bh)
+    {
+        bh.consume(
+            Aoc2024Day20Kt.day20(inDay20).getResult2()
         );
     }
 
