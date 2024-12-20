@@ -106,6 +106,17 @@ class PositionMap<V : Any>(
         return if (xValues != null) xValues[x.toInt()] else null
     }
 
+    fun copy(): PositionMap<V> =
+        PositionMap<V>(dims, valueClass).also { copy ->
+            for (y in yIndices) {
+                val yValues = inner[y]
+                if (yValues != null) {
+                    copy.inner[y] = yValues.copyOf()
+                }
+            }
+            copy.innerSize = innerSize
+        }
+
     class Entry<V : Any>(
         val x: Int,
         val y: Int,
