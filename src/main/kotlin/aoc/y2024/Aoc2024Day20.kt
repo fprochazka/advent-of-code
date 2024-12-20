@@ -1,15 +1,16 @@
 package aoc.y2024
 
-import aoc.utils.AocDebug
 import aoc.utils.Resource
 import aoc.utils.containers.headTail
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
 import aoc.utils.d2.matrix.anyShortestPathBfs
+import kotlinx.coroutines.*
 import kotlin.math.absoluteValue
 
 fun Resource.day20(): Day20 = Day20.parse(nonBlankLines())
 
+@OptIn(ExperimentalCoroutinesApi::class)
 data class Day20(
     val saveAtLeastPicoseconds: Int,
     val racetrack: Matrix<Char>
@@ -24,20 +25,24 @@ data class Day20(
     }
     val result2 by lazy {
         racetrackStartAndEnd
-            .let { (start, end) -> racetrack.howMany20StepCheatsWouldSaveAtLeastNTime(start, end, saveAtLeastPicoseconds) }
+            .let { (start, end) -> racetrack.howManyUpTo20StepCheatsWouldSaveAtLeastNTime(start, end, saveAtLeastPicoseconds) }
     }
 
     fun Matrix<Char>.howMany2StepCheatsWouldSaveAtLeastNTime(start: Position, end: Position, saveAtLeast: Int): Long {
-        val walkedPath = HashSet<Position>()
+        val honorableShortestPath = findShortestPath(start, end)
+        // start => 0, first step => 1, ...
+        val honorablePathPosTime = honorableShortestPath.withIndex().associate { it.value to it.index }
 
-        fun findCheats(current: Position): List<List<Position>> {
-            val result = ArrayList<List<Position>>()
+        fun findCheats(currentIndex: Int): List<Pair<Position, Position>> {
+            val current = honorableShortestPath[currentIndex]
+            val previous = if (currentIndex > 0) honorableShortestPath[currentIndex - 1] else null
 
+            val result = ArrayList<Pair<Position, Position>>()
             for (step1 in current.neighboursCardinalIn(dims)) {
                 if (this[step1]!! != WALL) {
                     continue // we want to walk into a wall with the first step
                 }
-                if (isInRim(step1) || step1 in walkedPath) {
+                if (isInRim(step1) || step1 == previous) {
                     continue
                 }
 
@@ -45,36 +50,27 @@ data class Day20(
                     if (step2 == step1) {
                         continue // no walking back
                     }
-                    if (this[step2]!! == WALL) {
+                    if (this[step2] == WALL) {
                         continue // cannot end in a wall
                     }
-                    if (isInRim(step2) || step2 in walkedPath) {
+                    if (isInRim(step2)) {
                         continue
                     }
 
-                    result.add(listOf(step1, step2))
+                    result.add(step1 to step2)
                 }
             }
 
             return result
         }
 
-        val honorableShortestPath = findShortestPath(start, end)
-        // start => 0, first step => 1, ...
-        val honorablePathPosTime = honorableShortestPath.withIndex().associate { it.value to it.index }
-
         var cheatsCounter = 0L
-        val triedCheatsCounter = HashMap<Int, Int>() // saved steps => variants
+        for (currentIndex in 0..(honorableShortestPath.lastIndex - 1)) {
+            val walkedPathLength = currentIndex
 
-        var current = start
-        for (next in honorableShortestPath.drop(1)) {
-            if (next == end) break
-
-            for (reasonableCheat in findCheats(current)) {
-                // TODO: validate we're not crossing paths?
-
-                val cheatEnd = reasonableCheat.last()
-                val timeAtCheat = walkedPath.size + reasonableCheat.size
+            for (reasonableCheat in findCheats(currentIndex)) {
+                val cheatEnd = reasonableCheat.second
+                val timeAtCheat = walkedPathLength + 2 // 2 = cheats size
 
                 val originalTimeAtPosition = honorablePathPosTime[cheatEnd]!!
                 val savedSteps = originalTimeAtPosition - timeAtCheat
@@ -88,21 +84,13 @@ data class Day20(
                 }
 
                 cheatsCounter++
-                if (AocDebug.enabled) triedCheatsCounter.merge(savedSteps, 1, Int::plus)
             }
-
-            walkedPath.add(current)
-            current = next
-        }
-
-        if (AocDebug.enabled) {
-            printDetails(triedCheatsCounter.entries.map { it.key to it.value })
         }
 
         return cheatsCounter
     }
 
-    fun Matrix<Char>.howMany20StepCheatsWouldSaveAtLeastNTime(start: Position, end: Position, saveAtLeast: Int): Long {
+    fun Matrix<Char>.howManyUpTo20StepCheatsWouldSaveAtLeastNTime(start: Position, end: Position, saveAtLeast: Int): Long = runBlocking {
         fun Position.cheatingDistanceTo(other: Position): Int =
             this.distanceTo(other).let { (xDiff, yDiff) -> (xDiff.absoluteValue + yDiff.absoluteValue).toInt() }
 
@@ -110,37 +98,42 @@ data class Day20(
         // start => 0, first step => 1, ...
         val honorablePathPosTime = honorableShortestPath.withIndex().associate { it.value to it.index }
 
-        var cheatsCounter = 0L
-        for (currentIndex in 0..honorableShortestPath.lastIndex) {
-            val current = honorableShortestPath[currentIndex]
-            val tryCheatsToIndices = (currentIndex + saveAtLeast - 1)..honorableShortestPath.lastIndex
-            val walkedPathLength = currentIndex
+        val parallelism = 8
+        return@runBlocking withContext(Dispatchers.Default.limitedParallelism(parallelism)) {
+            var countsForSubRanges = honorableShortestPath.indices.map { currentIndex ->
+                async {
+                    val current = honorableShortestPath[currentIndex]
+                    val walkedPathLength = currentIndex
 
-            for (cheatEndIndex in tryCheatsToIndices) {
-                val cheatEnd = honorableShortestPath[cheatEndIndex]
+                    var cheatsCounter = 0L
+                    for (cheatEndIndex in (currentIndex + saveAtLeast - 1)..honorableShortestPath.lastIndex) {
+                        val cheatEnd = honorableShortestPath[cheatEndIndex]
 
-                val cheatDistance = current.cheatingDistanceTo(cheatEnd)
-                if (cheatDistance > 20) continue
+                        val cheatDistance = current.cheatingDistanceTo(cheatEnd)
+                        if (cheatDistance > 20) continue
 
-                val timeAtCheat = walkedPathLength + cheatDistance
+                        val timeAtCheat = walkedPathLength + cheatDistance
 
-                val originalTimeAtPosition = honorablePathPosTime[cheatEnd]!!
-                val savedSteps = originalTimeAtPosition - timeAtCheat
+                        val originalTimeAtPosition = honorablePathPosTime[cheatEnd]!!
+                        val savedSteps = originalTimeAtPosition - timeAtCheat
 
-//                racetrack.printPath(walkedPath + current, anyShortestPathBfs(current, cheatEnd) { _, _ -> true }!!)
-//                println("Saved $savedSteps steps")
-//                println()
+//                         racetrack.printPath(walkedPath + current, anyShortestPathBfs(current, cheatEnd) { _, _ -> true }!!)
+//                         println("Saved $savedSteps steps")
+//                         println()
 
-                if (savedSteps < saveAtLeast) {
-                    continue
+                        if (savedSteps < saveAtLeast) {
+                            continue
+                        }
+
+                        cheatsCounter++
+                    }
+
+                    return@async cheatsCounter
                 }
-
-                // if (AocDebug.enabled) triedCheatsCounter.merge(savedSteps, 1, Int::plus)
-                cheatsCounter++
             }
-        }
 
-        return cheatsCounter
+            return@withContext countsForSubRanges.sumOf { it.await() }
+        }
     }
 
     fun printDetails(relevantCheats: List<Pair<Int, Int>>) {

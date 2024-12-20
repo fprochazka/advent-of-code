@@ -7,6 +7,7 @@ import kotlinx.coroutines.*
 fun Resource.day06(): Day06 =
     Day06.parse(matrix2d()).let { (floorPlan, startingPoint) -> Day06(floorPlan, startingPoint) }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 data class Day06(
     val floorPlan: Matrix<Char>,
     val startingPoint: OrientedPosition,
@@ -68,7 +69,6 @@ data class Day06(
         return false
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     fun findObstaclePlacementToCreateLoops(): Set<Position> = runBlocking {
         // we can't place an obstacle on were the guard is standing
         val originalPatrol = patrolPrediction.let { it.subList(1, it.size) }
