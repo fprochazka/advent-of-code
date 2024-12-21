@@ -42,7 +42,7 @@ tasks.register<JavaExec>("benchmarkJvm") {
     dependsOn("assemble")
 
     classpath = sourceSets.main.get().runtimeClasspath
-    mainClass.set("aoc.measure.Aoc2024Kt")
+    mainClass.set("aoc.measure.MeasureAllKt")
 //    jvmArgs = listOf("-server", "-Xms2g", "-Xmx2g")
     jvmArgs = listOf("-server", "-Xms2g", "-Xmx2g", "-XX:+UseSerialGC")
 

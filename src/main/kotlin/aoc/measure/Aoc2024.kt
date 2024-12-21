@@ -14,15 +14,24 @@ import kotlin.time.measureTime
 import kotlin.time.toDuration
 
 fun main() {
-    Aoc2024.setup()
-    Aoc2024.measureAll()
-    Aoc2024.printResults()
+    Aoc2024.run()
 }
 
 /**
  * This is only meant to give a ballpark - this is obviously NOT how you do benchmarks
  */
 object Aoc2024 {
+
+    fun run() {
+        println("# 2024")
+        setup()
+        measureAll()
+
+        println()
+        println("# 2024")
+        println()
+        printResults()
+    }
 
     fun setup() {
         day(1) {
@@ -245,7 +254,6 @@ object Aoc2024 {
 
         val taskColumnWidth = resultsByConfig.keys.map { it.taskName }.maxOf { it.length }.coerceAtLeast(4)
         val inputColumnWidth = resultsByConfig.keys.map { it.inputName.toString() }.maxOf { it.length }.coerceAtLeast(5)
-        println()
         println(" day  ${"task".padStart(taskColumnWidth)} ${"".padStart(inputColumnWidth)}       [average]        [worst]         [best]")
 
         for ((config, runs) in resultsByConfig) {
