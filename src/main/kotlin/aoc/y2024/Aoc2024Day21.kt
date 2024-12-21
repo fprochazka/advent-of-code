@@ -153,7 +153,7 @@ data class Day21(val securityCodes: List<String>) {
                 val alternatives = arrowCodeExpandsTo(code)
 
                 if (controlledBy == null) {
-                    alternatives.minOf { it.length.toLong() }
+                    return@getOrPut alternatives.minOf { it.length.toLong() }
 
                 } else {
                     val lengths = mutableListOf<Long>()
