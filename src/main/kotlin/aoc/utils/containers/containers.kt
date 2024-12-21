@@ -30,3 +30,6 @@ fun <V : Any> List<V>.isEqualTo(expected: List<Int>): Boolean {
 
     return true
 }
+
+fun <V> Collection<V>.allMinOf(selector: (V) -> Int): List<V> =
+    this.groupBy { selector(it) }.entries.minBy { it.key }.value

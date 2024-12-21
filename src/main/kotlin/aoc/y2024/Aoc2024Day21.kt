@@ -1,6 +1,7 @@
 package aoc.y2024
 
 import aoc.utils.Resource
+import aoc.utils.containers.allMinOf
 import aoc.utils.d2.Direction
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
@@ -220,9 +221,6 @@ data class Day21(val securityCodes: List<String>) {
     }
 
     companion object {
-
-        fun <V> Collection<V>.allMinOf(selector: (V) -> Int): List<V> =
-            this.groupBy { selector(it) }.entries.minBy { it.key }.value
 
         fun Direction.toSymbol(): Char = when (this) {
             Direction.UP -> '^'
