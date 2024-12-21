@@ -1,4 +1,4 @@
-package aoc.utils.d2.graph.path
+package aoc.utils.d2.path
 
 import aoc.utils.d2.AreaDimensions
 import aoc.utils.d2.Direction

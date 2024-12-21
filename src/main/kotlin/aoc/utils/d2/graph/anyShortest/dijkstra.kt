@@ -1,10 +1,10 @@
-package aoc.utils.d2.graph.path.anyShortest
+package aoc.utils.d2.graph.anyShortest
 
 import aoc.utils.d2.Direction
 import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
 import aoc.utils.d2.PositionSet
-import aoc.utils.d2.graph.path.GraphPathStepOriented
+import aoc.utils.d2.path.GraphPathStepOriented
 import java.util.*
 
 fun <V : Any> MatrixGraph<V>.anyShortestOrientedPathDijkstra(

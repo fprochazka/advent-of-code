@@ -3,18 +3,18 @@ package aoc.utils.d2.matrix.allShortest
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.MatrixGraph.Companion.INFINITE_COST
 import aoc.utils.d2.Position
-import aoc.utils.d2.graph.path.GraphPathStep
+import aoc.utils.d2.path.GraphPathStep
 import java.util.*
 
 fun <V : Any> Matrix<V>.allShortestPathsModifiedDijkstra(
     start: Position,
     end: Position,
-    edge: (Position, Position) -> Boolean,
+    edge: (Position, Position) -> Long,
 ): Sequence<GraphPathStep> = sequence {
-    fun connectionsFrom(pos: Position): List<Position> = buildList(4) {
-        for (connection in pos.neighboursCardinalIn(dims)) {
-            if (!edge(pos, connection)) continue
-            add(connection)
+    fun connectionsFrom(step: GraphPathStep): List<Pair<Position, Long>> = buildList(4) {
+        for (connection in step.pos.neighboursCardinalIn(dims)) {
+            if (connection == step.prev?.pos) continue  // no 180 flips
+            add(connection to edge(step.pos, connection))
         }
     }
 
@@ -26,7 +26,7 @@ fun <V : Any> Matrix<V>.allShortestPathsModifiedDijkstra(
     }
 
     while (queue.isNotEmpty()) {
-        val currentStep = queue.poll()
+        val currentStep = queue.poll()!!
 
         if (currentStep.pathCost > shortestPathCost) {
             // the queue is sorted, therefore once it starts returning "too long" results we know we can throw away the rest
@@ -46,10 +46,8 @@ fun <V : Any> Matrix<V>.allShortestPathsModifiedDijkstra(
             continue
         }
 
-        val neighbours = connectionsFrom(currentStep.pos)
-            .filter { it != currentStep.prev?.pos } // no 180 flips
-        for (neighbourPos in neighbours) {
-            queue.add(currentStep.next(neighbourPos))
+        for ((neighbourPos, stepCost) in connectionsFrom(currentStep)) {
+            queue.add(currentStep.next(neighbourPos, stepCost))
         }
     }
 }

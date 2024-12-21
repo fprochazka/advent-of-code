@@ -142,7 +142,7 @@ data class Day20(
     }
 
     fun Matrix<Char>.findShortestPath(start: Position, end: Position): List<Position> =
-        anyShortestPathBfs(start, end) { a, b -> this[b]!! != WALL } ?: error("No honorable path found")
+        anyShortestPathBfs(start, end) { a, b -> this[b]!! != WALL }?.toPositions() ?: error("No honorable path found")
 
     fun Matrix<Char>.isOnRim(pos: Position): Boolean {
         if (pos.x == 0L || pos.y == 0L) return true

@@ -1,11 +1,11 @@
-package aoc.utils.d2.graph.path.anyShortest
+package aoc.utils.d2.graph.anyShortest
 
 import aoc.utils.containers.PriorityQueueSet
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.MatrixGraph.Companion.INFINITE_COST
 import aoc.utils.d2.Position
-import aoc.utils.d2.graph.path.GraphPathParents
+import aoc.utils.d2.path.GraphPathParents
 
 fun <V : Any> MatrixGraph<V>.anyShortestPathAStar(
     start: Position,

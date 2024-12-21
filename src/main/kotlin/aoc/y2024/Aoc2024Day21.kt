@@ -4,8 +4,9 @@ import aoc.utils.Resource
 import aoc.utils.containers.allMinOf
 import aoc.utils.d2.Direction
 import aoc.utils.d2.Matrix
+import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
-import aoc.utils.d2.graph.path.GraphPathStep
+import aoc.utils.d2.path.GraphPathStep
 import aoc.utils.d2.matrix.allShortest.allShortestPathsModifiedDijkstra
 
 fun Resource.day21(): Day21 = Day21(
@@ -188,7 +189,7 @@ data class Day21(val securityCodes: List<String>) {
                 }
 
         private fun shortestPaths(start: Position, end: Position): Sequence<GraphPathStep> =
-            layout.allShortestPathsModifiedDijkstra(start, end, { a, b -> layout[b] != ' ' })
+            layout.allShortestPathsModifiedDijkstra(start, end, { a, b -> if (layout[b] == ' ') MatrixGraph.INFINITE_COST else 1L })
 
     }
 
