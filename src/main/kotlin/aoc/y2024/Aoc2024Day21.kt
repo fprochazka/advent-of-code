@@ -87,47 +87,104 @@ data class Day21(val securityCodes: List<String>) {
         return complexities.sum()
     }
 
+    data class Code(val raw: String) {
+        val length: Int get() = raw.length
+
+        val subSequences by lazy(LazyThreadSafetyMode.PUBLICATION) {
+            raw.toKeyPad2Sequences().map { of(it) }
+        }
+
+        override fun toString(): String = "'$raw' ($length, ${subSequences.size})"
+
+        fun String.toKeyPad2Sequences(): List<String> =
+            this.split('A').dropLast(1).map { it + 'A' }
+
+        companion object {
+
+            private val cache = HashMap<String, Code>()
+
+            fun of(raw: Char): Code =
+                of(raw.toString())
+
+            fun of(raw: String): Code =
+                cache.getOrPut(raw) { Code(raw) }
+
+        }
+    }
+
     fun howToTypeSecurityCodeOnFourthKeypad(code1: String, directionalKeypadsThatRobotsAreUsing: Int): String {
-//        val minimize = compareBy<String> { it.length }.thenBy { it.count { it == '<' } }
-//
-//        val typing1on2 = allShortestWaysToType(code1, keyPad1).minWith(minimize)
-//        val typing2on3 = allShortestWaysToType(typing1on2, keyPad2).minWith(minimize)
-//        val typing3on4 = allShortestWaysToType(typing2on3, keyPad2).minBy { it.length }
+        val expandsTo = buildMap<Code, List<Code>> {
+            val tmp = this
 
-        val subSequenceLeadsToWaysToType = mutableMapOf<String, List<String>>()
-        val subSequenceLeadsToNextLevelExpansionLengths = mutableMapOf<String, Int>()
+            var nextRound = keyPad2.entries.mapTo(HashSet()) { it.second }.filter { it != ' ' }.map { Code.of(it) }.toSet()
+            while (nextRound.isNotEmpty()) {
+                val toExpand = HashSet<Code>()
+                for (code in nextRound) {
+                    if (code in tmp) continue
 
-        fun expandOnlyTheShortestPaths(allCodes: List<String>): List<String> {
-            val codesAndSubSequences = allCodes.map { it to it.split('A').map { it + 'A' } }
-            for ((_, subSequences) in codesAndSubSequences) {
-                for (subSequence in subSequences) {
-                    val computed = subSequenceLeadsToWaysToType.computeIfAbsent(subSequence) { allShortestWaysToTypeOn(subSequence, keyPad2) }
-                    subSequenceLeadsToNextLevelExpansionLengths[subSequence] = computed.minOf { it.length }
+                    val expansions = allShortestWaysToTypeOn(code.raw, keyPad2).map { Code.of(it) }
+                    tmp[code] = expansions
+
+                    val subSequences = expansions.flatMapTo(HashSet()) { it.subSequences }
+                    toExpand.addAll(subSequences.filter { it !in tmp })
+                }
+                nextRound = toExpand
+            }
+        }.toMutableMap()
+        val expandsToLength: MutableMap<Code, Int> = expandsTo.mapValues { it.value.minOf { it.length } }.toMutableMap()
+
+        fun expandsTo(code: Code): List<Code> {
+            expandsTo[code]?.let { return it }
+
+            val expansions = allShortestWaysToTypeOn(code.raw, keyPad2).map { Code.of(it) }
+
+            expandsTo[code] = expansions
+            expandsToLength[code] = expansions.minOf { it.length }
+
+            return expansions
+        }
+
+        fun expandsToLength(code: Code): Int {
+            expandsToLength[code]?.let { return it }
+            expandsTo(code)
+            return expandsToLength[code] ?: error("No length for $code")
+        }
+
+        fun expandOptimally(code: Code): List<Code> {
+            val result = mutableListOf<Code>()
+            fun collect(index: Int, path: String = "") {
+                if (index > code.subSequences.lastIndex) {
+                    result.add(Code(path))
+                    return
+                }
+
+                val subSequence = code.subSequences[index]
+
+                val expansions = expandsTo(subSequence)
+                val expansionsByLength = expansions.groupBy { expandsToLength(it) }
+                val shortestExpansions = expansionsByLength.entries.minBy { it.key }.value
+
+                for (alternative in shortestExpansions) {
+                    collect(index + 1, path + (alternative.raw))
                 }
             }
 
-            val leadsToNextLevelExpansion = mutableMapOf<String, Int>()
-            for ((code, subSequences) in codesAndSubSequences) {
-                leadsToNextLevelExpansion[code] = subSequences.sumOf { subSequenceLeadsToNextLevelExpansionLengths[it]!! }
-            }
+            collect(0)
 
-            val minExpansionLength = leadsToNextLevelExpansion.minOf { it.value }
-            val onlyTheShortestExpansionCodes = leadsToNextLevelExpansion.filter { it.value == minExpansionLength }.map { it.key }
-
-            return onlyTheShortestExpansionCodes.flatMap { allShortestWaysToTypeOn(it, keyPad2) }
+            return result.allMinOf { it.length }
         }
 
         // One numeric keypad (on a door) that a robot is using.
-        val typing1on2 = allShortestWaysToTypeOn(code1, keyPad1)
+        var typingOnNext = allShortestWaysToTypeOn(code1, keyPad1).map { Code.of(it) }
 
-        var typingOnNext = typing1on2
+        // N directional keypads that robots are using.
         repeat(directionalKeypadsThatRobotsAreUsing) {
-            typingOnNext = expandOnlyTheShortestPaths(typingOnNext)
+            typingOnNext = typingOnNext.flatMap { expandOptimally(it) }.allMinOf { it.length }
         }
 
         // I'm typing on the last one
 
-        return typingOnNext.minBy { it.length }
+        return typingOnNext.first().raw
     }
 
     fun allShortestWaysToTypeOn(code: String, remoteKeyPad: Matrix<Char>): List<String> {
@@ -154,9 +211,11 @@ data class Day21(val securityCodes: List<String>) {
 
         dfs(remoteCurrentPos = remoteKeyPadStart, symbols = code.toList())
 
-        val minLength = result.minOf { it.length }
-        return result.filter { it.length <= minLength }
+        return result.allMinOf { it.length }.sorted()
     }
+
+    fun <V> List<V>.allMinOf(selector: (V) -> Int): List<V> =
+        this.groupBy { selector(it) }.entries.minBy { it.key }.value
 
     val howToTypeSymbolCache = mutableMapOf<Matrix<Char>, MutableMap<Pair<Char, Char>, List<String>>>()
 
