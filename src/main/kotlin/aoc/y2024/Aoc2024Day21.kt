@@ -4,6 +4,7 @@ import aoc.utils.Resource
 import aoc.utils.d2.Direction
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
+import aoc.utils.d2.graph.path.GraphPathStep
 import aoc.utils.d2.matrix.allShortest.allShortestPathsModifiedDijkstra
 
 fun Resource.day21(): Day21 = Day21(
@@ -21,25 +22,14 @@ data class Day21(val securityCodes: List<String>) {
     // +---+---+---+
     //     | 0 | A |
     //     +---+---+
-    val keyPadNumeric by lazy {
-        Matrix.ofChars(Resource.CharMatrix2d.fromContent("789\n456\n123\n 0A"))
-    }
+    val keyPadNumeric by lazy { KeyPad("789\n456\n123\n 0A") }
 
     //     +---+---+
     //     | ^ | A |
     // +---+---+---+
     // | < | v | > |
     // +---+---+---+
-    val keyPadArrows by lazy {
-        Matrix.ofChars(Resource.CharMatrix2d.fromContent(" ^A\n<v>"))
-    }
-
-    val keyPadsButtonPositions: Map<Matrix<Char>, Map<Char, Position>> by lazy {
-        mapOf(
-            keyPadNumeric to keyPadNumeric.allPositionsByValues({ true }).mapValues { it.value.single() },
-            keyPadArrows to keyPadArrows.allPositionsByValues({ true }).mapValues { it.value.single() },
-        )
-    }
+    val keyPadArrows by lazy { KeyPad(" ^A\n<v>") }
 
     val result1 by lazy { sumOfComplexitiesForSecurityCodes(securityCodes, arrowKeypadsThatRobotsAreUsing = 2) }
     val result2 by lazy { sumOfComplexitiesForSecurityCodes(securityCodes, arrowKeypadsThatRobotsAreUsing = 25) }
@@ -100,10 +90,13 @@ data class Day21(val securityCodes: List<String>) {
             raw.toKeyPad2Sequences().map { of(it) }
         }
 
-        override fun toString(): String = "'$raw' ($length, ${subSequences.size})"
-
         fun String.toKeyPad2Sequences(): List<String> =
             this.split('A').dropLast(1).map { it + 'A' }
+
+        fun toChars(): List<Char> =
+            raw.toList()
+
+        override fun toString(): String = "'$raw' ($length, ${subSequences.size})"
 
         companion object {
 
@@ -120,12 +113,12 @@ data class Day21(val securityCodes: List<String>) {
 
     inner class Door(val controlledBy: Robot) {
 
-        val input: Matrix<Char> = keyPadNumeric
+        val input: KeyPad = keyPadNumeric
 
         fun shortestLengthToType(code: Code): Long {
             val lengths = mutableListOf<Long>()
 
-            for (arrowsCode in allShortestWaysToTypeOn(code.raw, input).map { Code.of(it) }) {
+            for (arrowsCode in input.getAllShortestWaysToType(code)) {
                 var length = 0L
                 for (subSequence in arrowsCode.subSequences) {
                     length += controlledBy.shortestLengthToType(subSequence)
@@ -142,7 +135,7 @@ data class Day21(val securityCodes: List<String>) {
 
     inner class Robot(val controlledBy: Robot?, val id: Int) {
 
-        val input: Matrix<Char> = keyPadArrows
+        val input: KeyPad = keyPadArrows
 
         private val movesCache = mutableMapOf<String, Long>()
 
@@ -150,7 +143,7 @@ data class Day21(val securityCodes: List<String>) {
             require(code.raw.count { it == 'A' } == 1) { "Expected exactly one 'A' in $code for $this" }
 
             return movesCache.getOrPut(code.raw) {
-                val alternatives = arrowCodeExpandsTo(code)
+                val alternatives = input.getAllShortestWaysToType(code)
 
                 if (controlledBy == null) {
                     return@getOrPut alternatives.minOf { it.length.toLong() }
@@ -174,73 +167,82 @@ data class Day21(val securityCodes: List<String>) {
 
     }
 
-    val arrowCodeExpandsTo: MutableMap<String, List<Code>> = HashMap()
+    class KeyPad(buttons: String) {
 
-    fun arrowCodeExpandsTo(code: Code): List<Code> =
-        arrowCodeExpandsTo.getOrPut(code.raw) {
-            allShortestWaysToTypeOn(code.raw, keyPadArrows).map { Code.of(it) }
-        }
+        private val layout = Matrix.ofChars(Resource.CharMatrix2d.fromContent(buttons))
+        private val buttonPositions: Map<Char, Position> = layout.allPositionsByValues({ true }).mapValues { it.value.single() }
 
-    fun allShortestWaysToTypeOn(code: String, remoteKeyPad: Matrix<Char>): List<String> {
-        val result = mutableListOf<String>()
+        operator fun get(pos: Position): Char? = layout[pos]
 
-        val remoteKeyPadButtons = keyPadsButtonPositions[remoteKeyPad]!!
-        val remoteKeyPadStart = remoteKeyPadButtons['A']!!
+        val shortestWaysToTypeCache: MutableMap<String, List<Code>> = HashMap()
 
-        fun dfs(remoteCurrentPos: Position, symbols: List<Char>, alreadyPressed: String = "") {
-            if (symbols.isEmpty()) {
-                result.add(alreadyPressed)
-                return
+        fun getAllShortestWaysToType(code: Code): List<Code> =
+            shortestWaysToTypeCache.getOrPut(code.raw) {
+                findAllShortestWaysToType(code)
             }
 
-            val nextRemoteSymbols = symbols[0]
-            val remainingSymbols = symbols.drop(1)
-            val remoteNextPos = remoteKeyPadButtons[nextRemoteSymbols]!!
+        private fun findAllShortestWaysToType(code: Code): List<Code> {
+            val result = mutableListOf<String>()
 
-            // localKeyPad is always keyPad2
-            for (pressedForButton in howToTypeSymbolOnKeyPad2(symbol = nextRemoteSymbols, startPos = remoteCurrentPos, remoteKeyPad = remoteKeyPad)) {
-                dfs(remoteCurrentPos = remoteNextPos, symbols = remainingSymbols, alreadyPressed = alreadyPressed + pressedForButton)
+            fun dfs(remoteCurrentPos: Position, symbols: List<Char>, alreadyPressed: String = "") {
+                if (symbols.isEmpty()) {
+                    result.add(alreadyPressed)
+                    return
+                }
+
+                val nextRemoteSymbols = symbols[0]
+                val remainingSymbols = symbols.drop(1)
+                val remoteNextPos = buttonPositions[nextRemoteSymbols]!!
+
+                // localKeyPad is always keyPad2
+                for (pressedForButton in howToTypeSymbolOnArrowKeyPad(symbol = nextRemoteSymbols, startPos = remoteCurrentPos)) {
+                    dfs(remoteCurrentPos = remoteNextPos, symbols = remainingSymbols, alreadyPressed = alreadyPressed + pressedForButton)
+                }
             }
+
+            dfs(remoteCurrentPos = buttonPositions['A']!!, symbols = code.toChars())
+
+            return result.allMinOf { it.length }.sorted().map { Code.of(it) }
         }
 
-        dfs(remoteCurrentPos = remoteKeyPadStart, symbols = code.toList())
+        private val howToTypeSymbolCache = HashMap<Pair<Char, Char>, List<String>>()
 
-        return result.allMinOf { it.length }.sorted()
+        private fun howToTypeSymbolOnArrowKeyPad(symbol: Char, startPos: Position): List<String> =
+            howToTypeSymbolCache
+                .getOrPut(this[startPos]!! to symbol) {
+                    val keyPadButtons = this.buttonPositions
+                    val endPos = keyPadButtons[symbol]!!
+
+                    val result = mutableListOf<String>()
+                    for (shortestPath in this.shortestPaths(startPos, endPos)) {
+                        val howToTypeOnKeyPad2 = shortestPath.toDirections()
+                            .map { it.toSymbol() }
+                            .joinToString(separator = "", postfix = "A")
+
+                        result.add(howToTypeOnKeyPad2)
+                    }
+
+                    return@getOrPut result
+                }
+
+        private fun shortestPaths(start: Position, end: Position): Sequence<GraphPathStep> =
+            layout.allShortestPathsModifiedDijkstra(start, end, { a, b -> layout[b] != ' ' })
+
     }
 
-    fun <V> Collection<V>.allMinOf(selector: (V) -> Int): List<V> =
-        this.groupBy { selector(it) }.entries.minBy { it.key }.value
+    companion object {
 
-    val howToTypeSymbolCache = mutableMapOf<Matrix<Char>, MutableMap<Pair<Char, Char>, List<String>>>()
+        fun <V> Collection<V>.allMinOf(selector: (V) -> Int): List<V> =
+            this.groupBy { selector(it) }.entries.minBy { it.key }.value
 
-    fun howToTypeSymbolOnKeyPad2(symbol: Char, startPos: Position, remoteKeyPad: Matrix<Char>): List<String> {
-        val symbolAtStart = remoteKeyPad[startPos]!!
-
-        val keyPadCache = howToTypeSymbolCache.getOrPut(remoteKeyPad) { mutableMapOf() }
-        keyPadCache[symbolAtStart to symbol]?.let { return it }
-
-        val keyPadButtons = keyPadsButtonPositions[remoteKeyPad]!!
-        val endPos = keyPadButtons[symbol]!!
-
-        val result = mutableListOf<String>()
-        for (shortestPath in remoteKeyPad.allShortestPathsModifiedDijkstra(startPos, endPos, { a, b -> remoteKeyPad[b] != ' ' && remoteKeyPad[a] != ' ' })) {
-            val shortestPathDirections = shortestPath.toDirections()
-            val howToTypeOnKeyPad2 = shortestPathDirections.map { it.toSymbol() }.joinToString(separator = "", postfix = "A")
-
-            result.add(howToTypeOnKeyPad2)
+        fun Direction.toSymbol(): Char = when (this) {
+            Direction.UP -> '^'
+            Direction.RIGHT -> '>'
+            Direction.DOWN -> 'v'
+            Direction.LEFT -> '<'
+            else -> throw IllegalArgumentException("Unexpected direction $this")
         }
 
-        keyPadCache[symbolAtStart to symbol] = result
-
-        return result
-    }
-
-    fun Direction.toSymbol(): Char = when (this) {
-        Direction.UP -> '^'
-        Direction.RIGHT -> '>'
-        Direction.DOWN -> 'v'
-        Direction.LEFT -> '<'
-        else -> throw IllegalArgumentException("Unexpected direction $this")
     }
 
 }
