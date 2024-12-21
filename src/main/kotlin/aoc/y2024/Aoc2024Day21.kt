@@ -83,51 +83,12 @@ data class Day21(val securityCodes: List<String>) {
         return complexities.sum()
     }
 
-    data class Code(val raw: String) {
-        val length: Int get() = raw.length
-
-        val subSequences by lazy(LazyThreadSafetyMode.PUBLICATION) {
-            raw.toKeyPad2Sequences().map { of(it) }
-        }
-
-        fun String.toKeyPad2Sequences(): List<String> =
-            this.split('A').dropLast(1).map { it + 'A' }
-
-        fun toChars(): List<Char> =
-            raw.toList()
-
-        override fun toString(): String = "'$raw' ($length, ${subSequences.size})"
-
-        companion object {
-
-            private val cache = HashMap<String, Code>()
-
-            fun of(raw: Char): Code =
-                of(raw.toString())
-
-            fun of(raw: String): Code =
-                cache.getOrPut(raw) { Code(raw) }
-
-        }
-    }
-
     inner class Door(val controlledBy: Robot) {
 
         val input: KeyPad = keyPadNumeric
 
-        fun shortestLengthToType(code: Code): Long {
-            val lengths = mutableListOf<Long>()
-
-            for (arrowsCode in input.getAllShortestWaysToType(code)) {
-                var length = 0L
-                for (subSequence in arrowsCode.subSequences) {
-                    length += controlledBy.shortestLengthToType(subSequence)
-                }
-                lengths.add(length)
-            }
-
-            return lengths.minOf { it }
-        }
+        fun shortestLengthToType(code: Code): Long =
+            input.getShortestLengthToType(code, controlledBy)
 
         override fun toString(): String = "Door"
 
@@ -139,32 +100,33 @@ data class Day21(val securityCodes: List<String>) {
 
         private val movesCache = mutableMapOf<String, Long>()
 
-        fun shortestLengthToType(code: Code): Long {
-            require(code.raw.count { it == 'A' } == 1) { "Expected exactly one 'A' in $code for $this" }
-
-            return movesCache.getOrPut(code.raw) {
-                val alternatives = input.getAllShortestWaysToType(code)
-
-                if (controlledBy == null) {
-                    return@getOrPut alternatives.minOf { it.length.toLong() }
-
-                } else {
-                    val lengths = mutableListOf<Long>()
-                    for (alternative in alternatives) {
-                        var length = 0L
-                        for (subSequence in alternative.subSequences) {
-                            length += controlledBy.shortestLengthToType(subSequence)
-                        }
-                        lengths.add(length)
-                    }
-
-                    return@getOrPut lengths.minOf { it }
-                }
-            }
-        }
+        fun shortestLengthToType(code: Code): Long =
+            movesCache.getOrPut(code.raw) { input.getShortestLengthToType(code, controlledBy) }
 
         override fun toString(): String = "Robot $id"
 
+    }
+
+    fun KeyPad.getShortestLengthToType(code: Code, controlledBy: Robot?): Long {
+        require(code.raw.count { it == 'A' } == 1) { "Expected exactly one 'A' in $code for $this" }
+
+        val alternatives = getAllShortestWaysToType(code)
+
+        if (controlledBy == null) {
+            return alternatives.minOf { it.length.toLong() }
+
+        } else {
+            val lengths = mutableListOf<Long>()
+            for (alternative in alternatives) {
+                var length = 0L
+                for (subSequence in alternative.subSequences) {
+                    length += controlledBy.shortestLengthToType(subSequence)
+                }
+                lengths.add(length)
+            }
+
+            return lengths.minOf { it }
+        }
     }
 
     class KeyPad(buttons: String) {
@@ -228,6 +190,34 @@ data class Day21(val securityCodes: List<String>) {
         private fun shortestPaths(start: Position, end: Position): Sequence<GraphPathStep> =
             layout.allShortestPathsModifiedDijkstra(start, end, { a, b -> layout[b] != ' ' })
 
+    }
+
+    data class Code(val raw: String) {
+        val length: Int get() = raw.length
+
+        val subSequences by lazy(LazyThreadSafetyMode.PUBLICATION) {
+            raw.toKeyPad2Sequences().map { of(it) }
+        }
+
+        fun String.toKeyPad2Sequences(): List<String> =
+            this.split('A').dropLast(1).map { it + 'A' }
+
+        fun toChars(): List<Char> =
+            raw.toList()
+
+        override fun toString(): String = "'$raw' ($length, ${subSequences.size})"
+
+        companion object {
+
+            private val cache = HashMap<String, Code>()
+
+            fun of(raw: Char): Code =
+                of(raw.toString())
+
+            fun of(raw: String): Code =
+                cache.getOrPut(raw) { Code(raw) }
+
+        }
     }
 
     companion object {
