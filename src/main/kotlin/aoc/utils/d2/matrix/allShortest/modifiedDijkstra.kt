@@ -3,18 +3,22 @@ package aoc.utils.d2.matrix.allShortest
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.MatrixGraph.Companion.INFINITE_COST
 import aoc.utils.d2.Position
+import aoc.utils.d2.path.GraphConnection
 import aoc.utils.d2.path.GraphPathStep
 import java.util.*
 
 fun <V : Any> Matrix<V>.allShortestPathsModifiedDijkstra(
     start: Position,
     end: Position,
-    edge: (Position, Position) -> Long,
+    edge: (Position, Position) -> GraphConnection,
 ): Sequence<GraphPathStep> = sequence {
     fun connectionsFrom(step: GraphPathStep): List<Pair<Position, Long>> = buildList(4) {
         for (connection in step.pos.neighboursCardinalIn(dims)) {
             if (connection == step.prev?.pos) continue  // no 180 flips
-            add(connection to edge(step.pos, connection))
+            when (val edgeResult = edge(step.pos, connection)) {
+                is GraphConnection.None -> continue
+                is GraphConnection.Edge -> add(connection to edgeResult.cost)
+            }
         }
     }
 

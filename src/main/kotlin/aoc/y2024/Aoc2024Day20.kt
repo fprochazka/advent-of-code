@@ -5,6 +5,7 @@ import aoc.utils.containers.headTail
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
 import aoc.utils.d2.matrix.anyShortest.anyShortestPathBfs
+import aoc.utils.d2.path.GraphConnection
 import kotlinx.coroutines.*
 import kotlin.math.absoluteValue
 
@@ -142,7 +143,7 @@ data class Day20(
     }
 
     fun Matrix<Char>.findShortestPath(start: Position, end: Position): List<Position> =
-        anyShortestPathBfs(start, end) { a, b -> this[b]!! != WALL }?.toPositions() ?: error("No honorable path found")
+        anyShortestPathBfs(start, end) { a, b -> GraphConnection.edgeIf(this[b]!! != WALL) }?.toPositions() ?: error("No honorable path found")
 
     fun Matrix<Char>.isOnRim(pos: Position): Boolean {
         if (pos.x == 0L || pos.y == 0L) return true
