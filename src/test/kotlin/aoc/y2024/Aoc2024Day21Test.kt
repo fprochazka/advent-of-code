@@ -12,7 +12,6 @@ class Aoc2024Day21Test : AocTest() {
         solve(resource2024(21, "example1"))
     }
 
-    @Disabled("TODO: remove me")
     @Test
     fun input() {
         solve(resource2024(21, "input"))
