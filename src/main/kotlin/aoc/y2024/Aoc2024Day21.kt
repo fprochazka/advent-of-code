@@ -1,7 +1,6 @@
 package aoc.y2024
 
 import aoc.utils.Resource
-import aoc.utils.containers.RangesCounter
 import aoc.utils.d2.Direction
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
@@ -22,7 +21,7 @@ data class Day21(val securityCodes: List<String>) {
     // +---+---+---+
     //     | 0 | A |
     //     +---+---+
-    val keyPad1 by lazy {
+    val keyPadNumeric by lazy {
         Matrix.ofChars(Resource.CharMatrix2d.fromContent("789\n456\n123\n 0A"))
     }
 
@@ -31,14 +30,14 @@ data class Day21(val securityCodes: List<String>) {
     // +---+---+---+
     // | < | v | > |
     // +---+---+---+
-    val keyPad2 by lazy {
+    val keyPadArrows by lazy {
         Matrix.ofChars(Resource.CharMatrix2d.fromContent(" ^A\n<v>"))
     }
 
     val keyPadsButtonPositions: Map<Matrix<Char>, Map<Char, Position>> by lazy {
         mapOf(
-            keyPad1 to keyPad1.allPositionsByValues({ true }).mapValues { it.value.single() },
-            keyPad2 to keyPad2.allPositionsByValues({ true }).mapValues { it.value.single() },
+            keyPadNumeric to keyPadNumeric.allPositionsByValues({ true }).mapValues { it.value.single() },
+            keyPadArrows to keyPadArrows.allPositionsByValues({ true }).mapValues { it.value.single() },
         )
     }
 
@@ -78,8 +77,14 @@ data class Day21(val securityCodes: List<String>) {
     // Adding these together produces 126384
 
     fun sumOfComplexitiesForSecurityCodes(codes: List<String>, directionalKeypadsThatRobotsAreUsing: Int): Long {
+        var robot: Robot? = null
+        for (i in 1..directionalKeypadsThatRobotsAreUsing) {
+            robot = Robot(robot, i)
+        }
+        var door = Door(robot!!)
+
         val expandedCodes = codes
-            .map { it to howToTypeSecurityCodeOnFourthKeypad(it, directionalKeypadsThatRobotsAreUsing).length }
+            .map { it to door.shortestLengthToType(Code.of(it)) }
 
         val complexities = expandedCodes
             .map { (code, expanded) -> code.trimStart('0').trimEnd('A').toLong() to expanded }
@@ -102,107 +107,79 @@ data class Day21(val securityCodes: List<String>) {
 
         companion object {
 
-            // private val cache = HashMap<String, Code>()
+            private val cache = HashMap<String, Code>()
 
             fun of(raw: Char): Code =
                 of(raw.toString())
 
             fun of(raw: String): Code =
-                // cache.getOrPut(raw) { Code(raw) }
-                Code(raw)
+                cache.getOrPut(raw) { Code(raw) }
 
         }
     }
 
-    fun howToTypeSecurityCodeOnFourthKeypad(code1: String, directionalKeypadsThatRobotsAreUsing: Int): String {
-        val expandsTo = buildMap<Code, List<Code>> {
-            val tmp = this
+    inner class Door(val controlledBy: Robot) {
 
-            var nextRound = keyPad2.entries.mapTo(HashSet()) { it.second }.filter { it != ' ' }.map { Code.of(it) }.toSet()
-            while (nextRound.isNotEmpty()) {
-                val toExpand = HashSet<Code>()
-                for (code in nextRound) {
-                    if (code in tmp) continue
+        val input: Matrix<Char> = keyPadNumeric
 
-                    val expansions = allShortestWaysToTypeOn(code.raw, keyPad2).map { Code.of(it) }
-                    tmp[code] = expansions
+        fun shortestLengthToType(code: Code): Long {
+            val lengths = mutableListOf<Long>()
 
-                    val subSequences = expansions.flatMapTo(HashSet()) { it.subSequences }
-                    toExpand.addAll(subSequences.filter { it !in tmp })
+            for (arrowsCode in allShortestWaysToTypeOn(code.raw, input).map { Code.of(it) }) {
+                var length = 0L
+                for (subSequence in arrowsCode.subSequences) {
+                    length += controlledBy.shortestLengthToType(subSequence)
                 }
-                nextRound = toExpand
+                lengths.add(length)
             }
-        }.toMutableMap()
-        val expandsToLength: MutableMap<Code, Int> = expandsTo.mapValues { it.value.minOf { it.length } }.toMutableMap()
 
-        fun expandsTo(code: Code): List<Code> {
-            expandsTo[code]?.let { return it }
-
-            val expansions = allShortestWaysToTypeOn(code.raw, keyPad2).map { Code.of(it) }
-
-            expandsTo[code] = expansions
-            expandsToLength[code] = expansions.minOf { it.length }
-
-            return expansions
+            return lengths.minOf { it }
         }
 
-        fun expandsToLength(code: Code): Int {
-            expandsToLength[code]?.let { return it }
-            expandsTo(code)
-            return expandsToLength[code] ?: error("No length for $code")
-        }
+        override fun toString(): String = "Door"
 
-        fun expand(code: Code): Sequence<Code> = sequence {
-            val subSequences = code.subSequences
+    }
 
-            val alternativesOnDepth = mutableListOf<List<Code>>()
-            for (subSequence in subSequences) {
-                val expansions = expandsTo(subSequence)
-                val expansionsByLength = expansions.groupBy { expandsToLength(it) }
-                val shortestExpansions = expansionsByLength.entries.minBy { it.key }.value
-                alternativesOnDepth.add(shortestExpansions)
-            }
+    inner class Robot(val controlledBy: Robot?, val id: Int) {
 
-            val alternativesCounter = RangesCounter(subSequences.size) { alternativesOnDepth[it].indices }
+        val input: Matrix<Char> = keyPadArrows
 
-            fun codeFromAlternatives(): Code {
-                val picked = alternativesCounter.get().mapIndexed { depth, alternativeIndex -> alternativesOnDepth[depth][alternativeIndex] }
-                return Code(picked.joinToString("") { it.raw })
-            }
+        private val movesCache = mutableMapOf<String, Long>()
 
-            while (alternativesCounter.hasNext()) {
-                // println(alternativesCounter)
-                yield(codeFromAlternatives())
-                alternativesCounter.next()
-            }
-        }
+        fun shortestLengthToType(code: Code): Long {
+            require(code.raw.count { it == 'A' } == 1) { "Expected exactly one 'A' in $code for $this" }
 
-        fun expandOptimally(codes: List<Code>, repeats: Int): List<Code> {
-            var result = codes
-            repeat(repeats) {
-                val round = mutableListOf<Code>()
-                for (code in result) {
-                    for (expanded in expand(code)) {
-                        round.add(expanded)
+            return movesCache.getOrPut(code.raw) {
+                val alternatives = arrowCodeExpandsTo(code)
+
+                if (controlledBy == null) {
+                    alternatives.minOf { it.length.toLong() }
+
+                } else {
+                    val lengths = mutableListOf<Long>()
+                    for (alternative in alternatives) {
+                        var length = 0L
+                        for (subSequence in alternative.subSequences) {
+                            length += controlledBy.shortestLengthToType(subSequence)
+                        }
+                        lengths.add(length)
                     }
+
+                    return@getOrPut lengths.minOf { it }
                 }
-
-                result = round.allMinOf { it.length }
             }
-
-            return result
         }
 
-        // One numeric keypad (on a door) that a robot is using.
-        var typingOnNext = allShortestWaysToTypeOn(code1, keyPad1).map { Code.of(it) }
+        override fun toString(): String = "Robot $id"
 
-        // N directional keypads that robots are using.
-        typingOnNext = expandOptimally(typingOnNext, directionalKeypadsThatRobotsAreUsing)
-
-        // I'm typing on the last one
-
-        return typingOnNext.first().raw
     }
+
+    val arrowCodeExpandsTo: MutableMap<String, List<Code>> = HashMap()
+
+    fun arrowCodeExpandsTo(code: Code): List<Code> =
+        arrowCodeExpandsTo.getOrPut(code.raw) {
+            allShortestWaysToTypeOn(code.raw, keyPadArrows).map { Code.of(it) }
+        }
 
     fun allShortestWaysToTypeOn(code: String, remoteKeyPad: Matrix<Char>): List<String> {
         val result = mutableListOf<String>()
