@@ -1,6 +1,7 @@
 package aoc.y2024
 
 import aoc.utils.Resource
+import aoc.utils.containers.RangesCounter
 import aoc.utils.d2.Direction
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
@@ -101,13 +102,14 @@ data class Day21(val securityCodes: List<String>) {
 
         companion object {
 
-            private val cache = HashMap<String, Code>()
+            // private val cache = HashMap<String, Code>()
 
             fun of(raw: Char): Code =
                 of(raw.toString())
 
             fun of(raw: String): Code =
-                cache.getOrPut(raw) { Code(raw) }
+                // cache.getOrPut(raw) { Code(raw) }
+                Code(raw)
 
         }
     }
@@ -150,37 +152,52 @@ data class Day21(val securityCodes: List<String>) {
             return expandsToLength[code] ?: error("No length for $code")
         }
 
-        fun expandOptimally(code: Code): List<Code> {
-            val result = mutableListOf<Code>()
-            fun collect(index: Int, path: String = "") {
-                if (index > code.subSequences.lastIndex) {
-                    result.add(Code(path))
-                    return
-                }
+        fun expand(code: Code): Sequence<Code> = sequence {
+            val subSequences = code.subSequences
 
-                val subSequence = code.subSequences[index]
-
+            val alternativesOnDepth = mutableListOf<List<Code>>()
+            for (subSequence in subSequences) {
                 val expansions = expandsTo(subSequence)
                 val expansionsByLength = expansions.groupBy { expandsToLength(it) }
                 val shortestExpansions = expansionsByLength.entries.minBy { it.key }.value
-
-                for (alternative in shortestExpansions) {
-                    collect(index + 1, path + (alternative.raw))
-                }
+                alternativesOnDepth.add(shortestExpansions)
             }
 
-            collect(0)
+            val alternativesCounter = RangesCounter(subSequences.size) { alternativesOnDepth[it].indices }
 
-            return result.allMinOf { it.length }
+            fun codeFromAlternatives(): Code {
+                val picked = alternativesCounter.get().mapIndexed { depth, alternativeIndex -> alternativesOnDepth[depth][alternativeIndex] }
+                return Code(picked.joinToString("") { it.raw })
+            }
+
+            while (alternativesCounter.hasNext()) {
+                // println(alternativesCounter)
+                yield(codeFromAlternatives())
+                alternativesCounter.next()
+            }
+        }
+
+        fun expandOptimally(codes: List<Code>, repeats: Int): List<Code> {
+            var result = codes
+            repeat(repeats) {
+                val round = mutableListOf<Code>()
+                for (code in result) {
+                    for (expanded in expand(code)) {
+                        round.add(expanded)
+                    }
+                }
+
+                result = round.allMinOf { it.length }
+            }
+
+            return result
         }
 
         // One numeric keypad (on a door) that a robot is using.
         var typingOnNext = allShortestWaysToTypeOn(code1, keyPad1).map { Code.of(it) }
 
         // N directional keypads that robots are using.
-        repeat(directionalKeypadsThatRobotsAreUsing) {
-            typingOnNext = typingOnNext.flatMap { expandOptimally(it) }.allMinOf { it.length }
-        }
+        typingOnNext = expandOptimally(typingOnNext, directionalKeypadsThatRobotsAreUsing)
 
         // I'm typing on the last one
 
@@ -214,7 +231,7 @@ data class Day21(val securityCodes: List<String>) {
         return result.allMinOf { it.length }.sorted()
     }
 
-    fun <V> List<V>.allMinOf(selector: (V) -> Int): List<V> =
+    fun <V> Collection<V>.allMinOf(selector: (V) -> Int): List<V> =
         this.groupBy { selector(it) }.entries.minBy { it.key }.value
 
     val howToTypeSymbolCache = mutableMapOf<Matrix<Char>, MutableMap<Pair<Char, Char>, List<String>>>()
