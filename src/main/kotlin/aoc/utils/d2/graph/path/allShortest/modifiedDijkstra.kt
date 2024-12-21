@@ -14,7 +14,7 @@ fun <V : Any> MatrixGraph<V>.allShortestOrientedPathsModifiedDijkstra(
     end: Position,
     edgeCost: (GraphPathOrientedStep, Direction) -> Long,
 ): Sequence<GraphPathOrientedStep> = sequence {
-    val minCosts = GraphPathOrientedMinCostsMatrix(this@allShortestOrientedPathsModifiedDijkstra)
+    val minCosts = GraphPathOrientedMinCostsMatrix(this@allShortestOrientedPathsModifiedDijkstra.dims)
     var shortestPathCost = INFINITE_COST
 
     val queue = PriorityQueue<GraphPathOrientedStep>(compareBy { it.pathCost }).apply {

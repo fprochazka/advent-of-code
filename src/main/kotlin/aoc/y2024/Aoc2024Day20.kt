@@ -4,7 +4,7 @@ import aoc.utils.Resource
 import aoc.utils.containers.headTail
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
-import aoc.utils.d2.matrix.anyShortestPathBfs
+import aoc.utils.d2.matrix.anyShortest.anyShortestPathBfs
 import kotlinx.coroutines.*
 import kotlin.math.absoluteValue
 

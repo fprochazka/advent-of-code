@@ -1,4 +1,4 @@
-package aoc.utils.d2.matrix
+package aoc.utils.d2.matrix.anyShortest
 
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position

@@ -7,25 +7,24 @@ import org.junit.jupiter.api.Test
 
 class Aoc2024Day21Test : AocTest() {
 
-    @Disabled("TODO: remove me")
     @Test
     fun example1() {
-        solve(resource2024(99, "example1"))
+        solve(resource2024(21, "example1"))
     }
 
     @Disabled("TODO: remove me")
     @Test
     fun input() {
-        solve(resource2024(99, "input"))
+        solve(resource2024(21, "input"))
     }
 
     private fun solve(input: Resource) {
         println("input: $input")
 
-        val problem = input.day99()
+        val problem = input.day21()
 
         input.assertResult("task1") { problem.result1 }
-        input.assertResult("task2") { problem.result2 }
+//        input.assertResult("task2") { problem.result2 }
     }
 
 }
