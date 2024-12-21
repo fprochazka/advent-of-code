@@ -2,32 +2,27 @@ package aoc.utils.d2.graph.anyShortest
 
 import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
-import aoc.utils.d2.PositionSet
-import aoc.utils.d2.path.GraphPathParents
+import aoc.utils.d2.path.GraphPathStep
 
 fun <V : Any> MatrixGraph<V>.anyShortestPathBfs(
     start: Position,
     end: Position,
-): List<Position>? {
-    val queue = ArrayDeque<Position>().apply { add(start) }
-    val visited = PositionSet(dims).apply { add(start) }
-    val cameFrom = GraphPathParents(dims)
+): GraphPathStep? {
+    val queue = ArrayDeque<GraphPathStep>().apply { add(GraphPathStep(start, 0)) }
+    val visited = HashSet<Position>().apply { add(start) }
 
     while (queue.isNotEmpty()) {
-        val current = queue.removeFirst()
-        visited.add(current)
+        val currentStep = queue.removeFirst()
+        visited.add(currentStep.pos)
 
-        if (current == end) {
-            return cameFrom.getPathOf(current)
+        if (currentStep.pos == end) {
+            return currentStep
         }
 
-        val neighbours = connectionsFrom(current)
-            .filter { it !in visited }
-
-        for (neighbour in neighbours) {
+        for (neighbour in connectionsFrom(currentStep.pos)) {
+            if (neighbour in visited) continue
             visited.add(neighbour)
-            cameFrom[neighbour] = current
-            queue.add(neighbour)
+            queue.add(currentStep.next(neighbour))
         }
     }
 
