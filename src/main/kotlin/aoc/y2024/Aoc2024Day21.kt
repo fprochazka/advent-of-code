@@ -114,19 +114,18 @@ data class Day21(val securityCodes: List<String>) {
 
         if (controlledBy == null) {
             return alternatives.minOf { it.length.toLong() }
-
-        } else {
-            val lengths = mutableListOf<Long>()
-            for (alternative in alternatives) {
-                var length = 0L
-                for (subSequence in alternative.subSequences) {
-                    length += controlledBy.shortestLengthToType(subSequence)
-                }
-                lengths.add(length)
-            }
-
-            return lengths.minOf { it }
         }
+
+        val lengths = mutableListOf<Long>()
+        for (alternative in alternatives) {
+            var length = 0L
+            for (subSequence in alternative.subSequences) {
+                length += controlledBy.shortestLengthToType(subSequence)
+            }
+            lengths.add(length)
+        }
+
+        return lengths.minOf { it }
     }
 
     class KeyPad(buttons: String) {
