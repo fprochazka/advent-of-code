@@ -98,7 +98,7 @@ graalvmNative {
         named("main") {
             imageName.set("aoc")
             mainClass.set("aoc.measure.Aoc2024Kt")
-            buildArgs.addAll(listOf("-O4", "-march=native", "--link-at-build-time"))
+            buildArgs.addAll(listOf("-O4", "-march=native", "--link-at-build-time", "-H:+UnlockExperimentalVMOptions", "-H:-ReduceImplicitExceptionStackTraceInformation"))
 
             javaLauncher.set(javaToolchains.launcherFor {
                 languageVersion.set(JavaLanguageVersion.of(23))
@@ -106,6 +106,7 @@ graalvmNative {
             })
         }
     }
+
     binaries.all {
         buildArgs.add("--verbose")
     }

@@ -5,7 +5,7 @@ import aoc.utils.d2.Direction
 import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
 import aoc.utils.d2.graph.createDeadEndEliminator
-import aoc.utils.d2.graph.path.GraphPathOrientedStep
+import aoc.utils.d2.graph.path.GraphPathStepOriented
 import aoc.utils.d2.graph.path.allShortest.allShortestOrientedPathsModifiedDijkstra
 import aoc.utils.d2.graph.path.anyShortest.anyShortestOrientedPathDijkstra
 
@@ -53,7 +53,7 @@ data class Day16(val maze: MatrixGraph<Char>) {
         const val WALL = '#'
         const val DEAD_END = 'x'
 
-        fun edgeCost(current: GraphPathOrientedStep, inDir: Direction): Long =
+        fun edgeCost(current: GraphPathStepOriented, inDir: Direction): Long =
             1 + turnCost(current.inDir, inDir)
 
         fun turnCost(from: Direction, to: Direction): Long =

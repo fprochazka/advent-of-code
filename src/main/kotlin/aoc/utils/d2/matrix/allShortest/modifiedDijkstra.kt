@@ -3,35 +3,14 @@ package aoc.utils.d2.matrix.allShortest
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.MatrixGraph.Companion.INFINITE_COST
 import aoc.utils.d2.Position
-import java.util.PriorityQueue
+import aoc.utils.d2.graph.path.GraphPathStep
+import java.util.*
 
-fun <V : Any> Matrix<V>.allShortestPathsDfs(
+fun <V : Any> Matrix<V>.allShortestPathsModifiedDijkstra(
     start: Position,
     end: Position,
     edge: (Position, Position) -> Boolean,
-): Sequence<List<Position>> = sequence {
-    data class GraphPathStep(
-        val pos: Position,
-        val pathCost: Long,
-        val prev: GraphPathStep? = null
-    ) : Comparable<GraphPathStep> {
-
-        fun next(pos: Position, stepCost: Long = 1): GraphPathStep =
-            GraphPathStep(pos, this.pathCost + stepCost, this)
-
-        fun toList(): List<GraphPathStep> =
-            generateSequence(this) { it.prev }.toList().reversed()
-
-        fun toPositions(): List<Position> =
-            toList().map { it.pos }
-
-        override fun compareTo(other: GraphPathStep): Int =
-            this.pathCost.compareTo(other.pathCost)
-
-        override fun toString(): String = "($pos, cost=$pathCost, prev=${prev?.pos})"
-
-    }
-
+): Sequence<GraphPathStep> = sequence {
     fun connectionsFrom(pos: Position): List<Position> = buildList(4) {
         for (connection in pos.neighboursCardinalIn(dims)) {
             if (!edge(pos, connection)) continue
@@ -63,7 +42,7 @@ fun <V : Any> Matrix<V>.allShortestPathsDfs(
 
         if (currentStep.pos == end) {
             shortestPathCost = minOf(shortestPathCost, currentStep.pathCost)
-            yield(currentStep.toPositions())
+            yield(currentStep)
             continue
         }
 

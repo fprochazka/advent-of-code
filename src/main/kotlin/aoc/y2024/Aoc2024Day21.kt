@@ -4,7 +4,7 @@ import aoc.utils.Resource
 import aoc.utils.d2.Direction
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
-import aoc.utils.d2.matrix.allShortest.allShortestPathsDfs
+import aoc.utils.d2.matrix.allShortest.allShortestPathsModifiedDijkstra
 
 fun Resource.day21(): Day21 = Day21(
     nonBlankLines()
@@ -41,8 +41,8 @@ data class Day21(val securityCodes: List<String>) {
         )
     }
 
-    val result1 by lazy { sumOfComplexitiesForSecurityCodes(securityCodes, directionalKeypadsThatRobotsAreUsing = 2) }
-    val result2 by lazy { sumOfComplexitiesForSecurityCodes(securityCodes, directionalKeypadsThatRobotsAreUsing = 25) }
+    val result1 by lazy { sumOfComplexitiesForSecurityCodes(securityCodes, arrowKeypadsThatRobotsAreUsing = 2) }
+    val result2 by lazy { sumOfComplexitiesForSecurityCodes(securityCodes, arrowKeypadsThatRobotsAreUsing = 25) }
 
     // level 1
     // type 029A:
@@ -76,9 +76,9 @@ data class Day21(val securityCodes: List<String>) {
     //   379 * 64  = 24256
     // Adding these together produces 126384
 
-    fun sumOfComplexitiesForSecurityCodes(codes: List<String>, directionalKeypadsThatRobotsAreUsing: Int): Long {
+    fun sumOfComplexitiesForSecurityCodes(codes: List<String>, arrowKeypadsThatRobotsAreUsing: Int): Long {
         var robot: Robot? = null
-        for (i in 1..directionalKeypadsThatRobotsAreUsing) {
+        for (i in 1..arrowKeypadsThatRobotsAreUsing) {
             robot = Robot(robot, i)
         }
         var door = Door(robot!!)
@@ -223,8 +223,8 @@ data class Day21(val securityCodes: List<String>) {
         val endPos = keyPadButtons[symbol]!!
 
         val result = mutableListOf<String>()
-        for (shortestPath in remoteKeyPad.allShortestPathsDfs(startPos, endPos, { a, b -> remoteKeyPad[b] != ' ' && remoteKeyPad[a] != ' ' })) {
-            val shortestPathDirections = shortestPath.zipWithNext().map { (a, b) -> a.relativeDirectionTo(b) ?: error("Cannot determine direction from $a to $b") }
+        for (shortestPath in remoteKeyPad.allShortestPathsModifiedDijkstra(startPos, endPos, { a, b -> remoteKeyPad[b] != ' ' && remoteKeyPad[a] != ' ' })) {
+            val shortestPathDirections = shortestPath.toDirections()
             val howToTypeOnKeyPad2 = shortestPathDirections.map { it.toSymbol() }.joinToString(separator = "", postfix = "A")
 
             result.add(howToTypeOnKeyPad2)

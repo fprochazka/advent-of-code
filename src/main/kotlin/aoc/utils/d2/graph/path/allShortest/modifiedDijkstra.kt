@@ -5,20 +5,20 @@ import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.MatrixGraph.Companion.INFINITE_COST
 import aoc.utils.d2.Position
 import aoc.utils.d2.graph.path.GraphPathOrientedMinCostsMatrix
-import aoc.utils.d2.graph.path.GraphPathOrientedStep
+import aoc.utils.d2.graph.path.GraphPathStepOriented
 import java.util.*
 
 fun <V : Any> MatrixGraph<V>.allShortestOrientedPathsModifiedDijkstra(
     start: Position,
     startDir: Direction,
     end: Position,
-    edgeCost: (GraphPathOrientedStep, Direction) -> Long,
-): Sequence<GraphPathOrientedStep> = sequence {
+    edgeCost: (GraphPathStepOriented, Direction) -> Long,
+): Sequence<GraphPathStepOriented> = sequence {
     val minCosts = GraphPathOrientedMinCostsMatrix(this@allShortestOrientedPathsModifiedDijkstra.dims)
     var shortestPathCost = INFINITE_COST
 
-    val queue = PriorityQueue<GraphPathOrientedStep>(compareBy { it.pathCost }).apply {
-        add(GraphPathOrientedStep(start, startDir, 0))
+    val queue = PriorityQueue<GraphPathStepOriented>(compareBy { it.pathCost }).apply {
+        add(GraphPathStepOriented(start, startDir, 0))
     }
 
     while (queue.isNotEmpty()) {
