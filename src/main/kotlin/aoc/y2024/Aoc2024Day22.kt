@@ -29,9 +29,9 @@ data class Day22(val firstSecretNumbers: List<Long>) {
     // you can only give the monkey a single sequence of four price changes to look for. You can't change the sequence between buyers.
     fun whatIsTheMostBananasWeCanBuyByUsingAnOptimalFourNumberSequence(iteration0: List<Long>): Long {
         val previousBananasToSell = MutableList(iteration0.size) { (iteration0[it] % 10).toInt() }
-        val sequences = List(iteration0.size) { CircularFifoQueue<Int>(4) }
+        val sequences = List(iteration0.size) { FourElementsCircularBuffer<Int>() }
 
-        val bananasPerSequence = HashMap<String, BananasPerMonkey>(1 shl 16, 1.0f) // sequence => [price]
+        val bananasPerSequence = HashMap<Vector4<Int>, BananasPerMonkey>(1 shl 16, 1.0f) // sequence => [price]
 
         val numbers = iteration0.toMutableList()
         for (iter in 1..2000) {
@@ -46,7 +46,7 @@ data class Day22(val firstSecretNumbers: List<Long>) {
                 numbers[monkeyId] = evolvedNumber
 
                 if (iter >= 4) { // at least 4 iterations to get first 4 diffs
-                    val fourNumbersSequence = sequences[monkeyId].joinToString(",")
+                    val fourNumbersSequence = sequences[monkeyId].get()
                     bananasPerSequence
                         .getOrPut(fourNumbersSequence) { BananasPerMonkey() }
                         .monkeyWillSell(monkeyId, bananasToSell.toLong())
@@ -63,15 +63,51 @@ data class Day22(val firstSecretNumbers: List<Long>) {
         return maxBuyableBananas
     }
 
+    class FourElementsCircularBuffer<V : Any> {
+
+        private var value0: V? = null
+        private var value1: V? = null
+        private var value2: V? = null
+        private var value3: V? = null
+
+        private var cursor = 0
+
+        fun add(value: V) {
+            when (cursor) {
+                0 -> value0 = value
+                1 -> value1 = value
+                2 -> value2 = value
+                3 -> value3 = value
+            }
+            cursor = (cursor + 1) % 4
+        }
+
+        // after we've inserted last number, the cursor resets to 0, so 0 is naively 1,2,3,4 and from there it shifts
+        fun get(): Vector4<V> = when (cursor) {
+            0 -> Vector4(value0!!, value1!!, value2!!, value3!!)
+            1 -> Vector4(value1!!, value2!!, value3!!, value0!!)
+            2 -> Vector4(value2!!, value3!!, value0!!, value1!!)
+            3 -> Vector4(value3!!, value0!!, value1!!, value2!!)
+            else -> error("Invalid cursor")
+        }
+
+    }
+
+    data class Vector4<T : Any>(val a: T, val b: T, val c: T, val d: T) {
+        override fun toString(): String = "($a, $b, $c, $d)"
+    }
+
     class BananasPerMonkey {
 
-        val buyers = HashMap<Int, Long>()
+        val buyers = HashSet<Int>()
+        var sum = 0L
 
-        fun sumOfFirstValueForEachMonkey(): Long =
-            buyers.values.sum()
+        fun sumOfFirstValueForEachMonkey(): Long = sum
 
         fun monkeyWillSell(monkeyId: Int, bananas: Long) {
-            buyers.putIfAbsent(monkeyId, bananas)
+            if (buyers.add(monkeyId)) {
+                sum += bananas
+            }
         }
 
     }
