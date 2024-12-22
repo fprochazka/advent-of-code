@@ -12,7 +12,16 @@ class Aoc2024Day22Test : AocTest() {
         solve(resource2024(22, "example1"))
     }
 
-    @Disabled("TODO: remove me")
+    @Test
+    fun example2() {
+        solve(resource2024(22, "example2"))
+    }
+
+    @Test
+    fun example3() {
+        solve(resource2024(22, "example3"))
+    }
+
     @Test
     fun input() {
         solve(resource2024(22, "input"))
@@ -24,7 +33,7 @@ class Aoc2024Day22Test : AocTest() {
         val problem = input.day22()
 
         input.assertResult("task1") { problem.result1 }
-//        input.assertResult("task2") { problem.result2 }
+        input.assertResult("task2") { problem.result2 }
     }
 
 }
