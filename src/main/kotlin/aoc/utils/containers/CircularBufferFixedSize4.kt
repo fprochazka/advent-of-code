@@ -20,11 +20,14 @@ class CircularBufferFixedSize4<V : Any> {
     }
 
     // after we've inserted last number, the cursor resets to 0, so 0 is naively 1,2,3,4 and from there it shifts
-    fun get(): Tuple4<V> = when (cursor) {
-        0 -> Tuple4(value0!!, value1!!, value2!!, value3!!)
-        1 -> Tuple4(value1!!, value2!!, value3!!, value0!!)
-        2 -> Tuple4(value2!!, value3!!, value0!!, value1!!)
-        3 -> Tuple4(value3!!, value0!!, value1!!, value2!!)
+    fun get(): Tuple4<V> = get(::Tuple4)
+
+    // after we've inserted last number, the cursor resets to 0, so 0 is naively 1,2,3,4 and from there it shifts
+    fun <R : Any> get(factory: (V, V, V, V) -> R): R = when (cursor) {
+        0 -> factory(value0!!, value1!!, value2!!, value3!!)
+        1 -> factory(value1!!, value2!!, value3!!, value0!!)
+        2 -> factory(value2!!, value3!!, value0!!, value1!!)
+        3 -> factory(value3!!, value0!!, value1!!, value2!!)
         else -> error("Invalid cursor")
     }
 

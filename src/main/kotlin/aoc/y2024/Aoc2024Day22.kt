@@ -2,7 +2,6 @@ package aoc.y2024
 
 import aoc.utils.Resource
 import aoc.utils.containers.CircularBufferFixedSize4
-import aoc.utils.containers.Tuple4
 import java.util.*
 
 fun Resource.day22(): Day22 = Day22(
@@ -30,37 +29,47 @@ data class Day22(val firstSecretNumbers: List<Long>) {
     // 12249484: 4 (0)
     //  7753432: 2 (-2)
     fun whatIsTheMostBananasWeCanBuyByUsingAnOptimalFourNumberSequence(iteration0: List<Long>): Int {
-        val previousBananasToSell = MutableList(iteration0.size) { (iteration0[it] % 10).toInt() }
-        val sequences = List(iteration0.size) { CircularBufferFixedSize4<Int>() }
+        fun hash(a: Short, b: Short, c: Short, d: Short): Int {
+            // to represent -9..9, we'll increase all values by 10, which requires 5 bits to represent
+            var r = (a.toInt() + 10)
+            r = r shl 5
+            r += (b.toInt() + 10)
+            r = r shl 5
+            r += (c.toInt() + 10)
+            r = r shl 5
+            r += (d.toInt() + 10)
+            return r
+        }
 
-        val bananasPerSequence = HashMap<Tuple4<Int>, BananasPerMonkey>(1 shl 16, 1.0f) // sequence => [price]
+        val previousBananasToSell = MutableList<Short>(iteration0.size) { (iteration0[it] % 10).toShort() }
+        val sequences = List(iteration0.size) { CircularBufferFixedSize4<Short>() }
+
+        val bananasPerSequence = HashMap<Int, BananasPerMonkey>(1 shl 16, 1.0f) // sequence => [price]
 
         val numbers = iteration0.toMutableList()
         for (iter in 1..2000) {
             for (monkeyId in numbers.indices) {
                 val evolvedNumber = evolve(numbers[monkeyId])
-                val bananasToSell = (evolvedNumber % 10).toInt()
+                val bananasToSell = (evolvedNumber % 10).toShort()
 
-                val diff = bananasToSell - previousBananasToSell[monkeyId]
+                val diffsSequence = sequences[monkeyId]
 
-                sequences[monkeyId].add(diff)
+                val diff = (bananasToSell - previousBananasToSell[monkeyId]).toShort()
+                diffsSequence.add(diff)
+
                 previousBananasToSell[monkeyId] = bananasToSell
                 numbers[monkeyId] = evolvedNumber
 
                 if (iter >= 4) { // at least 4 iterations to get first 4 diffs
-                    val fourNumbersSequence = sequences[monkeyId].get()
+                    val hashCode = diffsSequence.get(::hash)
                     bananasPerSequence
-                        .getOrPut(fourNumbersSequence) { BananasPerMonkey(numbers.size) }
+                        .getOrPut(hashCode) { BananasPerMonkey(numbers.size) }
                         .monkeyWillSell(monkeyId, bananasToSell)
                 }
             }
         }
 
         val maxBananas = bananasPerSequence.map { it.value.sum }.max()
-
-//        for ((seq, buyers) in bananasPerSequence) {
-//            println("${seq}: ${buyers}")
-//        }
 
         return maxBananas
     }
@@ -70,7 +79,7 @@ data class Day22(val firstSecretNumbers: List<Long>) {
         val buyers = BitSet(monkeys)
         var sum = 0
 
-        fun monkeyWillSell(monkeyId: Int, bananas: Int) {
+        fun monkeyWillSell(monkeyId: Int, bananas: Short) {
             if (buyers[monkeyId] == false) {
                 sum += bananas
                 buyers[monkeyId] = true
