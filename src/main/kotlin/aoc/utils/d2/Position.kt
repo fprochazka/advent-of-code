@@ -85,6 +85,15 @@ data class Position(val x: Long, val y: Long, private val areaDims: AreaDimensio
         }
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Position) return false
+        return x == other.x && y == other.y
+    }
+
+    override fun hashCode(): Int =
+        (31 * x.hashCode()) + y.hashCode()
+
     override fun toString(): String = "(x=$x, y=$y)"
 
     companion object {

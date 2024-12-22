@@ -111,7 +111,7 @@ data class Day22(val firstSecretNumbers: List<Long>) {
     //    Then, the secret number becomes the result of that operation.
     //    (If the secret number is 100000000 and you were to prune the secret number, the secret number would become 16113920.)
     fun evolve(secretNumber: Long): Long {
-        val evolve1 = (secretNumber xor (secretNumber) * 64) % 16777216L
+        val evolve1 = (secretNumber xor (secretNumber * 64)) % 16777216L
         val evolve2 = (evolve1 xor (evolve1 / 32)) % 16777216L
         val evolve3 = (evolve2 xor (evolve2 * 2048)) % 16777216L
         return evolve3

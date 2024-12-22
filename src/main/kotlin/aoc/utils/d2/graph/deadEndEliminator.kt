@@ -2,6 +2,7 @@ package aoc.utils.d2.graph
 
 import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
+import aoc.utils.d2.PositionBitSet
 
 fun <V : Any> MatrixGraph<V>.createDeadEndEliminator(
     deadEndMarker: V,
@@ -17,7 +18,7 @@ class DeadEndEliminator<V : Any>(
 
     private val nodesByConnections = mutableMapOf<Int, MutableSet<Position>>().apply {
         for (i in 1..graph.neighbourSides.size) {
-            put(i, mutableSetOf())
+            put(i, PositionBitSet(graph.dims))
         }
 
         for ((pos, node) in graph.nodes.entries) {

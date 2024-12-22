@@ -2,6 +2,7 @@ package aoc.utils.d2.graph.anyShortest
 
 import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
+import aoc.utils.d2.PositionBitSet
 import aoc.utils.d2.path.GraphPathStep
 
 fun <V : Any> MatrixGraph<V>.anyShortestPathBfs(
@@ -9,7 +10,7 @@ fun <V : Any> MatrixGraph<V>.anyShortestPathBfs(
     end: Position,
 ): GraphPathStep? {
     val queue = ArrayDeque<GraphPathStep>().apply { add(GraphPathStep(start, 0)) }
-    val visited = HashSet<Position>().apply { add(start) }
+    val visited = PositionBitSet(dims).apply { add(start) }
 
     while (queue.isNotEmpty()) {
         val currentStep = queue.removeFirst()

@@ -2,6 +2,7 @@ package aoc.utils.d2.matrix.anyShortest
 
 import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
+import aoc.utils.d2.PositionBitSet
 import aoc.utils.d2.path.GraphConnection
 import aoc.utils.d2.path.GraphPathStep
 
@@ -11,7 +12,7 @@ fun <V : Any> Matrix<V>.anyShortestPathBfs(
     edge: (Position, Position) -> GraphConnection,
 ): GraphPathStep? {
     val queue = ArrayDeque<GraphPathStep>().apply { add(GraphPathStep(start, 0)) }
-    val visited = HashSet<Position>().apply { add(start) }
+    val visited = PositionBitSet(dims).apply { add(start) }
 
     fun connectionsFrom(step: GraphPathStep): List<Position> = buildList(4) {
         for (connection in step.pos.neighboursCardinalIn(dims)) {

@@ -103,7 +103,7 @@ data class Day06(
             }
 
             // Await all results and add to the thread-safe set
-            chunkResults
+            return@withContext chunkResults
                 .map { it.await() }
                 .flatten()
                 .toSet()
