@@ -54,13 +54,13 @@ data class Day22(val firstSecretNumbers: List<Long>) {
             }
         }
 
-        val maxBuyableBananas = bananasPerSequence.map { it.value.sumOfFirstValueForEachMonkey() }.max()
+        val maxBananas = bananasPerSequence.map { it.value.sum }.max()
 
 //        for ((seq, buyers) in bananasPerSequence) {
 //            println("${seq}: ${buyers}")
 //        }
 
-        return maxBuyableBananas
+        return maxBananas
     }
 
     class FourElementsCircularBuffer<V : Any> {
@@ -91,7 +91,39 @@ data class Day22(val firstSecretNumbers: List<Long>) {
             else -> error("Invalid cursor")
         }
 
-        override fun toString(): String = "($value0, $value1, $value2, $value3) at $cursor"
+        fun value1(): V = when (cursor) {
+            0 -> value0!!
+            1 -> value1!!
+            2 -> value2!!
+            3 -> value3!!
+            else -> error("Invalid cursor")
+        }
+
+        fun value2(): V = when (cursor) {
+            0 -> value1!!
+            1 -> value2!!
+            2 -> value3!!
+            3 -> value0!!
+            else -> error("Invalid cursor")
+        }
+
+        fun value3(): V = when (cursor) {
+            0 -> value2!!
+            1 -> value3!!
+            2 -> value0!!
+            3 -> value1!!
+            else -> error("Invalid cursor")
+        }
+
+        fun value4(): V = when (cursor) {
+            0 -> value3!!
+            1 -> value0!!
+            2 -> value1!!
+            3 -> value2!!
+            else -> error("Invalid cursor")
+        }
+
+        override fun toString(): String = "(${value1()}, $value2(), $value3(), ${value4()}) at ${cursor + 1}nth"
 
     }
 
@@ -99,8 +131,6 @@ data class Day22(val firstSecretNumbers: List<Long>) {
 
         val buyers = HashSet<Int>()
         var sum = 0L
-
-        fun sumOfFirstValueForEachMonkey(): Long = sum
 
         fun monkeyWillSell(monkeyId: Int, bananas: Long) {
             if (buyers.add(monkeyId)) {
