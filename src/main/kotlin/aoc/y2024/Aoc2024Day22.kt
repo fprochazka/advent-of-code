@@ -91,6 +91,8 @@ data class Day22(val firstSecretNumbers: List<Long>) {
             else -> error("Invalid cursor")
         }
 
+        override fun toString(): String = "($value0, $value1, $value2, $value3) at $cursor"
+
     }
 
     class BananasPerMonkey {
@@ -105,6 +107,8 @@ data class Day22(val firstSecretNumbers: List<Long>) {
                 sum += bananas
             }
         }
+
+        override fun toString(): String = "(buyers=${buyers.size}, sum=$sum)"
 
     }
 
