@@ -29,7 +29,7 @@ data class Day22(val firstSecretNumbers: List<Long>) {
     // 11100544: 4 (-2)
     // 12249484: 4 (0)
     //  7753432: 2 (-2)
-    fun whatIsTheMostBananasWeCanBuyByUsingAnOptimalFourNumberSequence(iteration0: List<Long>): Long {
+    fun whatIsTheMostBananasWeCanBuyByUsingAnOptimalFourNumberSequence(iteration0: List<Long>): Int {
         val previousBananasToSell = MutableList(iteration0.size) { (iteration0[it] % 10).toInt() }
         val sequences = List(iteration0.size) { CircularBufferFixedSize4<Int>() }
 
@@ -51,7 +51,7 @@ data class Day22(val firstSecretNumbers: List<Long>) {
                     val fourNumbersSequence = sequences[monkeyId].get()
                     bananasPerSequence
                         .getOrPut(fourNumbersSequence) { BananasPerMonkey(numbers.size) }
-                        .monkeyWillSell(monkeyId, bananasToSell.toLong())
+                        .monkeyWillSell(monkeyId, bananasToSell)
                 }
             }
         }
@@ -68,9 +68,9 @@ data class Day22(val firstSecretNumbers: List<Long>) {
     class BananasPerMonkey(monkeys: Int) {
 
         val buyers = BitSet(monkeys)
-        var sum = 0L
+        var sum = 0
 
-        fun monkeyWillSell(monkeyId: Int, bananas: Long) {
+        fun monkeyWillSell(monkeyId: Int, bananas: Int) {
             if (buyers[monkeyId] == false) {
                 sum += bananas
                 buyers[monkeyId] = true
@@ -88,9 +88,12 @@ data class Day22(val firstSecretNumbers: List<Long>) {
     // 100: 15273692
     // 2024: 8667524
     fun sumOfThe2000ThSecretNumberGeneratedByEachBuyer(iteration0: List<Long>): Long {
-        var numbers = iteration0
-        for (i in 1..2000) {
-            numbers = numbers.map { evolve(it) }
+        val numbers = iteration0.toMutableList()
+        repeat(2000) {
+            // this instead of map() avoids allocation the list 2000 times
+            for (i in numbers.indices) {
+                numbers[i] = evolve(numbers[i])
+            }
         }
 
         // iteration0.withIndex().forEach { (index, originalNumber) -> println("$originalNumber: ${numbers[index]}") }
