@@ -28,43 +28,52 @@ data class Day22(val firstSecretNumbers: List<Long>) {
     // If the monkey never hears that sequence of price changes from a buyer, the monkey will never sell, and will instead just move on to the next buyer
     // you can only give the monkey a single sequence of four price changes to look for. You can't change the sequence between buyers.
     fun whatIsTheMostBananasWeCanBuyByUsingAnOptimalFourNumberSequence(iteration0: List<Long>): Long {
-        val previousDigits = MutableList(iteration0.size) { (iteration0[it] % 10).toInt() }
+        val previousBananasToSell = MutableList(iteration0.size) { (iteration0[it] % 10).toInt() }
         val sequences = List(iteration0.size) { CircularFifoQueue<Int>(4) }
 
-        // sequence => [buyer => price]
-        val bananasPerSequence = mutableMapOf<String, MutableMap<Int, Int>>()
+        val bananasPerSequence = HashMap<String, BananasPerMonkey>(1 shl 16, 1.0f) // sequence => [price]
 
         val numbers = iteration0.toMutableList()
         for (iter in 1..2000) {
             for (monkeyId in numbers.indices) {
                 val evolvedNumber = evolve(numbers[monkeyId])
-                val evolvedNumberLastDigit = (evolvedNumber % 10).toInt()
+                val bananasToSell = (evolvedNumber % 10).toInt()
 
-                val previousLastDigit = previousDigits[monkeyId]
-                val diff = evolvedNumberLastDigit - previousLastDigit
+                val diff = bananasToSell - previousBananasToSell[monkeyId]
 
                 sequences[monkeyId].add(diff)
-                previousDigits[monkeyId] = evolvedNumberLastDigit
+                previousBananasToSell[monkeyId] = bananasToSell
                 numbers[monkeyId] = evolvedNumber
 
                 if (iter >= 4) { // at least 4 iterations to get first 4 diffs
-                    val bananasToSell = evolvedNumberLastDigit
-
                     val fourNumbersSequence = sequences[monkeyId].joinToString(",")
-                    val buyersToPrices = bananasPerSequence.getOrPut(fourNumbersSequence) { mutableMapOf() }
-                    buyersToPrices.putIfAbsent(monkeyId, bananasToSell)
+                    bananasPerSequence
+                        .getOrPut(fourNumbersSequence) { BananasPerMonkey() }
+                        .monkeyWillSell(monkeyId, bananasToSell.toLong())
                 }
             }
         }
 
-        val sumOfBananasPerSequence = bananasPerSequence.mapValues { it.value.values.sum().toLong() }
-        val maxBuyableBananas = sumOfBananasPerSequence.values.max()
+        val maxBuyableBananas = bananasPerSequence.map { it.value.sumOfFirstValueForEachMonkey() }.max()
 
 //        for ((seq, buyers) in bananasPerSequence) {
-//            println("${seq}: ${buyers.entries.sortedBy { it.key }}")
+//            println("${seq}: ${buyers}")
 //        }
 
         return maxBuyableBananas
+    }
+
+    class BananasPerMonkey {
+
+        val buyers = HashMap<Int, Long>()
+
+        fun sumOfFirstValueForEachMonkey(): Long =
+            buyers.values.sum()
+
+        fun monkeyWillSell(monkeyId: Int, bananas: Long) {
+            buyers.putIfAbsent(monkeyId, bananas)
+        }
+
     }
 
     // 1st and 2000th numbers in example:
@@ -89,37 +98,24 @@ data class Day22(val firstSecretNumbers: List<Long>) {
     // - Calculate the result of dividing the secret number by 32. Round the result down to the nearest integer. Then, mix this result into the secret number. Finally, prune the secret number.
     // - Calculate the result of multiplying the secret number by 2048. Then, mix this result into the secret number. Finally, prune the secret number.
     fun evolve(secretNumber: Long): Long {
-        return evolve3(evolve2(evolve1(secretNumber)))
-    }
 
-    fun evolve1(secretNumber: Long): Long {
-        val result = secretNumber * 64
-        return pruneNumber(mixNumber(secretNumber, result))
-    }
+        // To mix a value into the secret number, calculate the bitwise XOR of the given value and the secret number.
+        // Then, the secret number becomes the result of that operation.
+        // (If the secret number is 42 and you were to mix 15 into the secret number, the secret number would become 37.)
+        fun mixNumber(secretNumber: Long, mixin: Long): Long =
+            secretNumber xor mixin
 
-    fun evolve2(secretNumber: Long): Long {
-        val result = secretNumber / 32
-        return pruneNumber(mixNumber(secretNumber, result))
-    }
+        // To prune the secret number, calculate the value of the secret number modulo 16777216.
+        // Then, the secret number becomes the result of that operation.
+        // (If the secret number is 100000000 and you were to prune the secret number, the secret number would become 16113920.)
+        fun pruneNumber(secretNumber: Long): Long =
+            secretNumber % 16777216L
 
-    fun evolve3(secretNumber: Long): Long {
-        val result = secretNumber * 2048
-        return pruneNumber(mixNumber(secretNumber, result))
-    }
+        val evolve1 = pruneNumber(mixNumber(secretNumber, secretNumber * 64))
+        val evolve2 = pruneNumber(mixNumber(evolve1, evolve1 / 32))
+        val evolve3 = pruneNumber(mixNumber(evolve2, evolve2 * 2048))
 
-    // To mix a value into the secret number, calculate the bitwise XOR of the given value and the secret number.
-    // Then, the secret number becomes the result of that operation.
-    // (If the secret number is 42 and you were to mix 15 into the secret number, the secret number would become 37.)
-    fun mixNumber(secretNumber: Long, mixin: Long): Long {
-        return secretNumber xor mixin
+        return evolve3
     }
-
-    // To prune the secret number, calculate the value of the secret number modulo 16777216.
-    // Then, the secret number becomes the result of that operation.
-    // (If the secret number is 100000000 and you were to prune the secret number, the secret number would become 16113920.)
-    fun pruneNumber(secretNumber: Long): Long {
-        return secretNumber % 16777216L
-    }
-
 
 }
