@@ -123,7 +123,7 @@ data class Day22(val firstSecretNumbers: List<Long>) {
             else -> error("Invalid cursor")
         }
 
-        override fun toString(): String = "(${value1()}, $value2(), $value3(), ${value4()}) at ${cursor + 1}nth"
+        override fun toString(): String = "(${value1()}, ${value2()}, ${value3()}, ${value4()}) at ${cursor + 1}nth"
 
     }
 
