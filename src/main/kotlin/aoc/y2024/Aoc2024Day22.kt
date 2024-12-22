@@ -1,7 +1,7 @@
 package aoc.y2024
 
 import aoc.utils.Resource
-import org.apache.commons.collections4.queue.CircularFifoQueue
+import aoc.utils.containers.Tuple4
 
 fun Resource.day22(): Day22 = Day22(
     nonBlankLines().map { it.trim().toLong() }
@@ -31,7 +31,7 @@ data class Day22(val firstSecretNumbers: List<Long>) {
         val previousBananasToSell = MutableList(iteration0.size) { (iteration0[it] % 10).toInt() }
         val sequences = List(iteration0.size) { FourElementsCircularBuffer<Int>() }
 
-        val bananasPerSequence = HashMap<Vector4<Int>, BananasPerMonkey>(1 shl 16, 1.0f) // sequence => [price]
+        val bananasPerSequence = HashMap<Tuple4<Int>, BananasPerMonkey>(1 shl 16, 1.0f) // sequence => [price]
 
         val numbers = iteration0.toMutableList()
         for (iter in 1..2000) {
@@ -83,18 +83,14 @@ data class Day22(val firstSecretNumbers: List<Long>) {
         }
 
         // after we've inserted last number, the cursor resets to 0, so 0 is naively 1,2,3,4 and from there it shifts
-        fun get(): Vector4<V> = when (cursor) {
-            0 -> Vector4(value0!!, value1!!, value2!!, value3!!)
-            1 -> Vector4(value1!!, value2!!, value3!!, value0!!)
-            2 -> Vector4(value2!!, value3!!, value0!!, value1!!)
-            3 -> Vector4(value3!!, value0!!, value1!!, value2!!)
+        fun get(): Tuple4<V> = when (cursor) {
+            0 -> Tuple4(value0!!, value1!!, value2!!, value3!!)
+            1 -> Tuple4(value1!!, value2!!, value3!!, value0!!)
+            2 -> Tuple4(value2!!, value3!!, value0!!, value1!!)
+            3 -> Tuple4(value3!!, value0!!, value1!!, value2!!)
             else -> error("Invalid cursor")
         }
 
-    }
-
-    data class Vector4<T : Any>(val a: T, val b: T, val c: T, val d: T) {
-        override fun toString(): String = "($a, $b, $c, $d)"
     }
 
     class BananasPerMonkey {
