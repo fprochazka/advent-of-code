@@ -2,6 +2,7 @@ package aoc.y2024
 
 import aoc.utils.Resource
 import aoc.utils.containers.Tuple4
+import java.util.*
 
 fun Resource.day22(): Day22 = Day22(
     nonBlankLines().map { it.trim().toLong() }
@@ -48,7 +49,7 @@ data class Day22(val firstSecretNumbers: List<Long>) {
                 if (iter >= 4) { // at least 4 iterations to get first 4 diffs
                     val fourNumbersSequence = sequences[monkeyId].get()
                     bananasPerSequence
-                        .getOrPut(fourNumbersSequence) { BananasPerMonkey() }
+                        .getOrPut(fourNumbersSequence) { BananasPerMonkey(numbers.size) }
                         .monkeyWillSell(monkeyId, bananasToSell.toLong())
                 }
             }
@@ -127,18 +128,19 @@ data class Day22(val firstSecretNumbers: List<Long>) {
 
     }
 
-    class BananasPerMonkey {
+    class BananasPerMonkey(monkeys: Int) {
 
-        val buyers = HashSet<Int>()
+        val buyers = BitSet(monkeys)
         var sum = 0L
 
         fun monkeyWillSell(monkeyId: Int, bananas: Long) {
-            if (buyers.add(monkeyId)) {
+            if (buyers[monkeyId] == false) {
                 sum += bananas
+                buyers[monkeyId] = true
             }
         }
 
-        override fun toString(): String = "(buyers=${buyers.size}, sum=$sum)"
+        override fun toString(): String = "sum=$sum"
 
     }
 
