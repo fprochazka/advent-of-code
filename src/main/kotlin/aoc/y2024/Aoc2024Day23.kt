@@ -3,6 +3,10 @@ package aoc.y2024
 import aoc.utils.AocDebug
 import aoc.utils.Resource
 import aoc.utils.containers.Tuple3
+import aoc.y2024.Day23.Network.Computer
+import aoc.y2024.Day23.Network.ComputersSet
+import java.util.*
+import kotlin.streams.asSequence
 
 fun Resource.day23(): Day23 = Day23(
     nonBlankLines().map { it.split("-", limit = 2).let { it -> it[0] to it[1] } }
@@ -19,42 +23,28 @@ data class Day23(val connections: List<Pair<String, String>>) {
     // That is, for each computer at the LAN party, that computer will have a connection to every other computer at the LAN party.
     // The LAN party posters say that the password to get into the LAN party is the name of every computer at the LAN party, sorted alphabetically, then joined together with commas.
     fun passwordForTheLargestSetOfComputersThatAreAllConnectedToEachOther(): String {
-        var lanParties: Set<MutableSet<Computer>> = network.mapTo(HashSet(network.size, 1.0f)) { mutableSetOf(it.value) }
+        var lanParties: Set<ComputersSet> = network.computers.mapTo(HashSet(network.size, 1.0f)) { network.createComputerSet().apply { add(it) } }
 
-        fun MutableSet<Computer>.allAreConnectedTo(other: Computer): Boolean {
-            for (computer in this) {
-                if (computer !in other.connections) return false
+        fun ComputersSet.addItIfAllAreConnectedToIt(other: Computer): Int {
+            for (computer in this.computers) {
+                if (!other.hasConnectionTo(computer)) return 0
             }
-            return true
+
+            add(other)
+            if (AocDebug.enabled) {
+                println("added ${other.name} to [${this.sortedBy { it.name }.joinToString(", ") { it.name }}]")
+            }
+
+            return 1
         }
 
-        for (connection in connections) {
-            val computerA = network[connection.first]!!
-            val computerB = network[connection.second]!!
-
+        for ((computerA, computerB) in network.uniqueConnections) {
             var grown = 0L
 
             for (lanParty in lanParties) {
                 when {
-                    lanParty.contains(computerA) -> {
-                        if (lanParty.allAreConnectedTo(computerB)) {
-                            lanParty.add(computerB)
-                            grown += 1
-                            if (AocDebug.enabled) {
-                                println("added ${computerB.name} to [${lanParty.sortedBy { it.name }.joinToString(", ") { it.name }}]")
-                            }
-                        }
-                    }
-
-                    lanParty.contains(computerB) -> {
-                        if (lanParty.allAreConnectedTo(computerA)) {
-                            lanParty.add(computerA)
-                            grown += 1
-                            if (AocDebug.enabled) {
-                                println("added ${computerA.name} to [${lanParty.sortedBy { it.name }.joinToString(", ") { it.name }}]")
-                            }
-                        }
-                    }
+                    lanParty.contains(computerA) -> grown += lanParty.addItIfAllAreConnectedToIt(computerB)
+                    lanParty.contains(computerB) -> grown += lanParty.addItIfAllAreConnectedToIt(computerA)
                 }
             }
 
@@ -74,19 +64,18 @@ data class Day23(val connections: List<Pair<String, String>>) {
     fun findAllSetsOfThreeComputersWhereAtLeastOneComputerStartsWithT(): Int {
         val interConnected = HashSet<Tuple3<String>>() // names
 
-        for ((name, computer) in network) {
-            if (computer.connections.size <= 1) continue
-            val ok1 = computer.name.startsWith("t")
+        for (midComputer in network.computers) {
+            val ok1 = midComputer.name.startsWith("t")
 
-            for (leftComputer in computer.connections) {
+            for (leftComputer in midComputer.connectedComputers) {
                 val ok2 = leftComputer.name.startsWith('t')
 
-                for (rightComputer in computer.connections) {
+                for (rightComputer in midComputer.connectedComputers) {
                     if (leftComputer == rightComputer) continue
-                    if (rightComputer !in leftComputer.connections) continue
+                    if (!leftComputer.hasConnectionTo(rightComputer)) continue
                     if (!ok1 && !ok2 && !rightComputer.name.startsWith('t')) continue
 
-                    val names = setOf(name, leftComputer.name, rightComputer.name).sorted()
+                    val names = setOf(midComputer.name, leftComputer.name, rightComputer.name).sorted()
                     interConnected.add(Tuple3(names[0], names[1], names[2]))
                 }
             }
@@ -99,38 +88,125 @@ data class Day23(val connections: List<Pair<String, String>>) {
         return interConnected.size
     }
 
-    fun buildNetwork(): Map<String, Computer> {
-        val network = mutableMapOf<String, Computer>()
+    fun buildNetwork(): Network {
+        val network = Network()
 
         for ((a, b) in connections) {
-            network.put(a, Computer(a))
-            network.put(b, Computer(b))
+            network.addComputer(a)
+            network.addComputer(b)
         }
 
         for ((a, b) in connections) {
-            val computerA = network[a]!!
-            val computerB = network[b]!!
-
-            computerA.connections.add(computerB)
-            computerB.connections.add(computerA)
+            network.addConnection(a, b)
         }
 
         return network
     }
 
-    data class Computer(val name: String, val connections: MutableSet<Computer> = mutableSetOf()) {
+    class Network(
+        val namesToIds: MutableMap<String, Int> = mutableMapOf(),
+        val computers: MutableList<Computer> = mutableListOf(),
+        val uniqueConnectionIds: MutableList<Pair<Int, Int>> = mutableListOf() // they're not really guaranteed to be unique, but the input seems to be unique enough
+    ) {
 
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other !is Computer) return false
-            return name == other.name
+        val size: Int get() = computers.size
+
+        val uniqueConnections: Sequence<Pair<Computer, Computer>>
+            get() = uniqueConnectionIds.asSequence().map { (idA, idB) -> computers[idA] to computers[idB] }
+
+        fun addComputer(name: String): Int =
+            namesToIds.computeIfAbsent(name) {
+                computers.size.also { computers.add(Computer(it, name)) }
+            }
+
+        fun addConnection(a: String, b: String) {
+            val idA = namesToIds[a] ?: addComputer(a)
+            val idB = namesToIds[b] ?: addComputer(b)
+
+            computers[idA].addConnectionTo(idB)
+            computers[idB].addConnectionTo(idA)
+
+            uniqueConnectionIds.add(idA to idB)
         }
 
-        override fun hashCode(): Int {
-            return name.hashCode()
+        fun createComputerSet(): ComputersSet = ComputersSet()
+
+        inner class Computer(
+            val id: Int,
+            val name: String,
+            var connections: ComputersSet? = null // they're created with default size of computers.size, therefore delaying initialization allows us to initialize with right size
+        ) {
+
+            val connectedComputers: Sequence<Computer>
+                get() = connections?.computers ?: emptySequence()
+
+            fun addConnectionTo(otherId: Int) {
+                val tmp = connections ?: (ComputersSet().also { connections = it })
+                tmp.add(otherId)
+            }
+
+            fun hasConnectionTo(other: Computer): Boolean =
+                connections?.contains(other.id) == true
+
+            fun hasConnectionTo(otherId: Int): Boolean =
+                connections?.contains(otherId) == true
+
+            override fun equals(other: Any?): Boolean {
+                if (this === other) return true
+                if (other !is Computer) return false
+                return id == other.id
+            }
+
+            override fun hashCode(): Int {
+                return id.hashCode()
+            }
+
+            override fun toString(): String = "$name #$id (${connections?.size})"
+
         }
 
-        override fun toString(): String = "$name (connections=${connections.size})"
+        inner class ComputersSet : Iterable<Computer> {
+
+            private var connectionsSet: BitSet = BitSet(this@Network.computers.size)
+
+            var size: Int = 0
+
+            val ids: Sequence<Int>
+                get() = connectionsSet.stream().asSequence()
+
+            val computers: Sequence<Computer>
+                get() = ids.map { this@Network.computers[it] }
+
+            override fun iterator(): Iterator<Computer> =
+                computers.iterator()
+
+            fun add(computer: Computer) {
+                add(computer.id)
+            }
+
+            fun add(id: Int) {
+                if (connectionsSet[id] == false) {
+                    size += 1
+                }
+                connectionsSet[id] = true
+            }
+
+            operator fun contains(computer: Computer): Boolean =
+                contains(computer.id)
+
+            operator fun contains(id: Int): Boolean =
+                connectionsSet[id] == true
+
+            override fun equals(other: Any?): Boolean {
+                if (this === other) return true
+                if (other !is ComputersSet) return false
+                return connectionsSet == other.connectionsSet
+            }
+
+            override fun hashCode(): Int =
+                connectionsSet.hashCode()
+
+        }
 
     }
 
