@@ -7,7 +7,7 @@ class BitSetK(initBits: Int? = null) : MutableSet<Int> {
     private var presence: BitSet = if (initBits != null) BitSet(initBits) else BitSet()
     private var sizeCache = 0
 
-    override fun iterator(): MutableIterator<Int> = presence.stream().iterator()
+    override fun iterator(): MutableIterator<Int> = Itr()
 
     override fun add(id: Int): Boolean {
         val hadPreviously = presence[id]
@@ -85,5 +85,23 @@ class BitSetK(initBits: Int? = null) : MutableSet<Int> {
 
     override fun toString(): String =
         joinToString(",", prefix = "[", postfix = "]")
+
+    private inner class Itr : MutableIterator<Int> {
+
+        private var nextValue = presence.nextSetBit(0)
+
+        override fun next(): Int {
+            if (!hasNext()) throw NoSuchElementException()
+            return nextValue.also {
+                nextValue = presence.nextSetBit(nextValue + 1)
+            }
+        }
+
+        override fun hasNext(): Boolean =
+            nextValue >= 0
+
+        override fun remove(): Unit = TODO("Not yet implemented")
+
+    }
 
 }
