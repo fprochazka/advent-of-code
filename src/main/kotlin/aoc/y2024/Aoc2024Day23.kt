@@ -19,7 +19,7 @@ data class Day23(val connections: List<Pair<String, String>>) {
     // That is, for each computer at the LAN party, that computer will have a connection to every other computer at the LAN party.
     // The LAN party posters say that the password to get into the LAN party is the name of every computer at the LAN party, sorted alphabetically, then joined together with commas.
     fun passwordForTheLargestSetOfComputersThatAreAllConnectedToEachOther(): String {
-        var lanParties: MutableSet<MutableSet<Computer>> = network.map { mutableSetOf(it.value) }.toMutableSet()
+        var lanParties: Set<MutableSet<Computer>> = network.mapTo(HashSet(network.size, 1.0f)) { mutableSetOf(it.value) }
 
         fun MutableSet<Computer>.allAreConnectedTo(other: Computer): Boolean {
             for (computer in this) {
@@ -28,7 +28,7 @@ data class Day23(val connections: List<Pair<String, String>>) {
             return true
         }
 
-        for ((i, connection) in connections.withIndex()) {
+        for (connection in connections) {
             val computerA = network[connection.first]!!
             val computerB = network[connection.second]!!
 
@@ -59,15 +59,8 @@ data class Day23(val connections: List<Pair<String, String>>) {
             }
 
             if (grown > 5) {
-                val beforeDistinct = lanParties.size
-                lanParties = lanParties.distinct().toMutableSet()
-                if (AocDebug.enabled) {
-                    if (lanParties.size < beforeDistinct) {
-                        println("distinct: $beforeDistinct -> ${lanParties.size}")
-                    } else {
-                        println("useless distinct")
-                    }
-                }
+                // set does not drop elements that are internally modified without it getting a ping about it, so we have to help it
+                lanParties = lanParties.toSet()
             }
         }
 
