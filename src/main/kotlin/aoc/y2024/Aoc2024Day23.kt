@@ -1,5 +1,6 @@
 package aoc.y2024
 
+import aoc.utils.AocDebug
 import aoc.utils.Resource
 import aoc.utils.containers.Tuple3
 
@@ -18,7 +19,7 @@ data class Day23(val connections: List<Pair<String, String>>) {
     // That is, for each computer at the LAN party, that computer will have a connection to every other computer at the LAN party.
     // The LAN party posters say that the password to get into the LAN party is the name of every computer at the LAN party, sorted alphabetically, then joined together with commas.
     fun passwordForTheLargestSetOfComputersThatAreAllConnectedToEachOther(): String {
-        val lanParties: MutableSet<MutableSet<Computer>> = network.map { mutableSetOf(it.value) }.toMutableSet()
+        var lanParties: MutableSet<MutableSet<Computer>> = network.map { mutableSetOf(it.value) }.toMutableSet()
 
         fun MutableSet<Computer>.allAreConnectedTo(other: Computer): Boolean {
             for (computer in this) {
@@ -27,24 +28,44 @@ data class Day23(val connections: List<Pair<String, String>>) {
             return true
         }
 
-        for (connection in connections) {
+        for ((i, connection) in connections.withIndex()) {
             val computerA = network[connection.first]!!
             val computerB = network[connection.second]!!
+
+            var grown = 0L
 
             for (lanParty in lanParties) {
                 when {
                     lanParty.contains(computerA) -> {
                         if (lanParty.allAreConnectedTo(computerB)) {
                             lanParty.add(computerB)
-                            // println("added ${computerB.name} to [${lanParty.sortedBy { it.name }.joinToString(", ") { it.name }}]")
+                            grown += 1
+                            if (AocDebug.enabled) {
+                                println("added ${computerB.name} to [${lanParty.sortedBy { it.name }.joinToString(", ") { it.name }}]")
+                            }
                         }
                     }
 
                     lanParty.contains(computerB) -> {
                         if (lanParty.allAreConnectedTo(computerA)) {
                             lanParty.add(computerA)
-                            // println("added ${computerA.name} to [${lanParty.sortedBy { it.name }.joinToString(", ") { it.name }}]")
+                            grown += 1
+                            if (AocDebug.enabled) {
+                                println("added ${computerA.name} to [${lanParty.sortedBy { it.name }.joinToString(", ") { it.name }}]")
+                            }
                         }
+                    }
+                }
+            }
+
+            if (grown > 5) {
+                val beforeDistinct = lanParties.size
+                lanParties = lanParties.distinct().toMutableSet()
+                if (AocDebug.enabled) {
+                    if (lanParties.size < beforeDistinct) {
+                        println("distinct: $beforeDistinct -> ${lanParties.size}")
+                    } else {
+                        println("useless distinct")
                     }
                 }
             }
@@ -78,7 +99,9 @@ data class Day23(val connections: List<Pair<String, String>>) {
             }
         }
 
-        // interConnected.forEach { println("${it.a},${it.b},${it.c}") }
+        if (AocDebug.enabled) {
+            interConnected.forEach { println("${it.a},${it.b},${it.c}") }
+        }
 
         return interConnected.size
     }
