@@ -2,11 +2,11 @@ package aoc.y2024
 
 import aoc.utils.AocDebug
 import aoc.utils.Resource
+import aoc.utils.containers.BitSetK
 import aoc.utils.containers.Tuple3
 import aoc.y2024.Day23.Network.Computer
 import aoc.y2024.Day23.Network.ComputersSet
-import java.util.*
-import kotlin.streams.asSequence
+import org.apache.commons.collections4.iterators.TransformIterator
 
 fun Resource.day23(): Day23 = Day23(
     nonBlankLines().map { it.split("-", limit = 2).let { it -> it[0] to it[1] } }
@@ -26,7 +26,7 @@ data class Day23(val connections: List<Pair<String, String>>) {
         var lanParties: Set<ComputersSet> = network.computers.mapTo(HashSet(network.size, 1.0f)) { network.createComputerSet().apply { add(it) } }
 
         fun ComputersSet.addItIfAllAreConnectedToIt(other: Computer): Int {
-            for (computer in this.computers) {
+            for (computer in this) {
                 if (!other.hasConnectionTo(computer)) return 0
             }
 
@@ -138,7 +138,7 @@ data class Day23(val connections: List<Pair<String, String>>) {
         ) {
 
             val connectedComputers: Sequence<Computer>
-                get() = connections?.computers ?: emptySequence()
+                get() = connections?.asSequence() ?: emptySequence()
 
             fun addConnectionTo(otherId: Int) {
                 val tmp = connections ?: (ComputersSet().also { connections = it })
@@ -147,9 +147,6 @@ data class Day23(val connections: List<Pair<String, String>>) {
 
             fun hasConnectionTo(other: Computer): Boolean =
                 connections?.contains(other.id) == true
-
-            fun hasConnectionTo(otherId: Int): Boolean =
-                connections?.contains(otherId) == true
 
             override fun equals(other: Any?): Boolean {
                 if (this === other) return true
@@ -167,28 +164,23 @@ data class Day23(val connections: List<Pair<String, String>>) {
 
         inner class ComputersSet : Iterable<Computer> {
 
-            private var connectionsSet: BitSet = BitSet(this@Network.computers.size)
+            private var connectionsSet: BitSetK = BitSetK(this@Network.computers.size)
 
-            var size: Int = 0
+            val size: Int
+                get() = connectionsSet.size
 
             val ids: Sequence<Int>
-                get() = connectionsSet.stream().asSequence()
-
-            val computers: Sequence<Computer>
-                get() = ids.map { this@Network.computers[it] }
+                get() = connectionsSet.asSequence()
 
             override fun iterator(): Iterator<Computer> =
-                computers.iterator()
+                TransformIterator(connectionsSet.iterator()) { this@Network.computers[it] }
 
             fun add(computer: Computer) {
                 add(computer.id)
             }
 
             fun add(id: Int) {
-                if (connectionsSet[id] == false) {
-                    size += 1
-                }
-                connectionsSet[id] = true
+                connectionsSet.add(id)
             }
 
             operator fun contains(computer: Computer): Boolean =

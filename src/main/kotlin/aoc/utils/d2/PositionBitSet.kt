@@ -1,27 +1,19 @@
 package aoc.utils.d2
 
-import java.util.*
+import aoc.utils.containers.BitSetK
+import org.apache.commons.collections4.iterators.TransformIterator
 
 class PositionBitSet(private val dims: AreaDimensions) : MutableSet<Position> {
 
-    private val presence = BitSet(dims.area.toInt())
-    private var present = 0
+    private val presence = BitSetK(dims.area.toInt())
 
     override fun add(element: Position): Boolean {
         require(dims.contains(element)) { "Position $element is not within dimensions $dims" }
-        val index = dims.matrixIndex(element)
-        val hadPreviously = presence[index]
-        presence[index] = true
-        if (!hadPreviously) present++
-        return !hadPreviously
+        return presence.add(dims.matrixIndex(element))
     }
 
     override fun remove(element: Position): Boolean {
-        val index = dims.matrixIndex(element)
-        val hadPreviously = presence[index]
-        presence[index] = false
-        if (hadPreviously) present--
-        return hadPreviously
+        return presence.remove(dims.matrixIndex(element))
     }
 
     override fun addAll(elements: Collection<Position>): Boolean {
@@ -35,7 +27,7 @@ class PositionBitSet(private val dims: AreaDimensions) : MutableSet<Position> {
     }
 
     override fun iterator(): MutableIterator<Position> =
-        presence.stream().mapToObj { dims.positionFor(it) }.iterator()
+        TransformIterator(presence.iterator()) { dims.positionFor(it) }
 
     override fun removeAll(elements: Collection<Position>): Boolean =
         throw UnsupportedOperationException()
@@ -44,13 +36,13 @@ class PositionBitSet(private val dims: AreaDimensions) : MutableSet<Position> {
         throw UnsupportedOperationException()
 
     override fun clear() =
-        presence.clear().also { present = 0 }
+        presence.clear()
 
     override val size: Int
-        get() = present
+        get() = presence.size
 
     override fun isEmpty(): Boolean =
-        present > 0
+        presence.isEmpty()
 
     override operator fun contains(element: Position): Boolean =
         element in dims && presence[dims.matrixIndex(element)]

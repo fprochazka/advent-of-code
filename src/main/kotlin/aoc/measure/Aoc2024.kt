@@ -265,6 +265,7 @@ object Aoc2024 {
 
     fun printResults() {
         var totalRuntime = Duration.ZERO
+        var totalBestRuntime = Duration.ZERO
 
         val taskColumnWidth = resultsByConfig.keys.map { it.taskName }.maxOf { it.length }.coerceAtLeast(4)
         val inputColumnWidth = resultsByConfig.keys.map { it.inputName.toString() }.maxOf { it.length }.coerceAtLeast(5)
@@ -283,11 +284,13 @@ object Aoc2024 {
 
             if (config.addUpInTotal) {
                 totalRuntime += runs.avgTime
+                totalBestRuntime += runs.bestTime
             }
         }
 
         println()
-        println("Sum of average times for normal inputs: $totalRuntime")
+        println("Sum of average times for normal inputs: ${totalRuntime.toFormattedString()}")
+        println("Sum of best    times for normal inputs: ${totalBestRuntime.toFormattedString()}")
 
         val second = 1.toDuration(DurationUnit.SECONDS)
         if (totalRuntime > second) {
@@ -301,7 +304,7 @@ object Aoc2024 {
 
     fun Duration.toFormattedString(): String = when {
         this.toInt(DurationUnit.MINUTES) > 0 -> "TIMEOUT"
-        else -> String.format("%.2fms", this.toDouble(DurationUnit.MILLISECONDS))
+        else -> toString(DurationUnit.MILLISECONDS, 2)
     }
 
     val runConfigs = mutableListOf<SolverConfig>()
