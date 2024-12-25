@@ -20,9 +20,21 @@ data class Day24(
     ): String {
         val switchGates = mutableListOf<Pair<String, String>>()
 
+        // x14 XOR y14 -> gdr
+        // x15 XOR y15 -> rjm
+        // x14 AND y14 -> gnc
+        // gdr AND ftc -> dqg
+        // dqg OR gnc -> ctg
+        // ctg XOR rjm -> qnw
+        // dnn OR mrm -> z15
+
+        // z15 = (x15 xor y15) xor ((ftc and (x14 xor y14)) or (x14 and y14))
+        // z15 = rjm xor ((ftc and gdr) or gnc)
+        // z15 = rjm xor (dqg or gnc)
+        // z15 = rjm xor ctg
+        // z15 = qnw
         switchGates.add("z15" to "qnw")
 
-        // prevCarry = wwc
         // y19 AND x19 -> vct
         // x19 XOR y19 -> qpk
         // x20 XOR y20 -> msn
@@ -71,8 +83,6 @@ data class Day24(
         // z37 = vkg
         switchGates.add("z37" to "vkg")
 
-        // z45 = ()
-
         // sum = (xBit xor yBit) xor ((prevCarry and (xPrevBit xor yPrevBit)) or (xPrevBit and yPrevBit))
         for ((a, b) in switchGates) {
             val aGate = outputToGate[a]!!
@@ -119,42 +129,22 @@ data class Day24(
 
         val inlinedState = initialStates.mapValues { it.key }.toMutableMap()
 
-//        for (name in state.keys.filter { it.startsWith("z") }.sorted().reversed()) {
-//            inlineGates(name, inlinedState)
-//        }
-
         fun reRunInliningRound(resultGateName: String, inliningRound: MutableCollection<String>) {
             inliningRound.forEach { name -> inlinedState.remove(name) }
             inliningRound.clear()
             inlineGates(resultGateName, inlinedState, inliningRound)
         }
 
-//        val switchedGates = mutableListOf<String>()
-//        fun getGateWithin(gate: CommutativeBinaryGate<*, *>, inliningRound: MutableCollection<String>, resultGateName: String): String {
-//            val gateName = gateToOutput[gate]
-//            if (gateName != null && gateName in inliningRound) return gateName
-//
-//
-//
-//            reRunInliningRound(resultGateName, inliningRound)
-//
-//            return gateName!!
-//        }
+        fun findGateName(gate: CommutativeBinaryGate<*, *>): String? {
+            if (gate.a is String && gate.b is String) return gateToOutput[gate]
 
-        fun findGateName(gate: CommutativeBinaryGate<*, *>): String {
-            if (gate.a is String && gate.b is String) {
-                return gateToOutput[gate] ?: error("Gate not found: $gate")
-            }
+            val a = (if (gate.a is String) (gate.a as String) else findGateName(gate.a as CommutativeBinaryGate<*, *>)) ?: return null
+            val b = if (gate.b is String) (gate.b as String) else findGateName(gate.b as CommutativeBinaryGate<*, *>) ?: return null
 
-            val a = if (gate.a is String) (gate.a as String) else findGateName(gate.a as CommutativeBinaryGate<*, *>)
-            val b = if (gate.b is String) (gate.b as String) else findGateName(gate.b as CommutativeBinaryGate<*, *>)
-
-            return copy(gate, a, b).let { flattened ->
-                gateToOutput[flattened] ?: error("Gate not found: $flattened")
-            }
+            return copy(gate, a, b).let { flattened -> gateToOutput[flattened] }
         }
 
-        fun patternMatchOrFixAndReturnUsedCarryName(additionGate: CommutativeBinaryGate<*, *>, resultGateName: String) {
+        fun patternMatchOrFixAndReturnUsedCarryName(expectedGate: CommutativeBinaryGate<*, *>, resultGateName: String) {
             // resultWithoutCarryGate: CommutativeBinaryGate<String, String>
             // val fullAdditionGate = if (carryGate == null) resultWithoutCarryGate else XorGate.of(resultWithoutCarryGate, carryGate)
 
@@ -168,7 +158,7 @@ data class Day24(
                 println("  inliningOrder: ${inliningRound}")
             }
 
-            val foundGateOutput = findGateName(additionGate)
+            val foundGateOutput = findGateName(expectedGate)
             require(foundGateOutput == resultGateName) {
                 "expected $resultGateName but got $foundGateOutput"
             }
