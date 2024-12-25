@@ -18,39 +18,39 @@ data class Day24(
     fun listGatesThatNeedToBeSwappedSoThatSystemPerformsAdditionCorrectlySolveManually(
         outputToGate: MutableMap<String, CommutativeBinaryGate<String, String>>
     ): String {
-        val switchGates = mutableListOf<Pair<String, String>>()
+        val switchGates = mutableListOf<String>()
 
         // x14 XOR y14 -> gdr
         // x15 XOR y15 -> rjm
         // x14 AND y14 -> gnc
         // gdr AND ftc -> dqg
-        // dqg OR gnc -> ctg
+        // dqg  OR gnc -> ctg
         // ctg XOR rjm -> qnw
-        // dnn OR mrm -> z15
+        // dnn  OR mrm -> z15
 
         // z15 = (x15 xor y15) xor ((ftc and (x14 xor y14)) or (x14 and y14))
         // z15 = rjm xor ((ftc and gdr) or gnc)
         // z15 = rjm xor (dqg or gnc)
         // z15 = rjm xor ctg
         // z15 = qnw
-        switchGates.add("z15" to "qnw")
+        switchGates.addAll(outputToGate.switchGates("z15" to "qnw"))
 
         // y19 AND x19 -> vct
         // x19 XOR y19 -> qpk
         // x20 XOR y20 -> msn
-        // x20 AND y20 -> z20
-        // nbt OR vrq -> wwc
+        // nbt  OR vrq -> wwc
         // wwc XOR qpk -> z19
         // wwc AND qpk -> mjm
-        // mjm OR vct -> wrb
+        // mjm  OR vct -> wrb
         // wrb XOR msn -> cqr
+        // x20 AND y20 -> z20
 
         // z20 = (x20 XOR y20) XOR ((wwc AND (x19 XOR y19)) or (x19 AND y19))
         // z20 = msn XOR ((wwc AND qpk) or vct)
         // z20 = msn XOR (mjm or vct)
         // z20 = msn XOR wrb
         // z20 = cqr
-        switchGates.add("z20" to "cqr")
+        switchGates.addAll(outputToGate.switchGates("z20" to "cqr"))
 
         // y27 AND x27 -> nfj
         // x27 XOR y27 -> ncd
@@ -58,22 +58,22 @@ data class Day24(
         // y26 AND x26 -> nsh
         // y26 AND x26 -> nsh
         // hdm AND pfw -> mmj
-        // mmj OR nsh -> trt
+        // mmj  OR nsh -> trt
         // trt XOR nfj -> z27
 
         // z27 = (x27 XOR y27) XOR ((pfw and       (x26 xor y26)) or           (x26 and y26))
         // z27 = nfj XOR ((pfw and hdm) or nsh)
         // z27 = nfj XOR (mmj or nsh)
         // z27 = nfj XOR trt
-        switchGates.add("nfj" to "ncd")
+        switchGates.addAll(outputToGate.switchGates("nfj" to "ncd"))
 
         // y37 XOR x37 -> dnt
         // x36 XOR y36 -> sjw
         // x36 AND y36 -> crj
         // twd AND sjw -> dvm
-        // crj OR dvm -> fcm
+        // crj  OR dvm -> fcm
         // fcm XOR dnt -> vkg
-        // fcm XOR dnt -> vkg
+        // dnt AND fcm -> z37
 
         // z37 = (x37 xor y37) xor ((twd and (x36 xor y36)) or (x36 and y36))
         // z37 = dnt xor ((twd and sjw) or crj)
@@ -81,16 +81,9 @@ data class Day24(
         // z37 = dnt xor (dvm or crj)
         // z37 = dnt xor fcm
         // z37 = vkg
-        switchGates.add("z37" to "vkg")
+        switchGates.addAll(outputToGate.switchGates("z37" to "vkg"))
 
         // sum = (xBit xor yBit) xor ((prevCarry and (xPrevBit xor yPrevBit)) or (xPrevBit and yPrevBit))
-        for ((a, b) in switchGates) {
-            val aGate = outputToGate[a]!!
-            val bGate = outputToGate[b]!!
-
-            outputToGate[a] = bGate
-            outputToGate[b] = aGate
-        }
 
         return listGatesThatNeedToBeSwappedSoThatSystemPerformsAdditionCorrectly(
             outputToGate,
@@ -100,7 +93,7 @@ data class Day24(
 
     fun listGatesThatNeedToBeSwappedSoThatSystemPerformsAdditionCorrectly(
         outputToGate: MutableMap<String, CommutativeBinaryGate<String, String>>,
-        switchGates: MutableList<Pair<String, String>>
+        switchGates: MutableList<String>
     ): String {
         // the system you're simulating is trying to add two binary numbers.
         // it is treating the bits on wires starting with x as one binary number,
@@ -260,7 +253,7 @@ data class Day24(
             }
         }
 
-        return switchGates.flatMap { listOf(it.first, it.second) }.distinct().sorted().joinToString(",")
+        return switchGates.sorted().joinToString(",")
     }
 
     // Gates wait until both inputs are received before producing output; wires can carry 0, 1 or no value at all.
@@ -307,6 +300,19 @@ data class Day24(
         gates.forEach { (name, _) -> evaluate(name) }
 
         return state
+    }
+
+    fun <V : Any> MutableMap<String, V>.switchGates(switch: Pair<String, String>): List<String> =
+        this.switchGates(switch.first, switch.second)
+
+    fun <V : Any> MutableMap<String, V>.switchGates(a: String, b: String): List<String> {
+        val aGate = this[a]!!
+        val bGate = this[b]!!
+
+        this[a] = bGate
+        this[b] = aGate
+
+        return listOf(a, b)
     }
 
     sealed interface Gate
