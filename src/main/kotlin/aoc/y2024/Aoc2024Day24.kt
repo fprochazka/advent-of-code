@@ -1,5 +1,6 @@
 package aoc.y2024
 
+import aoc.utils.AocDebug
 import aoc.utils.Resource
 import aoc.utils.strings.matchEntire
 import arrow.core.sort
@@ -160,10 +161,12 @@ data class Day24(
             val inliningRound = mutableListOf<String>()
             inlineGates(resultGateName, inlinedState, inliningRound)
 
-            println()
-            inliningRound.sortedWith(compareBy<String> { inlinedState[it]?.length ?: 0 }.thenComparingInt { it.length })
-                .forEach { name -> println("  $name <- ${outputToGate[name]}      ~ ${state[name]!!.toInt()}    ~ ${inlinedState[name]}") }
-            println("  inliningOrder: ${inliningRound}")
+            if (AocDebug.enabled) {
+                println()
+                inliningRound.sortedWith(compareBy<String> { inlinedState[it]?.length ?: 0 }.thenComparingInt { it.length })
+                    .forEach { name -> println("  $name <- ${outputToGate[name]}      ~ ${state[name]!!.toInt()}    ~ ${inlinedState[name]}") }
+                println("  inliningOrder: ${inliningRound}")
+            }
 
             val foundGateOutput = findGateName(additionGate)
             require(foundGateOutput == resultGateName) {
@@ -195,20 +198,22 @@ data class Day24(
             val actualZBit = (actualZ shr i) and 1
             val expectedZBit = sumBit
 
-            println()
-            println("bit $i: $xGateName=$xBit, $yGateName=$yBit, carry=$carryPrev")
-            println("   $resultGateName <- ($xGateName XOR $yGateName) XOR carry")
-            println("     $sumBit <- (  $xBit XOR   $yBit) XOR     $carryPrev")
-            println("     $sumBit <- ${xBit xor yBit} xor $carryPrev")
-
-            println("     carryAfter <- (carryPrev AND ($xGateName XOR $yGateName)) OR ($xGateName AND $yGateName)")
-            println("              $carry <- ($carryPrev         and (  $xBit xor   $yBit)) or (  $xBit and   $yBit)")
-            println("              $carry <- ($carryPrev and ${xBit xor yBit}) or ${xBit and yBit}")
-            println("              $carry <- ${carryPrev and (xBit xor yBit)} or ${xBit and yBit}")
-
-            if (actualZBit != expectedZBit) {
+            if (AocDebug.enabled) {
                 println()
-                println("   !!! actualZ = $actualZBit, expectedZ = $expectedZBit")
+                println("bit $i: $xGateName=$xBit, $yGateName=$yBit, carry=$carryPrev")
+                println("   $resultGateName <- ($xGateName XOR $yGateName) XOR carry")
+                println("     $sumBit <- (  $xBit XOR   $yBit) XOR     $carryPrev")
+                println("     $sumBit <- ${xBit xor yBit} xor $carryPrev")
+
+                println("     carryAfter <- (carryPrev AND ($xGateName XOR $yGateName)) OR ($xGateName AND $yGateName)")
+                println("              $carry <- ($carryPrev         and (  $xBit xor   $yBit)) or (  $xBit and   $yBit)")
+                println("              $carry <- ($carryPrev and ${xBit xor yBit}) or ${xBit and yBit}")
+                println("              $carry <- ${carryPrev and (xBit xor yBit)} or ${xBit and yBit}")
+
+                if (actualZBit != expectedZBit) {
+                    println()
+                    println("   !!! actualZ = $actualZBit, expectedZ = $expectedZBit")
+                }
             }
 
             val xPrevGateName = "x" + ((i - 1).toString().padStart(2, '0'))
@@ -263,49 +268,6 @@ data class Day24(
 
                 error("expectedZBit != actualZBit")
             }
-
-//            val inliningRound = mutableListOf<String>()
-//            inlineGates(resultGateName, inlinedState, inliningRound)
-//
-//            println()
-//            inliningRound.sortedBy { inlinedState[it]?.length ?: 0 }.forEach { name -> println("  $name -> ${outputToGate[name]}      ~ ${inlinedState[name]}") }
-//            println("  inliningOrder: ${inliningRound}")
-
-//            val resultWithoutCarryName = getGateWithin(XorGate.of(xGateName, yGateName), inliningRound, resultGateName)
-//            val carryFromPrevPrimeCandidate = inliningRound.lastOrNull { it != resultWithoutCarryName && !it.startsWith("z") }
-//
-//            if (i == 0) {
-//                // TODO: its correct in the input, so let's ignore for now
-//                require(resultWithoutCarryName == "z00")
-//
-//                println()
-//                println("  ${resultGateName} -> xBit XOR yBit -> $xGateName XOR $yGateName")
-//
-//            } else if (i == 1) {
-//                // TODO: its correct in the input, so let's ignore for now
-//                require(carryFromPrevName == null)
-//
-//                println()
-//                println("  ${resultGateName} -> xBit XOR yBit XOR carry -> $xGateName XOR $yGateName XOR carry -> $resultWithoutCarryName? XOR " + carryFromPrevPrimeCandidate + "?")
-//
-//                val carryFromPrevGateName = getGateWithin(AndGate.of(xPrevGateName, yPrevGateName), inliningRound, resultGateName)
-//
-//                carryFromPrevName = carryFromPrevGateName
-//
-//            } else {
-//                require(carryFromPrevName != null)
-//
-//                println()
-//                println("  ${resultGateName} -> xBit XOR yBit XOR carry -> $xGateName XOR $yGateName XOR carry -> $resultWithoutCarryName? XOR " + carryFromPrevPrimeCandidate + "?")
-//
-//                // currentCarry = (carryFromPrevName and (xBit xor yBit)) or (xBit and yBit)
-//                val carryFromPrevAndExistingGateName = getGateWithin(AndGate.of(xPrevGateName, yPrevGateName), inliningRound, resultGateName)
-//                val carryFromPrevXorExistingGateName = getGateWithin(XorGate.of(xPrevGateName, yPrevGateName), inliningRound, resultGateName)
-//                val carryFromPrevLeftExistingGateName = getGateWithin(AndGate.of(carryFromPrevName, carryFromPrevXorExistingGateName), inliningRound, resultGateName)
-//                val carryFromPrevGateName = getGateWithin(OrGate.of(carryFromPrevLeftExistingGateName, carryFromPrevAndExistingGateName), inliningRound, resultGateName)
-//
-//                carryFromPrevName = carryFromPrevGateName
-//            }
         }
 
         return switchGates.flatMap { listOf(it.first, it.second) }.distinct().sorted().joinToString(",")
@@ -318,7 +280,10 @@ data class Day24(
         val state = initialStates.evaluateLiveSystem(inputGates)
 
         var result = gatesToNumberByPrefix("z", state)
-        println("result: b${result.toString(2).padStart(64, '0')}")
+
+        if (AocDebug.enabled) {
+            println("result: b${result.toString(2).padStart(64, '0')}")
+        }
 
         return result
     }
@@ -343,7 +308,9 @@ data class Day24(
                 is OrGate -> evaluate(gate.a) or evaluate(gate.b)
                 is XorGate -> evaluate(gate.a) xor evaluate(gate.b)
             }.also { result ->
-                println(" $name <- ${result.toInt()} <- ${state[gates[name]!!.a]!!.toInt()} ${gates[name]!!.name} ${state[gates[name]!!.b]!!.toInt()} <- ${gates[name]}")
+                if (AocDebug.enabled) {
+                    println(" $name <- ${result.toInt()} <- ${state[gates[name]!!.a]!!.toInt()} ${gates[name]!!.name} ${state[gates[name]!!.b]!!.toInt()} <- ${gates[name]}")
+                }
             }
         }
 
