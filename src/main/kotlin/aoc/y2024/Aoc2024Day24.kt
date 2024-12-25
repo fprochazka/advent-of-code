@@ -21,9 +21,58 @@ data class Day24(
 
         switchGates.add("z15" to "qnw")
 
-        // carry = (prevCarry and (xPrevBit xor yPrevBit)) or (xPrevBit and yPrevBit)
-        // sum   = xBit xor yBit xor carry
+        // prevCarry = wwc
+        // y19 AND x19 -> vct
+        // x19 XOR y19 -> qpk
+        // x20 XOR y20 -> msn
+        // x20 AND y20 -> z20
+        // nbt OR vrq -> wwc
+        // wwc XOR qpk -> z19
+        // wwc AND qpk -> mjm
+        // mjm OR vct -> wrb
+        // wrb XOR msn -> cqr
 
+        // z20 = (x20 XOR y20) XOR ((wwc AND (x19 XOR y19)) or (x19 AND y19))
+        // z20 = msn XOR ((wwc AND qpk) or vct)
+        // z20 = msn XOR (mjm or vct)
+        // z20 = msn XOR wrb
+        // z20 = cqr
+        switchGates.add("z20" to "cqr")
+
+        // y27 AND x27 -> nfj
+        // x27 XOR y27 -> ncd
+        // x26 XOR y26 -> hdm
+        // y26 AND x26 -> nsh
+        // y26 AND x26 -> nsh
+        // hdm AND pfw -> mmj
+        // mmj OR nsh -> trt
+        // trt XOR nfj -> z27
+
+        // z27 = (x27 XOR y27) XOR ((pfw and       (x26 xor y26)) or           (x26 and y26))
+        // z27 = nfj XOR ((pfw and hdm) or nsh)
+        // z27 = nfj XOR (mmj or nsh)
+        // z27 = nfj XOR trt
+        switchGates.add("nfj" to "ncd")
+
+        // y37 XOR x37 -> dnt
+        // x36 XOR y36 -> sjw
+        // x36 AND y36 -> crj
+        // twd AND sjw -> dvm
+        // crj OR dvm -> fcm
+        // fcm XOR dnt -> vkg
+        // fcm XOR dnt -> vkg
+
+        // z37 = (x37 xor y37) xor ((twd and (x36 xor y36)) or (x36 and y36))
+        // z37 = dnt xor ((twd and sjw) or crj)
+        // z37 = dnt xor ((twd and sjw) or crj)
+        // z37 = dnt xor (dvm or crj)
+        // z37 = dnt xor fcm
+        // z37 = vkg
+        switchGates.add("z37" to "vkg")
+
+        // z45 = ()
+
+        // sum = (xBit xor yBit) xor ((prevCarry and (xPrevBit xor yPrevBit)) or (xPrevBit and yPrevBit))
         for ((a, b) in switchGates) {
             val aGate = outputToGate[a]!!
             val bGate = outputToGate[b]!!
@@ -48,13 +97,10 @@ data class Day24(
         // and then attempting to add those two numbers together.
         // The output of this operation is produced as a binary number on the wires starting with z.
 
-        val state = initialStates.evaluateLiveSystem(inputGates)
+        val state = initialStates.evaluateLiveSystem(outputToGate)
         var x = gatesToNumberByPrefix("x", state)
         var y = gatesToNumberByPrefix("y", state)
         var actualZ = gatesToNumberByPrefix("z", state)
-
-        val expectedZ = x + y
-        val diffZ = actualZ xor expectedZ
 
         val gateToOutput = outputToGate.entries.associate { it.value to it.key }
 
@@ -116,7 +162,7 @@ data class Day24(
 
             println()
             inliningRound.sortedWith(compareBy<String> { inlinedState[it]?.length ?: 0 }.thenComparingInt { it.length })
-                .forEach { name -> println("  $name <- ${outputToGate[name]}      ~ ${inlinedState[name]}") }
+                .forEach { name -> println("  $name <- ${outputToGate[name]}      ~ ${state[name]!!.toInt()}    ~ ${inlinedState[name]}") }
             println("  inliningOrder: ${inliningRound}")
 
             val foundGateOutput = findGateName(additionGate)
@@ -134,26 +180,36 @@ data class Day24(
             val yGateName = "y" + (i.toString().padStart(2, '0'))
 
             val resultGateName = "z" + (i.toString().padStart(2, '0'))
+            val resultNextGateName = "z" + ((i + 1).toString().padStart(2, '0'))
             if (resultGateName !in outputToGate) break
+            val isLastCarryBit = resultNextGateName !in outputToGate
+
+            val carryPrev = carry
 
             val xBit = (x shr i) and 1
             val yBit = (y shr i) and 1
-            val actualZBit = (actualZ shr i) and 1
-            val expectedZBit = (expectedZ shr i) and 1
-
-            println()
-            println("bit $i: x=$xBit, y=$yBit, expectedZ=$expectedZBit, actualZ=$actualZBit")
-
             val sumBit = xBit xor yBit xor carry
-            println("   $resultGateName <- $xGateName XOR $yGateName XOR carry")
-            println("     $sumBit <-   $xBit XOR   $yBit XOR $carry")
-
-            val carryPrev = carry
             carry = (carryPrev and (xBit xor yBit)) or (xBit and yBit)
             sum = sum or (sumBit shl i)
 
-            println("     carryAfter <- (carryPrev and ($xGateName xor $yGateName)) or ($xGateName and $yGateName)")
+            val actualZBit = (actualZ shr i) and 1
+            val expectedZBit = sumBit
+
+            println()
+            println("bit $i: $xGateName=$xBit, $yGateName=$yBit, carry=$carryPrev")
+            println("   $resultGateName <- ($xGateName XOR $yGateName) XOR carry")
+            println("     $sumBit <- (  $xBit XOR   $yBit) XOR     $carryPrev")
+            println("     $sumBit <- ${xBit xor yBit} xor $carryPrev")
+
+            println("     carryAfter <- (carryPrev AND ($xGateName XOR $yGateName)) OR ($xGateName AND $yGateName)")
             println("              $carry <- ($carryPrev         and (  $xBit xor   $yBit)) or (  $xBit and   $yBit)")
+            println("              $carry <- ($carryPrev and ${xBit xor yBit}) or ${xBit and yBit}")
+            println("              $carry <- ${carryPrev and (xBit xor yBit)} or ${xBit and yBit}")
+
+            if (actualZBit != expectedZBit) {
+                println()
+                println("   !!! actualZ = $actualZBit, expectedZ = $expectedZBit")
+            }
 
             val xPrevGateName = "x" + ((i - 1).toString().padStart(2, '0'))
             val yPrevGateName = "y" + ((i - 1).toString().padStart(2, '0'))
@@ -171,6 +227,14 @@ data class Day24(
                 patternMatchOrFixAndReturnUsedCarryName(XorGate.of(resultWithoutCarryGate, carryGate), resultGateName)
                 carryFromPrevName = findGateName(carryGate)
 
+            } else if (isLastCarryBit) {
+                // sum   = (prevCarry and (xPrevBit xor yPrevBit)) or (xPrevBit and yPrevBit)
+                val carryGate = OrGate.of(
+                    AndGate.of(carryFromPrevName!!, XorGate.of(xPrevGateName, yPrevGateName)),
+                    AndGate.of(xPrevGateName, yPrevGateName)
+                )
+                patternMatchOrFixAndReturnUsedCarryName(carryGate, resultGateName)
+
             } else {
                 // carry = (prevCarry and (xPrevBit xor yPrevBit)) or (xPrevBit and yPrevBit)
                 // sum   = xBit xor yBit xor carry
@@ -183,6 +247,9 @@ data class Day24(
             }
 
             if (expectedZBit != actualZBit) {
+                val expectedZ = x + y
+                val diffZ = actualZ xor expectedZ
+
                 println()
                 println("  x + y = z")
                 println("  $x + $y = $actualZ")
@@ -241,11 +308,6 @@ data class Day24(
 //            }
         }
 
-        println("final sum: $sum, expectedZ: $expectedZ")
-        println("sum ok? " + (sum == expectedZ))
-
-        TODO()
-
         return switchGates.flatMap { listOf(it.first, it.second) }.distinct().sorted().joinToString(",")
     }
 
@@ -280,6 +342,8 @@ data class Day24(
                 is AndGate -> evaluate(gate.a) and evaluate(gate.b)
                 is OrGate -> evaluate(gate.a) or evaluate(gate.b)
                 is XorGate -> evaluate(gate.a) xor evaluate(gate.b)
+            }.also { result ->
+                println(" $name <- ${result.toInt()} <- ${state[gates[name]!!.a]!!.toInt()} ${gates[name]!!.name} ${state[gates[name]!!.b]!!.toInt()} <- ${gates[name]}")
             }
         }
 
@@ -292,10 +356,13 @@ data class Day24(
     sealed interface CommutativeBinaryGate<A, B> : Gate where A : Comparable<A>, A : Any, B : Comparable<B>, B : Any {
         val a: A
         val b: B
+        val name: String
     }
 
     // AND gates output 1 if both inputs are 1; if either input is 0, these gates output 0.
     data class AndGate<A, B>(override val a: A, override val b: B) : Comparable<AndGate<A, B>>, CommutativeBinaryGate<A, B> where A : Comparable<A>, A : Any, B : Comparable<B>, B : Any {
+
+        override val name = "AND"
 
         override fun compareTo(other: AndGate<A, B>): Int = compareValuesBy(this, other, { it.a }, { it.b })
 
@@ -305,9 +372,9 @@ data class Day24(
             return a == other.a && b == other.b
         }
 
-        override fun hashCode(): Int = ((31 * a.hashCode()) + b.hashCode()) * 31 + "AND".hashCode()
+        override fun hashCode(): Int = ((31 * a.hashCode()) + b.hashCode()) * 31 + name.hashCode()
 
-        override fun toString(): String = "($a AND $b)"
+        override fun toString(): String = "($a $name $b)"
 
         companion object {
             fun <A, B> of(a: A, b: B): AndGate<A, B> where A : Comparable<A>, A : Any, B : Comparable<B>, B : Any = AndGate(a, b)
@@ -318,6 +385,8 @@ data class Day24(
     // OR gates output 1 if one or both inputs is 1; if both inputs are 0, these gates output 0.
     data class OrGate<A, B>(override val a: A, override val b: B) : Comparable<OrGate<A, B>>, CommutativeBinaryGate<A, B> where A : Comparable<A>, A : Any, B : Comparable<B>, B : Any {
 
+        override val name = "OR"
+
         override fun compareTo(other: OrGate<A, B>): Int = compareValuesBy(this, other, { it.a }, { it.b })
 
         override fun equals(other: Any?): Boolean {
@@ -326,9 +395,9 @@ data class Day24(
             return a == other.a && b == other.b
         }
 
-        override fun hashCode(): Int = ((31 * a.hashCode()) + b.hashCode()) * 31 + "OR".hashCode()
+        override fun hashCode(): Int = ((31 * a.hashCode()) + b.hashCode()) * 31 + name.hashCode()
 
-        override fun toString(): String = "($a  OR $b)"
+        override fun toString(): String = "($a  $name $b)"
 
         companion object {
             fun <A, B> of(a: A, b: B): OrGate<A, B> where A : Comparable<A>, A : Any, B : Comparable<B>, B : Any = OrGate(a, b)
@@ -339,6 +408,8 @@ data class Day24(
     // XOR gates output 1 if the inputs are different; if the inputs are the same, these gates output 0.
     data class XorGate<A, B>(override val a: A, override val b: B) : Comparable<XorGate<A, B>>, CommutativeBinaryGate<A, B> where A : Comparable<A>, A : Any, B : Comparable<B>, B : Any {
 
+        override val name = "XOR"
+
         override fun compareTo(other: XorGate<A, B>): Int = compareValuesBy(this, other, { it.a }, { it.b })
 
         override fun equals(other: Any?): Boolean {
@@ -347,9 +418,9 @@ data class Day24(
             return a == other.a && b == other.b
         }
 
-        override fun hashCode(): Int = ((31 * a.hashCode()) + b.hashCode()) * 31 + "XOR".hashCode()
+        override fun hashCode(): Int = ((31 * a.hashCode()) + b.hashCode()) * 31 + name.hashCode()
 
-        override fun toString(): String = "($a XOR $b)"
+        override fun toString(): String = "($a $name $b)"
 
         companion object {
             fun <A, B> of(a: A, b: B): XorGate<A, B> where A : Comparable<A>, A : Any, B : Comparable<B>, B : Any = XorGate(a, b)
@@ -358,6 +429,8 @@ data class Day24(
     }
 
     companion object {
+
+        fun Boolean.toInt() = if (this) 1 else 0
 
         @Suppress("UNCHECKED_CAST")
         fun <A, B> copy(of: CommutativeBinaryGate<*, *>, newA: A, newB: B): CommutativeBinaryGate<A, B> where A : Comparable<A>, A : Any, B : Comparable<B>, B : Any {
