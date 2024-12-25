@@ -201,6 +201,19 @@ object Aoc2024 {
                 task(2) { input.day23().result2 }
             }
         }
+
+        day(24) {
+            input { input ->
+                task(1) { input.day24().result1 }
+                task(2) { input.day24().result2 }
+            }
+        }
+
+        day(25) {
+            input { input ->
+                task(1) { input.day25().result1 }
+            }
+        }
     }
 
     val resultsByConfig = sortedMapOf<SolverConfig, Runs>(

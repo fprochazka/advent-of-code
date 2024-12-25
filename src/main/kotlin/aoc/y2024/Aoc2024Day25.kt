@@ -11,7 +11,6 @@ data class Day25(
 ) {
 
     val result1 by lazy { howManyUniqueLockKeyPairsFitTogetherWithoutOverlappingInAnyColumn() }
-//    val result2 by lazy { TODO() }
 
     fun howManyUniqueLockKeyPairsFitTogetherWithoutOverlappingInAnyColumn(): Long {
         var result = 0L
@@ -25,9 +24,7 @@ data class Day25(
         return result
     }
 
-    data class DoorLock(val pins: List<Int>, val height: Int) {
-
-    }
+    data class DoorLock(val pins: List<Int>, val height: Int)
 
     data class DoorKey(val heights: List<Int>) {
 
