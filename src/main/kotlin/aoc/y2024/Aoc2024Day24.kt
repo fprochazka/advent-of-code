@@ -152,17 +152,19 @@ data class Day24(
             }
 
             @Suppress("UNCHECKED_CAST")
-            fun <C : GateInput, D : GateInput> inlineDeepestLevel(gate: CommutativeBinaryGate<C, D>): Pair<CommutativeBinaryGate<GateInput, GateInput>, Int> {
-                var count = 0
+            fun <C : GateInput, D : GateInput> inlineDeepestLevel(
+                gate: CommutativeBinaryGate<C, D>,
+                inlinedAsOutputs: MutableMap<CommutativeBinaryGate<WireRef, WireRef>, String> = mutableMapOf()
+            ): Pair<CommutativeBinaryGate<GateInput, GateInput>, MutableMap<CommutativeBinaryGate<WireRef, WireRef>, String>> {
 
                 fun inlineGateRef(ref: GateRef<GateInput, GateInput>): GateInput =
-                    ref.gate.asWireInputsOrNull()?.let { gateToOutput[it] }?.let { GateInput.of(it).also { count += 1 } }
-                        ?: inlineDeepestLevel(ref.gate).let { (inlined, nestedCount) -> GateInput.of(inlined).also { count += nestedCount } }
+                    ref.gate.asWireInputsOrNull()?.let { wireGate -> gateToOutput[wireGate]?.let { outputName -> GateInput.of(outputName).also { inlinedAsOutputs.put(wireGate, outputName) } } }
+                        ?: inlineDeepestLevel(ref.gate, inlinedAsOutputs).let { (inlined, _) -> GateInput.of(inlined) }
 
                 val a: GateInput = gate.a.visit({ it }, { inlineGateRef(it) })
                 val b: GateInput = gate.b.visit({ it }, { inlineGateRef(it) })
 
-                return copy(gate, a, b) to count
+                return copy(gate, a, b) to inlinedAsOutputs
             }
 
             val triedToSwitch = mutableSetOf<Pair<String, String>>()
@@ -172,11 +174,12 @@ data class Day24(
                 var fullyInlined: String? = null
                 println(inlinedGate)
                 do {
-                    val (inlined, inlinedCount) = inlineDeepestLevel(inlinedGate)
+                    val (inlined, inlinedAsOutputs) = inlineDeepestLevel(inlinedGate)
                     inlinedGate = inlined
+                    inlinedAsOutputs.forEach { (gate, name) -> println("  $name <- $gate") }
                     println(inlinedGate)
                     fullyInlined = inlinedGate.asWireInputsOrNull()?.let { gateToOutput[it] }
-                    if (inlinedCount == 0) break
+                    if (inlinedAsOutputs.isEmpty()) break
                 } while (fullyInlined == null)
                 println(fullyInlined)
 
