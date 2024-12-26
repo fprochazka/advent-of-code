@@ -18,8 +18,8 @@ data class Day24(
 
     val result1 by lazy { evaluateGatesIntoANumberFromZ() }
 
-    val result2 by lazy { listGatesThatNeedToBeSwappedSoThatSystemPerformsAdditionCorrectlySolveManually(inputGates.toMutableMap()) }
-    // val result2 by lazy { listGatesThatNeedToBeSwappedSoThatSystemPerformsAdditionCorrectly(inputGates.toMutableMap()) }
+    // val result2 by lazy { listGatesThatNeedToBeSwappedSoThatSystemPerformsAdditionCorrectlySolveManually(inputGates.toMutableMap()) }
+    val result2 by lazy { listGatesThatNeedToBeSwappedSoThatSystemPerformsAdditionCorrectly(inputGates.toMutableMap()) }
 
     fun listGatesThatNeedToBeSwappedSoThatSystemPerformsAdditionCorrectlySolveManually(
         outputToGate: MutableMap<String, CommutativeBinaryGate<WireRef, WireRef>>
@@ -115,7 +115,7 @@ data class Day24(
         val state = initialStates.evaluateLiveSystem(outputToGate)
         var x = gatesToNumberByPrefix("x", state)
         var y = gatesToNumberByPrefix("y", state)
-        var actualZ = gatesToNumberByPrefix("z", state)
+        // var actualZ = gatesToNumberByPrefix("z", state)
 
         fun inlineGates(name: String, state: MutableMap<String, String>, inliningRound: MutableCollection<String>): String {
             if (name !in initialStates) inliningRound.add(name)
@@ -138,9 +138,6 @@ data class Day24(
         }
 
         fun <A : GateInput, B : GateInput> patternMatchOrFixAndReturnUsedCarryName(expectedGate: CommutativeBinaryGate<A, B>, resultGateName: String) {
-            // resultWithoutCarryGate: CommutativeBinaryGate<String, String>
-            // val fullAdditionGate = if (carryGate == null) resultWithoutCarryGate else XorGate.of(resultWithoutCarryGate, carryGate)
-
             val inliningRound = mutableListOf<String>().apply { inlineGates(resultGateName, inlinedState, this) }
 
 //            val actualGateName = gates.outputNameBy(expectedGate)
@@ -152,7 +149,15 @@ data class Day24(
             if (AocDebug.enabled) println("  $resultGateName = $expectedFullyInlined")
             if (expectedFullyInlined == resultGateName) return // OK
 
-            gates.switchWires(resultGateName, expectedFullyInlined!!)
+            if (expectedFullyInlined != null) {
+                // simple case fast-path
+                gates.switchWires(resultGateName, expectedFullyInlined)
+                if (gates.outputNameBy(expectedGate) == resultGateName) {
+                    reRunInliningRound(resultGateName, inliningRound)
+                    return // OK
+                }
+                gates.returnWires(resultGateName, expectedFullyInlined)
+            }
 
             if (AocDebug.enabled) {
                 println()
@@ -191,8 +196,8 @@ data class Day24(
             carry = (carryPrev and (xBit xor yBit)) or (xBit and yBit)
             sum = sum or (sumBit shl i)
 
-            val actualZBit = (actualZ shr i) and 1
-            val expectedZBit = sumBit
+//            val actualZBit = (actualZ shr i) and 1
+//            val expectedZBit = sumBit
 
             if (AocDebug.enabled) {
                 println()
@@ -206,10 +211,10 @@ data class Day24(
                 println("              $carry <- ($carryPrev and ${xBit xor yBit}) or ${xBit and yBit}")
                 println("              $carry <- ${carryPrev and (xBit xor yBit)} or ${xBit and yBit}")
 
-                if (actualZBit != expectedZBit) {
-                    println()
-                    println("   !!! actualZ = $actualZBit, expectedZ = $expectedZBit")
-                }
+//                if (actualZBit != expectedZBit) {
+//                    println()
+//                    println("   !!! actualZ = $actualZBit, expectedZ = $expectedZBit")
+//                }
             }
 
             val xPrevGateName = "x" + ((i - 1).toString().padStart(2, '0'))
@@ -247,23 +252,23 @@ data class Day24(
                 carryFromPrevName = gates.outputNameBy(carryGate)
             }
 
-            if (expectedZBit != actualZBit) {
-                val expectedZ = x + y
-                val diffZ = actualZ xor expectedZ
-
-                println()
-                println("  x + y = z")
-                println("  $x + $y = $actualZ")
-                println()
-                println("  b${x.toString(2).padStart(64, '0')} (x)")
-                println("+ b${y.toString(2).padStart(64, '0')} (y)")
-                println("= b${actualZ.toString(2).padStart(64, '0')} (actual z)")
-                println("  b${expectedZ.toString(2).padStart(64, '0')} (expected z)")
-                println("  b${diffZ.toString(2).padStart(64, '0')} (diff z)")
-                println("   " + ("^".padStart(64 - i)))
-
-                error("expectedZBit != actualZBit")
-            }
+//            if (expectedZBit != actualZBit) {
+//                val expectedZ = x + y
+//                val diffZ = actualZ xor expectedZ
+//
+//                println()
+//                println("  x + y = z")
+//                println("  $x + $y = $actualZ")
+//                println()
+//                println("  b${x.toString(2).padStart(64, '0')} (x)")
+//                println("+ b${y.toString(2).padStart(64, '0')} (y)")
+//                println("= b${actualZ.toString(2).padStart(64, '0')} (actual z)")
+//                println("  b${expectedZ.toString(2).padStart(64, '0')} (expected z)")
+//                println("  b${diffZ.toString(2).padStart(64, '0')} (diff z)")
+//                println("   " + ("^".padStart(64 - i)))
+//
+//                error("expectedZBit != actualZBit")
+//            }
         }
 
         return switchGates.sorted().joinToString(",")
@@ -309,9 +314,22 @@ data class Day24(
 
         val changedWires = mutableMapOf<String, String>()
 
+        fun switchWires(ab: Pair<String, String>) {
+            switchWires(ab.first, ab.second)
+        }
+
         fun switchWires(a: String, b: String) {
             changedWires.put(a, b)
             changedWires.put(b, a)
+        }
+
+        fun returnWires(ab: Pair<String, String>) {
+            returnWires(ab.first, ab.second)
+        }
+
+        fun returnWires(a: String, b: String) {
+            changedWires.remove(a)
+            changedWires.remove(b)
         }
 
         fun outputByGate(gate: CommutativeBinaryGate<WireRef, WireRef>): String? = gateToOutput[gate]?.let { changedWires[it] ?: it }
