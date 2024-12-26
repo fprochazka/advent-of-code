@@ -18,8 +18,8 @@ data class Day24(
 
     val result1 by lazy { evaluateGatesIntoANumberFromZ() }
 
-    // val result2 by lazy { listGatesThatNeedToBeSwappedSoThatSystemPerformsAdditionCorrectlySolveManually(inputGates.toMutableMap()) }
-    val result2 by lazy { listGatesThatNeedToBeSwappedSoThatSystemPerformsAdditionCorrectly(inputGates.toMutableMap()) }
+    val result2 by lazy { listGatesThatNeedToBeSwappedSoThatSystemPerformsAdditionCorrectlySolveManually(inputGates.toMutableMap()) }
+    // val result2 by lazy { listGatesThatNeedToBeSwappedSoThatSystemPerformsAdditionCorrectly(inputGates.toMutableMap()) }
 
     fun listGatesThatNeedToBeSwappedSoThatSystemPerformsAdditionCorrectlySolveManually(
         outputToGate: MutableMap<String, CommutativeBinaryGate<WireRef, WireRef>>
@@ -101,7 +101,7 @@ data class Day24(
     }
 
     fun listGatesThatNeedToBeSwappedSoThatSystemPerformsAdditionCorrectly(
-        outputToGate: MutableMap<String, CommutativeBinaryGate<WireRef, WireRef>>,
+        outputToGate: Map<String, CommutativeBinaryGate<WireRef, WireRef>>,
         switchGates: MutableList<String> = mutableListOf(),
     ): String {
         // the system you're simulating is trying to add two binary numbers.
@@ -110,18 +110,18 @@ data class Day24(
         // and then attempting to add those two numbers together.
         // The output of this operation is produced as a binary number on the wires starting with z.
 
+        val gates = Gates(outputToGate)
+
         val state = initialStates.evaluateLiveSystem(outputToGate)
         var x = gatesToNumberByPrefix("x", state)
         var y = gatesToNumberByPrefix("y", state)
         var actualZ = gatesToNumberByPrefix("z", state)
 
-        val gateToOutput: Map<CommutativeBinaryGate<WireRef, WireRef>, String> = outputToGate.entries.associate { it.value to it.key }
-
         fun inlineGates(name: String, state: MutableMap<String, String>, inliningRound: MutableCollection<String>): String {
             if (name !in initialStates) inliningRound.add(name)
 
             return state.getOrPut(name) {
-                when (val gate = outputToGate[name] ?: error("Inlining error - unknown gate: '$name'")) {
+                when (val gate = gates.gateByOutput(name) ?: error("Inlining error - unknown gate: '$name'")) {
                     is AndGate -> "(${inlineGates(gate.a.name, state, inliningRound)} AND ${inlineGates(gate.b.name, state, inliningRound)})"
                     is OrGate -> "(${inlineGates(gate.a.name, state, inliningRound)}  OR ${inlineGates(gate.b.name, state, inliningRound)})"
                     is XorGate -> "(${inlineGates(gate.a.name, state, inliningRound)} XOR ${inlineGates(gate.b.name, state, inliningRound)})"
@@ -141,18 +141,18 @@ data class Day24(
             // resultWithoutCarryGate: CommutativeBinaryGate<String, String>
             // val fullAdditionGate = if (carryGate == null) resultWithoutCarryGate else XorGate.of(resultWithoutCarryGate, carryGate)
 
-            val inliningRound = mutableListOf<String>()
-            inlineGates(resultGateName, inlinedState, inliningRound)
+            val inliningRound = mutableListOf<String>().apply { inlineGates(resultGateName, inlinedState, this) }
 
-//            val actualGateName = gateToOutput.outputNameBy(expectedGate)
+//            val actualGateName = gates.outputNameBy(expectedGate)
 //            if (actualGateName == resultGateName) {
 //                return
 //            }
 
-            val (expectedFullyInlined, expectedAllInlinedAsOutputs) = gateToOutput.inlineFully(expectedGate)
+            val (expectedFullyInlined, expectedAllInlinedAsOutputs) = gates.inlineFully(expectedGate)
             if (AocDebug.enabled) println("  $resultGateName = $expectedFullyInlined")
+            if (expectedFullyInlined == resultGateName) return // OK
 
-            if (expectedFullyInlined == resultGateName) return
+            gates.switchWires(resultGateName, expectedFullyInlined!!)
 
             if (AocDebug.enabled) {
                 println()
@@ -225,7 +225,7 @@ data class Day24(
                 // sum   = xBit xor yBit xor carry
                 val carryGate = AndGate.of(xPrevGateName, yPrevGateName)
                 patternMatchOrFixAndReturnUsedCarryName(XorGate.of(XorGate.of(xGateName, yGateName), carryGate), resultGateName)
-                carryFromPrevName = gateToOutput.outputNameBy(carryGate)
+                carryFromPrevName = gates.outputNameBy(carryGate)
 
             } else if (isLastCarryBit) {
                 // no X and Y, just carry
@@ -244,7 +244,7 @@ data class Day24(
                     AndGate.of(xPrevGateName, yPrevGateName)
                 )
                 patternMatchOrFixAndReturnUsedCarryName(XorGate.of(XorGate.of(xGateName, yGateName), carryGate), resultGateName)
-                carryFromPrevName = gateToOutput.outputNameBy(carryGate)
+                carryFromPrevName = gates.outputNameBy(carryGate)
             }
 
             if (expectedZBit != actualZBit) {
@@ -295,50 +295,74 @@ data class Day24(
         return result
     }
 
-    @Suppress("UNCHECKED_CAST")
-    fun <A : GateInput, B : GateInput> Map<CommutativeBinaryGate<WireRef, WireRef>, String>.inlineDeepestLevel(
-        gate: CommutativeBinaryGate<A, B>,
-        inlinedAsOutputs: MutableMap<CommutativeBinaryGate<WireRef, WireRef>, String> = mutableMapOf()
-    ): Pair<CommutativeBinaryGate<GateInput, GateInput>, MutableMap<CommutativeBinaryGate<WireRef, WireRef>, String>> {
+    class Gates(inputGates: Map<String, CommutativeBinaryGate<WireRef, WireRef>>) {
 
-        fun inlineGateRef(ref: GateRef<GateInput, GateInput>): GateInput =
-            ref.gate.asWireInputsOrNull()?.let { wireGate -> this[wireGate]?.let { outputName -> GateInput.of(outputName).also { inlinedAsOutputs.put(wireGate, outputName) } } }
-                ?: inlineDeepestLevel(ref.gate, inlinedAsOutputs).let { (inlined, _) -> GateInput.of(inlined) }
+        val outputToGate: Map<String, CommutativeBinaryGate<WireRef, WireRef>> = inputGates
+        val gateToOutput: Map<CommutativeBinaryGate<WireRef, WireRef>, String> = outputToGate.entries.associate { it.value to it.key }
 
-        val a: GateInput = gate.a.visit({ it }, { inlineGateRef(it) })
-        val b: GateInput = gate.b.visit({ it }, { inlineGateRef(it) })
-
-        return copy(gate, a, b) to inlinedAsOutputs
-    }
-
-    fun <A : GateInput, B : GateInput> Map<CommutativeBinaryGate<WireRef, WireRef>, String>.inlineFully(gate: CommutativeBinaryGate<A, B>): Pair<String?, MutableMap<CommutativeBinaryGate<WireRef, WireRef>, String>> {
-        var allInlinedAsOutputs = mutableMapOf<CommutativeBinaryGate<WireRef, WireRef>, String>()
-
-        var gateInlined = gate as CommutativeBinaryGate<GateInput, GateInput>
-        var fullyInlined: String? = null
-        if (AocDebug.enabled) println("\n  inlining: $gateInlined")
-        while (true) {
-            val (inlined, inlinedAsOutputs) = inlineDeepestLevel(gateInlined)
-            gateInlined = inlined
-            allInlinedAsOutputs.putAll(inlinedAsOutputs)
-            if (AocDebug.enabled) {
-                inlinedAsOutputs.forEach { (gate, name) -> println("    $name <- $gate") }
-                println("  inlining: $gateInlined")
+        val componentToGate = HashMap<String, MutableList<CommutativeBinaryGate<WireRef, WireRef>>>().apply {
+            outputToGate.forEach { (_, gate) ->
+                this.getOrPut(gate.a.name) { mutableListOf() }.add(gate)
+                this.getOrPut(gate.b.name) { mutableListOf() }.add(gate)
             }
-            fullyInlined = gateInlined.asWireInputsOrNull()?.let { this[it] }
-            if (inlinedAsOutputs.isEmpty() || fullyInlined != null) break
         }
 
-        return fullyInlined to allInlinedAsOutputs
-    }
+        val changedWires = mutableMapOf<String, String>()
 
-    fun <A : GateInput, B : GateInput> Map<CommutativeBinaryGate<WireRef, WireRef>, String>.outputNameBy(gate: CommutativeBinaryGate<A, B>): String? {
-        gate.asWireInputsOrNull()?.let { return this[it] }
+        fun switchWires(a: String, b: String) {
+            changedWires.put(a, b)
+            changedWires.put(b, a)
+        }
 
-        val a = gate.a.visit({ it }, { this.outputNameBy(it.gate)?.let { WireRef(it) } }) ?: return null
-        val b = gate.b.visit({ it }, { this.outputNameBy(it.gate)?.let { WireRef(it) } }) ?: return null
+        fun outputByGate(gate: CommutativeBinaryGate<WireRef, WireRef>): String? = gateToOutput[gate]?.let { changedWires[it] ?: it }
+        fun gateByOutput(output: String): CommutativeBinaryGate<WireRef, WireRef>? = outputToGate[changedWires[output] ?: output]
 
-        return copy(gate, a, b).let { flattened -> this[flattened] }
+        fun <A : GateInput, B : GateInput> outputNameBy(gate: CommutativeBinaryGate<A, B>): String? {
+            gate.asWireInputsOrNull()?.let { return outputByGate(it) }
+
+            val a = gate.a.visit({ it }, { outputNameBy(it.gate)?.let { WireRef(it) } }) ?: return null
+            val b = gate.b.visit({ it }, { outputNameBy(it.gate)?.let { WireRef(it) } }) ?: return null
+
+            return copy(gate, a, b).let { flattened -> outputByGate(flattened) }
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        fun <A : GateInput, B : GateInput> inlineDeepestLevel(
+            gate: CommutativeBinaryGate<A, B>,
+            inlinedAsOutputs: MutableMap<CommutativeBinaryGate<WireRef, WireRef>, String> = mutableMapOf()
+        ): Pair<CommutativeBinaryGate<GateInput, GateInput>, MutableMap<CommutativeBinaryGate<WireRef, WireRef>, String>> {
+
+            fun inlineGateRef(ref: GateRef<GateInput, GateInput>): GateInput =
+                ref.gate.asWireInputsOrNull()?.let { wireGate -> outputByGate(wireGate)?.let { outputName -> GateInput.of(outputName).also { inlinedAsOutputs.put(wireGate, outputName) } } }
+                    ?: inlineDeepestLevel(ref.gate, inlinedAsOutputs).let { (inlined, _) -> GateInput.of(inlined) }
+
+            val a: GateInput = gate.a.visit({ it }, { inlineGateRef(it) })
+            val b: GateInput = gate.b.visit({ it }, { inlineGateRef(it) })
+
+            return copy(gate, a, b) to inlinedAsOutputs
+        }
+
+        fun <A : GateInput, B : GateInput> inlineFully(gate: CommutativeBinaryGate<A, B>): Pair<String?, MutableMap<CommutativeBinaryGate<WireRef, WireRef>, String>> {
+            var allInlinedAsOutputs = mutableMapOf<CommutativeBinaryGate<WireRef, WireRef>, String>()
+
+            var gateInlined = gate as CommutativeBinaryGate<GateInput, GateInput>
+            var fullyInlined: String? = null
+            if (AocDebug.enabled) println("\n  inlining: $gateInlined")
+            while (true) {
+                val (inlined, inlinedAsOutputs) = inlineDeepestLevel(gateInlined)
+                gateInlined = inlined
+                allInlinedAsOutputs.putAll(inlinedAsOutputs)
+                if (AocDebug.enabled) {
+                    inlinedAsOutputs.forEach { (gate, name) -> println("    $name <- $gate") }
+                    println("  inlining: $gateInlined")
+                }
+                fullyInlined = gateInlined.asWireInputsOrNull()?.let { outputByGate(it) }
+                if (inlinedAsOutputs.isEmpty() || fullyInlined != null) break
+            }
+
+            return fullyInlined to allInlinedAsOutputs
+        }
+
     }
 
     fun Map<String, Boolean>.evaluateLiveSystem(gates: Map<String, CommutativeBinaryGate<WireRef, WireRef>>): MutableMap<String, Boolean> {
@@ -417,15 +441,6 @@ data class Day24(
             fun <A : GateInput, B : GateInput> of(ref: CommutativeBinaryGate<A, B>): GateRef<A, B> = GateRef(ref)
         }
 
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    fun <R> GateInput.visit(
-        onWire: (WireRef) -> R,
-        onGate: (GateRef<GateInput, GateInput>) -> R,
-    ): R = when (this) {
-        is WireRef -> onWire(this)
-        is GateRef<*, *> -> onGate(this as GateRef<GateInput, GateInput>)
     }
 
     sealed interface CommutativeBinaryGate<A : GateInput, B : GateInput> : Comparable<CommutativeBinaryGate<GateInput, GateInput>> {
@@ -540,12 +555,21 @@ data class Day24(
 
     }
 
-    @Suppress("UNCHECKED_CAST")
-    fun CommutativeBinaryGate<*, *>.asWireInputsOrNull(): CommutativeBinaryGate<WireRef, WireRef>? {
-        return (if (a !is WireRef || b !is WireRef) null else this) as CommutativeBinaryGate<WireRef, WireRef>?
-    }
-
     companion object {
+
+        @Suppress("UNCHECKED_CAST")
+        fun <R> GateInput.visit(
+            onWire: (WireRef) -> R,
+            onGate: (GateRef<GateInput, GateInput>) -> R,
+        ): R = when (this) {
+            is WireRef -> onWire(this)
+            is GateRef<*, *> -> onGate(this as GateRef<GateInput, GateInput>)
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        fun CommutativeBinaryGate<*, *>.asWireInputsOrNull(): CommutativeBinaryGate<WireRef, WireRef>? {
+            return (if (a !is WireRef || b !is WireRef) null else this) as CommutativeBinaryGate<WireRef, WireRef>?
+        }
 
         fun Boolean.toInt() = if (this) 1 else 0
 
