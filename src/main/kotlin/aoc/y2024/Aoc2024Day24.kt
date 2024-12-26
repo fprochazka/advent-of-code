@@ -152,22 +152,31 @@ data class Day24(
             }
 
             @Suppress("UNCHECKED_CAST")
-            fun <C : GateInput, D : GateInput> inlineDeepestLevel(gate: CommutativeBinaryGate<C, D>): CommutativeBinaryGate<GateInput, GateInput> {
-                val a: GateInput = gate.a.visit({ it }, { it.gate.asWireInputsOrNull()?.let { gateToOutput[it] }?.let { GateInput.of(it) } ?: GateInput.of(inlineDeepestLevel(it.gate)) })
-                val b: GateInput = gate.b.visit({ it }, { it.gate.asWireInputsOrNull()?.let { gateToOutput[it] }?.let { GateInput.of(it) } ?: GateInput.of(inlineDeepestLevel(it.gate)) })
-                return copy(gate, a, b)
+            fun <C : GateInput, D : GateInput> inlineDeepestLevel(gate: CommutativeBinaryGate<C, D>): Pair<CommutativeBinaryGate<GateInput, GateInput>, Int> {
+                var count = 0
+
+                fun inlineGateRef(ref: GateRef<GateInput, GateInput>): GateInput =
+                    ref.gate.asWireInputsOrNull()?.let { gateToOutput[it] }?.let { GateInput.of(it).also { count += 1 } }
+                        ?: inlineDeepestLevel(ref.gate).let { (inlined, nestedCount) -> GateInput.of(inlined).also { count += nestedCount } }
+
+                val a: GateInput = gate.a.visit({ it }, { inlineGateRef(it) })
+                val b: GateInput = gate.b.visit({ it }, { inlineGateRef(it) })
+
+                return copy(gate, a, b) to count
             }
 
             val triedToSwitch = mutableSetOf<Pair<String, String>>()
             while (gateToOutput.outputNameBy(expectedGate) != resultGateName) {
                 println()
-                var inlined = expectedGate as CommutativeBinaryGate<GateInput, GateInput>
+                var inlinedGate = expectedGate as CommutativeBinaryGate<GateInput, GateInput>
                 var fullyInlined: String? = null
-                println(inlined)
+                println(inlinedGate)
                 do {
-                    inlined = inlineDeepestLevel(inlined)
-                    println(inlined)
-                    fullyInlined = inlined.asWireInputsOrNull()?.let { gateToOutput[it] }
+                    val (inlined, inlinedCount) = inlineDeepestLevel(inlinedGate)
+                    inlinedGate = inlined
+                    println(inlinedGate)
+                    fullyInlined = inlinedGate.asWireInputsOrNull()?.let { gateToOutput[it] }
+                    if (inlinedCount == 0) break
                 } while (fullyInlined == null)
                 println(fullyInlined)
 
