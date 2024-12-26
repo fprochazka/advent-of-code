@@ -94,10 +94,9 @@ data class Day24(
 
         // sum = (xBit xor yBit) xor ((prevCarry and (xPrevBit xor yPrevBit)) or (xPrevBit and yPrevBit))
 
-        return listGatesThatNeedToBeSwappedSoThatSystemPerformsAdditionCorrectly(
-            outputToGate,
-            switchGates
-        )
+        listGatesThatNeedToBeSwappedSoThatSystemPerformsAdditionCorrectly(outputToGate)
+
+        return switchGates.sorted().joinToString(",")
     }
 
     fun listGatesThatNeedToBeSwappedSoThatSystemPerformsAdditionCorrectly(
@@ -137,15 +136,11 @@ data class Day24(
             inlineGates(resultGateName, inlinedState, inliningRound)
         }
 
+        @Suppress("UNCHECKED_CAST")
         fun <A : GateInput, B : GateInput> patternMatchOrFixAndReturnUsedCarryName(expectedGate: CommutativeBinaryGate<A, B>, resultGateName: String) {
             val inliningRound = mutableListOf<String>().apply { inlineGates(resultGateName, inlinedState, this) }
 
-//            val actualGateName = gates.outputNameBy(expectedGate)
-//            if (actualGateName == resultGateName) {
-//                return
-//            }
-
-            val (expectedFullyInlined, expectedAllInlinedAsOutputs) = gates.inlineFully(expectedGate)
+            val expectedFullyInlined = gates.outputNameBy(expectedGate)
             if (AocDebug.enabled) println("  $resultGateName = $expectedFullyInlined")
             if (expectedFullyInlined == resultGateName) return // OK
 
@@ -159,20 +154,31 @@ data class Day24(
                 gates.returnWires(resultGateName, expectedFullyInlined)
             }
 
-            if (AocDebug.enabled) {
-                println()
-                inliningRound.sortedWith(compareBy<String> { inlinedState[it]?.length ?: 0 }.thenComparingInt { it.length })
-                    .forEach { name -> println("  $name <- ${outputToGate[name]}      ~ ${state[name]!!.toInt()}    ~ ${inlinedState[name]}") }
-                println("  inliningOrder: ${inliningRound}")
+            val resultGate = gates.gateByOutput(resultGateName) ?: error("Cannot find gate for '$resultGateName'")
+            if (expectedGate.type != resultGate.type) {
+                TODO("${expectedGate.type} != ${resultGate.type}")
             }
 
-            TODO()
+            val expectedGateA = expectedGate.a as? GateRef<GateInput, GateInput>
+            if (expectedGateA != null) {
+                patternMatchOrFixAndReturnUsedCarryName(expectedGateA.gate, resultGate.a.name)
+            }
 
-//            fun matchLevel(gate: CommutativeBinaryGate<*, *>) {
-//                if (gate.a is String && gate.b is String) return
-//            }
-//
-//            matchLevel(expectedGate)
+            val expectedGateB = expectedGate.b as? GateRef<GateInput, GateInput>
+            if (expectedGateB != null) {
+                patternMatchOrFixAndReturnUsedCarryName(expectedGateB.gate, resultGate.b.name)
+            }
+
+            if (gates.outputNameBy(expectedGate) != resultGateName) {
+                if (AocDebug.enabled) {
+                    println()
+                    inliningRound.sortedWith(compareBy<String> { inlinedState[it]?.length ?: 0 }.thenComparingInt { it.length })
+                        .forEach { name -> println("  $name <- ${outputToGate[name]}      ~ ${state[name]!!.toInt()}    ~ ${inlinedState[name]}") }
+                    println("  inliningOrder: ${inliningRound}")
+                }
+
+                throw IllegalStateException("Unable to fix $resultGateName = $expectedGate")
+            }
         }
 
         var carryFromPrevName: String? = null
@@ -271,7 +277,7 @@ data class Day24(
 //            }
         }
 
-        return switchGates.sorted().joinToString(",")
+        return gates.changedWires.keys.sorted().joinToString(",")
     }
 
     // Gates wait until both inputs are received before producing output; wires can carry 0, 1 or no value at all.
@@ -375,7 +381,9 @@ data class Day24(
                     println("  inlining: $gateInlined")
                 }
                 fullyInlined = gateInlined.asWireInputsOrNull()?.let { outputByGate(it) }
-                if (inlinedAsOutputs.isEmpty() || fullyInlined != null) break
+                if (inlinedAsOutputs.isEmpty() || fullyInlined != null) {
+                    break
+                }
             }
 
             return fullyInlined to allInlinedAsOutputs
