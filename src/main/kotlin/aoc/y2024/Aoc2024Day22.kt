@@ -41,31 +41,29 @@ data class Day22(val firstSecretNumbers: List<Long>) {
             return r
         }
 
-        val previousBananasToSell = MutableList<Short>(iteration0.size) { (iteration0[it] % 10).toShort() }
-        val sequences = List(iteration0.size) { CircularBufferFixedSize4<Short>() }
-
         val bananasPerSequence = HashMap<Int, BananasPerMonkey>(1 shl 16, 1.0f) // sequence => [price]
 
         val numbers = iteration0.toMutableList()
-        for (iter in 1..2000) {
-            for (monkeyId in numbers.indices) {
-                val evolvedNumber = evolve(numbers[monkeyId])
-                val bananasToSell = (evolvedNumber % 10).toShort()
+        for (monkeyId in numbers.indices) {
+            val monkeySequence = CircularBufferFixedSize4<Short>()
+            var monkeyNumber = numbers[monkeyId]
+            var previousBananasToSell = (monkeyNumber % 10).toShort()
 
-                val diffsSequence = sequences[monkeyId]
+            for (iter in 1..2000) {
+                monkeyNumber = evolve(monkeyNumber)
 
-                val diff = (bananasToSell - previousBananasToSell[monkeyId]).toShort()
-                diffsSequence.add(diff)
-
-                previousBananasToSell[monkeyId] = bananasToSell
-                numbers[monkeyId] = evolvedNumber
+                val bananasToSell = (monkeyNumber % 10).toShort()
+                val diff = (bananasToSell - previousBananasToSell).toShort()
+                monkeySequence.add(diff)
 
                 if (iter >= 4) { // at least 4 iterations to get first 4 diffs
-                    val hashCode = diffsSequence.get(::hash)
+                    val hashCode = monkeySequence.get(::hash)
                     bananasPerSequence
                         .getOrPut(hashCode) { BananasPerMonkey(numbers.size) }
                         .monkeyWillSell(monkeyId, bananasToSell)
                 }
+
+                previousBananasToSell = bananasToSell
             }
         }
 
