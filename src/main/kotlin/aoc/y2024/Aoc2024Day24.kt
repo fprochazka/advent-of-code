@@ -72,34 +72,30 @@ data class Day24(
 
             var fixedWires = false
 
-            fun <C : GateInput, D : GateInput> matchOrFix(expectedGate: CommutativeBinaryGate<C, D>, resultGateName: String): Boolean {
+            fun <C : GateInput, D : GateInput> matchOrFix(expectedGate: CommutativeBinaryGate<C, D>, actualGateName: String): Boolean {
                 val expectedGateName = gates.outputNameBy(expectedGate)
-                if (expectedGateName == resultGateName) return true // OK
+
+                if (expectedGateName == actualGateName) return true // OK
 
                 if (expectedGateName != null) {
-                    // simple case fast-path
-                    gates.switchWires(resultGateName, expectedGateName)
-                    if (gates.outputNameBy(expectedGate) == resultGateName) {
+                    gates.switchWires(actualGateName, expectedGateName)
+                    if (gates.outputNameBy(expectedGate) == actualGateName) {
                         reRunInliningRound(resultGateName, inliningRound)
                         fixedWires = true
                         return true // OK
                     }
-                    gates.returnWires(resultGateName, expectedGateName)
+                    gates.returnWires(actualGateName, expectedGateName)
                 }
 
-                val expectedGateA = expectedGate.a.asGateRef()
-                val expectedGateB = expectedGate.b.asGateRef()
-
-                val expectedGateAOps = expectedGateA?.getInlinedOperationsCount() ?: 0
-                val expectedGateBOps = expectedGateB?.getInlinedOperationsCount() ?: 0
-
-                val resultGate = gates.gateByOutput(resultGateName) ?: error("Cannot find gate for '$resultGateName'")
+                val resultGate = gates.gateByOutput(actualGateName) ?: error("Cannot find gate for '$actualGateName'")
                 val resultGateAOps = inlinedState[resultGate.a.name]?.getInlinedOperationsCount() ?: 0
                 val resultGateBOps = inlinedState[resultGate.b.name]?.getInlinedOperationsCount() ?: 0
 
                 if (expectedGate.type != resultGate.type) return false
 
+                val expectedGateA = expectedGate.a.asGateRef()
                 if (expectedGateA != null) {
+                    val expectedGateAOps = expectedGateA.getInlinedOperationsCount()
                     if (expectedGateAOps.isCloserToNThanM(resultGateAOps, resultGateBOps)) {
                         var matches = matchOrFix(expectedGateA, resultGate.a.name)
                         if (!matches) return false
@@ -109,7 +105,9 @@ data class Day24(
                     }
                 }
 
+                val expectedGateB = expectedGate.b.asGateRef()
                 if (expectedGateB != null) {
+                    val expectedGateBOps = expectedGateB.getInlinedOperationsCount()
                     if (expectedGateBOps.isCloserToNThanM(resultGateAOps, resultGateBOps)) {
                         var matches = matchOrFix(expectedGateB, resultGate.a.name)
                         if (!matches) return false
@@ -300,19 +298,6 @@ data class Day24(
         gates.forEach { (name, _) -> evaluate(name) }
 
         return state
-    }
-
-    fun <V : Any> MutableMap<String, V>.switchGates(switch: Pair<String, String>): List<String> =
-        this.switchGates(switch.first, switch.second)
-
-    fun <V : Any> MutableMap<String, V>.switchGates(a: String, b: String): List<String> {
-        val aGate = this[a]!!
-        val bGate = this[b]!!
-
-        this[a] = bGate
-        this[b] = aGate
-
-        return listOf(a, b)
     }
 
     sealed interface GateInput : Comparable<GateInput> {
