@@ -203,7 +203,7 @@ object Aoc2024 {
         }
 
         day(24) {
-            input { input ->
+            input("input1") { input ->
                 task(1) { input.day24().result1 }
                 task(2) { input.day24().result2 }
             }

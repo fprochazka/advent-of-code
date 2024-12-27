@@ -3,11 +3,10 @@ package aoc.y2024
 import aoc.utils.AocDebug
 import aoc.utils.Resource
 import aoc.utils.strings.matchEntire
-import aoc.y2024.Day24.GateInput.GateRef
 import aoc.y2024.Day24.GateInput.WireRef
 import arrow.core.sort
-import kotlin.Any
-import kotlin.Comparable
+import java.util.*
+import kotlin.math.abs
 
 fun Resource.day24(): Day24 = Day24.parse(content())
 
@@ -28,71 +27,111 @@ data class Day24(
 
         val gates = Gates(outputToGate)
 
-        val state = initialStates.evaluateLiveSystem(outputToGate)
-        var x = gatesToNumberByPrefix("x", state)
-        var y = gatesToNumberByPrefix("y", state)
+        val (x, y) = initialStates.evaluateLiveSystem(outputToGate)
+            .let { state -> gatesToNumberByPrefix("x", state) to gatesToNumberByPrefix("y", state) }
 
-        fun inlineGates(name: String, state: MutableMap<String, String>, inliningRound: MutableCollection<String>): String {
-            if (name !in initialStates) inliningRound.add(name)
+        val knownCarryGates = mutableSetOf<String>()
 
-            return state.getOrPut(name) {
-                when (val gate = gates.gateByOutput(name) ?: error("Inlining error - unknown gate: '$name'")) {
-                    is AndGate -> "(${inlineGates(gate.a.name, state, inliningRound)} AND ${inlineGates(gate.b.name, state, inliningRound)})"
-                    is OrGate -> "(${inlineGates(gate.a.name, state, inliningRound)}  OR ${inlineGates(gate.b.name, state, inliningRound)})"
-                    is XorGate -> "(${inlineGates(gate.a.name, state, inliningRound)} XOR ${inlineGates(gate.b.name, state, inliningRound)})"
+        fun inlineGates(name: String, state: MutableMap<String, GateInput>): MutableCollection<String> {
+            val inliningRound = mutableListOf<String>()
+
+            fun inline(name: String): GateInput {
+                if (name.startsWith("x") || name.startsWith("y")) return GateInput.of(name)
+                if (name in knownCarryGates) return GateInput.of(name)
+                if (name !in initialStates) inliningRound.add(name)
+
+                return state.getOrPut(name) {
+                    gates.gateByOutput(name)
+                        ?.let { gate -> copy(gate, inline(gate.a.name), inline(gate.b.name)) }
+                        ?: error("Inlining error - unknown gate: '$name'")
                 }
             }
+
+            inline(name)
+
+            return inliningRound
         }
 
-        val inlinedState = initialStates.mapValues { it.key }.toMutableMap()
+        val inlinedState = mutableMapOf<String, GateInput>()
 
         fun reRunInliningRound(resultGateName: String, inliningRound: MutableCollection<String>) {
             inliningRound.forEach { name -> inlinedState.remove(name) }
             inliningRound.clear()
-            inlineGates(resultGateName, inlinedState, inliningRound)
+            inliningRound.addAll(inlineGates(resultGateName, inlinedState))
         }
 
-        fun <A : GateInput, B : GateInput> patternMatchOrFixAndReturnUsedCarryName(expectedGate: CommutativeBinaryGate<A, B>, resultGateName: String) {
-            val inliningRound = mutableListOf<String>().apply { inlineGates(resultGateName, inlinedState, this) }
+        fun <A : GateInput, B : GateInput> patternMatchOrFix(expectedGate: CommutativeBinaryGate<A, B>, resultGateName: String) {
+            val inliningRound = inlineGates(resultGateName, inlinedState)
 
-            val expectedFullyInlined = gates.outputNameBy(expectedGate)
-            if (AocDebug.enabled) println("  $resultGateName = $expectedFullyInlined")
-            if (expectedFullyInlined == resultGateName) return // OK
-
-            if (expectedFullyInlined != null) {
-                // simple case fast-path
-                gates.switchWires(resultGateName, expectedFullyInlined)
-                if (gates.outputNameBy(expectedGate) == resultGateName) {
-                    reRunInliningRound(resultGateName, inliningRound)
-                    return // OK
-                }
-                gates.returnWires(resultGateName, expectedFullyInlined)
+            if (AocDebug.enabled) {
+                println()
+                inliningRound.sortedWith(compareBy<String> { inlinedState[it]?.toString()?.length ?: 0 }.thenComparingInt { it.length })
+                    .forEach { name -> println("  $name <- ${outputToGate[name]}    ~ ${inlinedState[name]}") }
+                println("  inliningOrder: ${inliningRound}")
             }
 
-            val resultGate = gates.gateByOutput(resultGateName) ?: error("Cannot find gate for '$resultGateName'")
-            if (expectedGate.type != resultGate.type) {
-                TODO("${expectedGate.type} != ${resultGate.type}")
-            }
+            var fixedWires = false
 
-            val expectedGateA = expectedGate.a.asGateRef()
-            if (expectedGateA != null) {
-                patternMatchOrFixAndReturnUsedCarryName(expectedGateA.gate, resultGate.a.name)
-            }
+            fun <C : GateInput, D : GateInput> matchOrFix(expectedGate: CommutativeBinaryGate<C, D>, resultGateName: String): Boolean {
+                val expectedGateName = gates.outputNameBy(expectedGate)
+                if (expectedGateName == resultGateName) return true // OK
 
-            val expectedGateB = expectedGate.b.asGateRef()
-            if (expectedGateB != null) {
-                patternMatchOrFixAndReturnUsedCarryName(expectedGateB.gate, resultGate.b.name)
-            }
-
-            if (gates.outputNameBy(expectedGate) != resultGateName) {
-                if (AocDebug.enabled) {
-                    println()
-                    inliningRound.sortedWith(compareBy<String> { inlinedState[it]?.length ?: 0 }.thenComparingInt { it.length })
-                        .forEach { name -> println("  $name <- ${outputToGate[name]}      ~ ${state[name]!!.toInt()}    ~ ${inlinedState[name]}") }
-                    println("  inliningOrder: ${inliningRound}")
+                if (expectedGateName != null) {
+                    // simple case fast-path
+                    gates.switchWires(resultGateName, expectedGateName)
+                    if (gates.outputNameBy(expectedGate) == resultGateName) {
+                        reRunInliningRound(resultGateName, inliningRound)
+                        fixedWires = true
+                        return true // OK
+                    }
+                    gates.returnWires(resultGateName, expectedGateName)
                 }
 
+                val expectedGateA = expectedGate.a.asGateRef()
+                val expectedGateB = expectedGate.b.asGateRef()
+
+                val expectedGateAOps = expectedGateA?.getInlinedOperationsCount() ?: 0
+                val expectedGateBOps = expectedGateB?.getInlinedOperationsCount() ?: 0
+
+                val resultGate = gates.gateByOutput(resultGateName) ?: error("Cannot find gate for '$resultGateName'")
+                val resultGateAOps = inlinedState[resultGate.a.name]?.getInlinedOperationsCount() ?: 0
+                val resultGateBOps = inlinedState[resultGate.b.name]?.getInlinedOperationsCount() ?: 0
+
+                if (expectedGate.type != resultGate.type) return false
+
+                if (expectedGateA != null) {
+                    if (expectedGateAOps.isCloserToNThanM(resultGateAOps, resultGateBOps)) {
+                        var matches = matchOrFix(expectedGateA, resultGate.a.name)
+                        if (!matches) return false
+                    } else {
+                        var matches = matchOrFix(expectedGateA, resultGate.b.name)
+                        if (!matches) return false
+                    }
+                }
+
+                if (expectedGateB != null) {
+                    if (expectedGateBOps.isCloserToNThanM(resultGateAOps, resultGateBOps)) {
+                        var matches = matchOrFix(expectedGateB, resultGate.a.name)
+                        if (!matches) return false
+                    } else {
+                        var matches = matchOrFix(expectedGateB, resultGate.b.name)
+                        if (!matches) return false
+                    }
+                }
+
+                return true
+            }
+
+            val matches = matchOrFix(expectedGate, resultGateName)
+            if (!matches) {
                 throw IllegalStateException("Unable to fix $resultGateName = $expectedGate")
+            }
+
+            if (AocDebug.enabled && fixedWires) {
+                println()
+                println("  fixed wires:")
+                inliningRound.sortedWith(compareBy<String> { inlinedState[it]?.toString()?.length ?: 0 }.thenComparingInt { it.length })
+                    .forEach { name -> println("  $name <- ${outputToGate[name]}    ~ ${inlinedState[name]}") }
             }
         }
 
@@ -136,13 +175,13 @@ data class Day24(
             if (i == 0) {
                 // carry = 0
                 // sum   = xBit xor yBit xor carry
-                patternMatchOrFixAndReturnUsedCarryName(XorGate.of(xGateName, yGateName), resultGateName)
+                patternMatchOrFix(XorGate.of(xGateName, yGateName), resultGateName)
 
             } else if (i == 1) {
                 // carry = (0 and (0 xor 0)) or (xPrevBit and yPrevBit) = (xPrevBit and yPrevBit)
                 // sum   = xBit xor yBit xor carry
                 val carryGate = AndGate.of(xPrevGateName, yPrevGateName)
-                patternMatchOrFixAndReturnUsedCarryName(XorGate.of(XorGate.of(xGateName, yGateName), carryGate), resultGateName)
+                patternMatchOrFix(XorGate.of(XorGate.of(xGateName, yGateName), carryGate), resultGateName)
                 carryFromPrevName = gates.outputNameBy(carryGate)
 
             } else if (isLastCarryBit) {
@@ -152,7 +191,7 @@ data class Day24(
                     AndGate.of(carryFromPrevName!!, XorGate.of(xPrevGateName, yPrevGateName)),
                     AndGate.of(xPrevGateName, yPrevGateName)
                 )
-                patternMatchOrFixAndReturnUsedCarryName(carryGate, resultGateName)
+                patternMatchOrFix(carryGate, resultGateName)
 
             } else {
                 // carry = (prevCarry and (xPrevBit xor yPrevBit)) or (xPrevBit and yPrevBit)
@@ -161,12 +200,22 @@ data class Day24(
                     AndGate.of(carryFromPrevName!!, XorGate.of(xPrevGateName, yPrevGateName)),
                     AndGate.of(xPrevGateName, yPrevGateName)
                 )
-                patternMatchOrFixAndReturnUsedCarryName(XorGate.of(XorGate.of(xGateName, yGateName), carryGate), resultGateName)
+                patternMatchOrFix(XorGate.of(XorGate.of(xGateName, yGateName), carryGate), resultGateName)
                 carryFromPrevName = gates.outputNameBy(carryGate)
+            }
+
+            carryFromPrevName?.let {
+                knownCarryGates.add(it)
+                if (AocDebug.enabled) println("  carry gate: $it")
             }
         }
 
-        return gates.changedWires.keys.sorted().joinToString(",")
+        val wireChanges = gates.changedWires.keys.sorted()
+        require(gates.changedWires.size == 8) {
+            "Expected only 4 pairs of wire changes, but found: $wireChanges"
+        }
+
+        return wireChanges.joinToString(",")
     }
 
     // Gates wait until both inputs are received before producing output; wires can carry 0, 1 or no value at all.
@@ -225,8 +274,8 @@ data class Day24(
         fun <A : GateInput, B : GateInput> outputNameBy(gate: CommutativeBinaryGate<A, B>): String? {
             gate.asWireInputsOrNull()?.let { return outputByGate(it) }
 
-            val a = gate.a.visit({ it }, { outputNameBy(it.gate)?.let { GateInput.of(it) } }) ?: return null
-            val b = gate.b.visit({ it }, { outputNameBy(it.gate)?.let { GateInput.of(it) } }) ?: return null
+            val a = gate.a.visit({ it }, { outputNameBy(it)?.let { GateInput.of(it) } }) ?: return null
+            val b = gate.b.visit({ it }, { outputNameBy(it)?.let { GateInput.of(it) } }) ?: return null
 
             return copy(gate, a, b).let { flattened -> outputByGate(flattened) }
         }
@@ -272,7 +321,7 @@ data class Day24(
 
             override fun compareTo(other: GateInput): Int {
                 return when (other) {
-                    is GateRef<*, *> -> -1
+                    is CommutativeBinaryGate<*, *> -> -1
                     is WireRef -> name.compareTo(other.name)
                 }
             }
@@ -281,37 +330,27 @@ data class Day24(
 
         }
 
-        data class GateRef<A : GateInput, B : GateInput>(val gate: CommutativeBinaryGate<A, B>) : GateInput {
-
-            override fun compareTo(other: GateInput): Int {
-                return when (other) {
-                    is GateRef<*, *> -> gate.compareTo(other.gate.asUnknown())
-                    is WireRef -> 1
-                }
-            }
-
-            override fun toString(): String = gate.toString()
-
-        }
-
         companion object {
             fun of(ref: Any): GateInput = when (ref) {
+                is String -> of(ref)
                 is GateInput -> ref
-                is String -> WireRef(ref)
-                is CommutativeBinaryGate<*, *> -> GateRef(ref)
                 else -> error("Cannot create GateInput from type ${ref.javaClass.name}")
             }
 
-            fun of(ref: String): WireRef = WireRef(ref)
-
             fun <T : GateInput> of(ref: T): T = ref
 
-            fun <A : GateInput, B : GateInput> of(ref: CommutativeBinaryGate<A, B>): GateRef<A, B> = GateRef(ref)
+            fun <A : GateInput, B : GateInput> of(ref: CommutativeBinaryGate<A, B>) = ref
+
+            private val wireRefCache = HashMap<String, WireRef>(1 shl 8)
+
+            fun of(ref: String): WireRef =
+                wireRefCache.getOrPut(ref) { WireRef(ref) }
+
         }
 
     }
 
-    sealed interface CommutativeBinaryGate<A : GateInput, B : GateInput> : Comparable<CommutativeBinaryGate<GateInput, GateInput>> {
+    sealed interface CommutativeBinaryGate<A : GateInput, B : GateInput> : GateInput {
         val a: A
         val b: B
         val type: Type
@@ -329,7 +368,10 @@ data class Day24(
 
         override val type = CommutativeBinaryGate.Type.AND
 
-        override fun compareTo(other: CommutativeBinaryGate<GateInput, GateInput>): Int = compareValuesBy(this, other, { it.type }, { it.a }, { it.b })
+        override fun compareTo(other: GateInput): Int = when (other) {
+            is CommutativeBinaryGate<*, *> -> compareValuesBy(this, other.asUnknown(), { it.type }, { it.a }, { it.b })
+            is WireRef -> 1
+        }
 
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -338,19 +380,13 @@ data class Day24(
         }
 
         override fun hashCode(): Int = ((31 * a.hashCode()) + b.hashCode()) * 31 + type.hashCode()
-
         override fun toString(): String = "($a $type $b)"
 
         companion object {
             fun of(a: String, b: String) = of(GateInput.of(a), GateInput.of(b))
 
-            fun <B : GateRef<GateInput, GateInput>> of(a: String, b: B) = of(GateInput.of(a), GateInput.of(b))
-            fun <A : GateRef<GateInput, GateInput>> of(a: A, b: String) = of(GateInput.of(a), GateInput.of(b))
-
             fun <A : GateInput, B : GateInput> of(a: String, b: CommutativeBinaryGate<A, B>) = of(GateInput.of(a), GateInput.of(b))
             fun <A : GateInput, B : GateInput> of(a: CommutativeBinaryGate<A, B>, b: String) = of(GateInput.of(a), GateInput.of(b))
-
-            fun <A : GateInput, B : GateInput, C : GateInput, D : GateInput> of(a: CommutativeBinaryGate<A, B>, b: CommutativeBinaryGate<C, D>) = of(GateInput.of(a), GateInput.of(b))
 
             fun <A : GateInput, B : GateInput> of(a: A, b: B) = AndGate(a, b)
         }
@@ -362,7 +398,10 @@ data class Day24(
 
         override val type = CommutativeBinaryGate.Type.OR
 
-        override fun compareTo(other: CommutativeBinaryGate<GateInput, GateInput>): Int = compareValuesBy(this, other, { it.type }, { it.a }, { it.b })
+        override fun compareTo(other: GateInput): Int = when (other) {
+            is CommutativeBinaryGate<*, *> -> compareValuesBy(this, other.asUnknown(), { it.type }, { it.a }, { it.b })
+            is WireRef -> 1
+        }
 
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -377,13 +416,8 @@ data class Day24(
         companion object {
             fun of(a: String, b: String) = of(GateInput.of(a), GateInput.of(b))
 
-            fun <B : GateRef<GateInput, GateInput>> of(a: String, b: B) = of(GateInput.of(a), GateInput.of(b))
-            fun <A : GateRef<GateInput, GateInput>> of(a: A, b: String) = of(GateInput.of(a), GateInput.of(b))
-
             fun <A : GateInput, B : GateInput> of(a: String, b: CommutativeBinaryGate<A, B>) = of(GateInput.of(a), GateInput.of(b))
             fun <A : GateInput, B : GateInput> of(a: CommutativeBinaryGate<A, B>, b: String) = of(GateInput.of(a), GateInput.of(b))
-
-            fun <A : GateInput, B : GateInput, C : GateInput, D : GateInput> of(a: CommutativeBinaryGate<A, B>, b: CommutativeBinaryGate<C, D>) = of(GateInput.of(a), GateInput.of(b))
 
             fun <A : GateInput, B : GateInput> of(a: A, b: B) = OrGate(a, b)
         }
@@ -395,7 +429,10 @@ data class Day24(
 
         override val type = CommutativeBinaryGate.Type.XOR
 
-        override fun compareTo(other: CommutativeBinaryGate<GateInput, GateInput>): Int = compareValuesBy(this, other, { it.type }, { it.a }, { it.b })
+        override fun compareTo(other: GateInput): Int = when (other) {
+            is CommutativeBinaryGate<*, *> -> compareValuesBy(this, other.asUnknown(), { it.type }, { it.a }, { it.b })
+            is WireRef -> 1
+        }
 
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -410,13 +447,8 @@ data class Day24(
         companion object {
             fun of(a: String, b: String) = of(GateInput.of(a), GateInput.of(b))
 
-            fun <B : GateRef<GateInput, GateInput>> of(a: String, b: B) = of(GateInput.of(a), GateInput.of(b))
-            fun <A : GateRef<GateInput, GateInput>> of(a: A, b: String) = of(GateInput.of(a), GateInput.of(b))
-
             fun <A : GateInput, B : GateInput> of(a: String, b: CommutativeBinaryGate<A, B>) = of(GateInput.of(a), GateInput.of(b))
             fun <A : GateInput, B : GateInput> of(a: CommutativeBinaryGate<A, B>, b: String) = of(GateInput.of(a), GateInput.of(b))
-
-            fun <A : GateInput, B : GateInput, C : GateInput, D : GateInput> of(a: CommutativeBinaryGate<A, B>, b: CommutativeBinaryGate<C, D>) = of(GateInput.of(a), GateInput.of(b))
 
             fun <A : GateInput, B : GateInput> of(a: A, b: B) = XorGate(a, b)
         }
@@ -425,18 +457,29 @@ data class Day24(
 
     companion object {
 
+        val gateInlinedOperationsCount = IdentityHashMap<CommutativeBinaryGate<GateInput, GateInput>, Int>()
+
+        fun GateInput.getInlinedOperationsCount(): Int = when (this) {
+            is CommutativeBinaryGate<*, *> -> gateInlinedOperationsCount.getOrPut(this.asUnknown()) { 1 + this.a.getInlinedOperationsCount() + this.b.getInlinedOperationsCount() }
+            is WireRef -> 0
+        }
+
+        fun Int.isCloserToNThanM(n: Int, m: Int): Boolean {
+            return abs(this - n) < abs(this - m)
+        }
+
         @Suppress("UNCHECKED_CAST")
-        fun GateInput.asGateRef(): GateRef<GateInput, GateInput>? = this as? GateRef<GateInput, GateInput>
+        fun GateInput.asGateRef(): CommutativeBinaryGate<GateInput, GateInput>? = this as? CommutativeBinaryGate<GateInput, GateInput>
 
         fun GateInput.asWireRef(): WireRef? = this as? WireRef
 
         @Suppress("UNCHECKED_CAST")
         fun <R> GateInput.visit(
             onWire: (WireRef) -> R,
-            onGate: (GateRef<GateInput, GateInput>) -> R,
+            onGate: (CommutativeBinaryGate<GateInput, GateInput>) -> R,
         ): R = when (this) {
             is WireRef -> onWire(this)
-            is GateRef<*, *> -> onGate(this as GateRef<GateInput, GateInput>)
+            is CommutativeBinaryGate<*, *> -> onGate(this as CommutativeBinaryGate<GateInput, GateInput>)
         }
 
         @Suppress("UNCHECKED_CAST")
@@ -448,11 +491,6 @@ data class Day24(
             this as CommutativeBinaryGate<GateInput, GateInput>
 
         fun Boolean.toInt() = if (this) 1 else 0
-
-        @Suppress("UNCHECKED_CAST")
-        fun <T> asGateArg(any: Any): T where T : Comparable<T>, T : Any {
-            return any as T
-        }
 
         @Suppress("UNCHECKED_CAST")
         fun <InA : GateInput, InB : GateInput, OutA : GateInput, OutB : GateInput> copy(of: CommutativeBinaryGate<InA, InB>, newA: OutA, newB: OutB): CommutativeBinaryGate<OutA, OutB> {
