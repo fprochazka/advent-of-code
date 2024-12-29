@@ -33,3 +33,15 @@ fun <V : Any> List<V>.isEqualTo(expected: List<V>): Boolean {
 
 fun <V> Collection<V>.allMinOf(selector: (V) -> Int): List<V> =
     this.groupBy { selector(it) }.entries.minBy { it.key }.value
+
+fun Sequence<Long>.toLongArray(): LongArray = this.toList().toLongArray()
+
+fun Sequence<Int>.toIntArray(): IntArray = this.toList().toIntArray()
+
+fun Collection<Long>.toLongArray(): LongArray = LongArray(this.size).also { array ->
+    this.forEachIndexed { i, value -> array[i] = value }
+}
+
+fun Collection<Int>.toIntArray(): IntArray = IntArray(this.size).also { array ->
+    this.forEachIndexed { i, value -> array[i] = value }
+}
