@@ -45,3 +45,29 @@ fun Collection<Long>.toLongArray(): LongArray = LongArray(this.size).also { arra
 fun Collection<Int>.toIntArray(): IntArray = IntArray(this.size).also { array ->
     this.forEachIndexed { i, value -> array[i] = value }
 }
+
+fun <V : Any> Collection<V>.chunksCount(countOfResultingChunks: Int): List<List<V>> {
+    if (size <= countOfResultingChunks) {
+        return this.map { listOf(it) }
+    }
+
+    val chunkSize = size / countOfResultingChunks
+    val remainder = size % countOfResultingChunks
+    val lastIndex = countOfResultingChunks - 1
+
+    val result = ArrayList<List<V>>(countOfResultingChunks)
+
+    val iterator = this.iterator()
+    for (i in 0 until countOfResultingChunks) {
+        val currentChunkSize = chunkSize + if (i == lastIndex) remainder else 0
+        val chunk = ArrayList<V>(currentChunkSize)
+
+        repeat(currentChunkSize) {
+            if (iterator.hasNext()) chunk.add(iterator.next())
+        }
+
+        result.add(chunk)
+    }
+
+    return result
+}

@@ -70,3 +70,18 @@ fun pow2(n: Int): Long = when {
  * 2^n
  */
 fun pow2(n: Long): Long = pow2(n.toInt())
+
+fun Long.digitCount(): Int {
+    val n = this.absoluteValue
+    return when {
+        n < 10L -> 1
+        n < 100L -> 2
+        n < 1_000L -> 3
+        n < 10_000L -> 4
+        n < 100_000L -> 5
+        n < 1_000_000L -> 6
+        else -> Math.log10(n.toDouble()).toInt() + 1 // Fallback for large numbers
+    }
+}
+
+fun Long.scale10(n: Int): Long = this * (exp(10, n).toLong())

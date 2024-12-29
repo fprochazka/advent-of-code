@@ -99,8 +99,11 @@ class Day22(val firstSecretNumbers: LongArray) {
         })
 
         workers.map { it.get() }
+        val result = maxBananas.get()
 
-        return maxBananas.get()
+        executor.shutdown()
+
+        return result
     }
 
     // 1st and 2000th numbers in example:
