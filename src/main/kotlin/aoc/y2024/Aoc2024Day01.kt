@@ -4,22 +4,11 @@ import aoc.utils.Resource
 import aoc.utils.strings.toInts
 import kotlin.math.absoluteValue
 
-fun Resource.day01(): Day01 {
-    val leftNumbers = mutableListOf<Int>();
-    val rightNumbers = mutableListOf<Int>();
+fun Resource.day01(): Day01 = Day01.parse(nonBlankLines())
 
-    nonBlankLines().forEach { line ->
-        val (left, right) = line.toInts(2)
-        leftNumbers.add(left)
-        rightNumbers.add(right)
-    }
-
-    return Day01(leftNumbers.sorted(), rightNumbers.sorted())
-}
-
-data class Day01(
-    val leftNumbers: List<Int>,
-    val rightNumbers: List<Int>,
+class Day01(
+    val leftNumbers: IntArray,
+    val rightNumbers: IntArray,
 ) {
 
     val distances: List<Int> by lazy {
@@ -30,7 +19,7 @@ data class Day01(
     val result1 by lazy { distances.sum() }
 
     val rightNumbersOccurrences by lazy {
-        rightNumbers.groupingBy { it }.eachCount()
+        rightNumbers.toList().groupingBy { it }.eachCount()
     }
 
     val similarities by lazy {
@@ -38,5 +27,25 @@ data class Day01(
     }
 
     val result2 by lazy { similarities.sum() }
+
+    companion object {
+
+        fun parse(lines: List<String>): Day01 {
+            val leftNumbers = IntArray(lines.size);
+            val rightNumbers = IntArray(lines.size);
+
+            for ((i, line) in lines.withIndex()) {
+                val (left, right) = line.toInts(2)
+                leftNumbers[i] = left
+                rightNumbers[i] = right
+            }
+
+            leftNumbers.sort()
+            rightNumbers.sort()
+
+            return Day01(leftNumbers, rightNumbers)
+        }
+
+    }
 
 }

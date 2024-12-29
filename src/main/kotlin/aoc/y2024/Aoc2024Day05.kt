@@ -10,7 +10,7 @@ fun Resource.day05(): Day05 {
 
     nonBlankLines().forEach { line ->
         if (line.contains("|")) {
-            rules.add(line.toInts(2).let { it[0] to it[1] })
+            rules.add(line.toInts(2).let { it.getInt(0) to it.getInt(1) })
         } else {
             updates.add(line.toInts())
         }

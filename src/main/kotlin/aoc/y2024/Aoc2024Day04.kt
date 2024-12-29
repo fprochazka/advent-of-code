@@ -13,7 +13,7 @@ data class Day04(val matrix: Matrix<Char>) {
 
     val result1 by lazy {
         matrix
-            .allWordsOfLength("XMAS".length)
+            .allWordsOfLength4()
             .count { "XMAS" == it }
     }
 
@@ -41,12 +41,12 @@ data class Day04(val matrix: Matrix<Char>) {
         return true
     }
 
-    fun Matrix<Char>.allWordsOfLength(length: Int): Sequence<String> = sequence {
+    fun Matrix<Char>.allWordsOfLength4(): Sequence<String> = sequence {
         val movesOnAllAxes = listOf(Direction.RIGHT, Direction.RIGHT_DOWN, Direction.DOWN, Direction.LEFT_DOWN)
 
         positions.forEach { startFrom ->
             movesOnAllAxes.forEach { direction ->
-                getWord(startFrom, direction, length)?.let {
+                getWord4(startFrom, direction)?.let {
                     yield(it)
                     yield(it.reversed())
                 }
@@ -54,13 +54,19 @@ data class Day04(val matrix: Matrix<Char>) {
         }
     }
 
-    fun Matrix<Char>.getWord(startFrom: Position, direction: Direction, length: Int): String? =
-        getWord(*startFrom.vectorInDirection(direction, length).toTypedArray())
+    fun Matrix<Char>.getWord4(startFrom: Position, direction: Direction): String? {
+        val p1 = startFrom
+        val p2 = p1 + direction
+        val p3 = p2 + direction
+        val p4 = p3 + direction
 
-    fun Matrix<Char>.getWord(vararg positions: Position): String? =
-        positions
-            .mapNotNull { this[it] }
-            .takeIf { it.size == positions.size }
-            ?.joinToString("")
+        return getWord(p1, p2, p3, p4)
+    }
+
+    fun Matrix<Char>.getWord(vararg positions: Position): String? {
+        var overflow = false
+        val chars = CharArray(positions.size) { this[positions[it]] ?: (' '.also { overflow = true }) }
+        return if (overflow) null else chars.joinToString("")
+    }
 
 }

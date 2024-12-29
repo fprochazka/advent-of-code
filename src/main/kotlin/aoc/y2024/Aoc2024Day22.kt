@@ -9,11 +9,9 @@ import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.LinkedBlockingQueue
 
-fun Resource.day22(): Day22 = Day22(
-    nonBlankLines().map { it.trim().toLong() }
-)
+fun Resource.day22(): Day22 = Day22.parse(nonBlankLines())
 
-data class Day22(val firstSecretNumbers: List<Long>) {
+class Day22(val firstSecretNumbers: LongArray) {
 
     val result1 by lazy { sumOfThe2000ThSecretNumberGeneratedByEachBuyer(firstSecretNumbers) }
     val result2 by lazy { whatIsTheMostBananasWeCanBuyByUsingAnOptimalFourNumberSequence(firstSecretNumbers) }
@@ -33,7 +31,7 @@ data class Day22(val firstSecretNumbers: List<Long>) {
     // 11100544: 4 (-2)
     // 12249484: 4 (0)
     //  7753432: 2 (-2)
-    fun whatIsTheMostBananasWeCanBuyByUsingAnOptimalFourNumberSequence(iteration0: List<Long>): Int {
+    fun whatIsTheMostBananasWeCanBuyByUsingAnOptimalFourNumberSequence(iteration0: LongArray): Int {
         fun hash(a: Short, b: Short, c: Short, d: Short): Int {
             // to represent -9..9, we'll increase all values by 10, which requires 5 bits to represent
             var r = (a.toInt() + 10)
@@ -58,7 +56,7 @@ data class Day22(val firstSecretNumbers: List<Long>) {
                     var previousBananasToSell = (monkeyNumber % 10).toShort()
 
                     val monkeySequence = CircularBufferFixedSize4Short()
-                    val monkeySell = Int2ShortOpenHashMap()
+                    val monkeySell = Int2ShortOpenHashMap(1 shl 11, 0.9999f)
 
                     for (iter in 1..2000) {
                         monkeyNumber = evolve(monkeyNumber)
@@ -111,8 +109,8 @@ data class Day22(val firstSecretNumbers: List<Long>) {
     // 10: 4700978
     // 100: 15273692
     // 2024: 8667524
-    fun sumOfThe2000ThSecretNumberGeneratedByEachBuyer(iteration0: List<Long>): Long {
-        val numbers = iteration0.toMutableList()
+    fun sumOfThe2000ThSecretNumberGeneratedByEachBuyer(iteration0: LongArray): Long {
+        val numbers = iteration0.copyOf()
         repeat(2000) {
             // this instead of map() avoids allocation the list 2000 times
             for (i in numbers.indices) {
@@ -142,6 +140,14 @@ data class Day22(val firstSecretNumbers: List<Long>) {
         val evolve2 = (evolve1 xor (evolve1 shr 5)) and 0b111111111111111111111111
         val evolve3 = (evolve2 xor (evolve2 shl 11)) and 0b111111111111111111111111
         return evolve3
+    }
+
+    companion object {
+
+        fun parse(lines: List<String>): Day22 {
+            return Day22(LongArray(lines.size) { lines[it].toLong() })
+        }
+
     }
 
 }

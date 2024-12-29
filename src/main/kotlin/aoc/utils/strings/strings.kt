@@ -1,14 +1,28 @@
 package aoc.utils.strings
 
+import it.unimi.dsi.fastutil.ints.IntArrayList
+import it.unimi.dsi.fastutil.ints.IntList
+import it.unimi.dsi.fastutil.longs.LongArrayList
+import it.unimi.dsi.fastutil.longs.LongList
 import org.intellij.lang.annotations.Language
 
-fun String.toInts(limit: Int = 0): List<Int> =
-    "[^\\d-]+".toRegex().split(this.trim(), limit)
-        .map { it.toInt() }
+fun String.toInts(limit: Int = 0): IntList {
+    val items = "[^\\d-]+".toRegex().split(this.trim(), limit)
+    val result = IntArrayList(items.size)
+    for (item in items) {
+        result.add(item.toInt())
+    }
+    return result
+}
 
-fun String.toLongs(limit: Int = 0): List<Long> =
-    "[^\\d-]+".toRegex().split(this.trim(), limit)
-        .map { it.toLong() }
+fun String.toLongs(limit: Int = 0): LongList {
+    val items = "[^\\d-]+".toRegex().split(this.trim(), limit)
+    val result = LongArrayList(items.size)
+    for (item in items) {
+        result.add(item.toLong())
+    }
+    return result
+}
 
 fun String.half(): Pair<String, String> =
     (length / 2)
