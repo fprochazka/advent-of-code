@@ -62,7 +62,7 @@ data class Day23(val connections: List<Pair<String, String>>) {
     // Start by looking for sets of three computers where each computer in the set is connected to the other two computers.
     // Consider only sets of three computers where at least one computer's name starts with t.
     fun findAllSetsOfThreeComputersWhereAtLeastOneComputerStartsWithT(): Int {
-        val interConnected = HashSet<Tuple3<String>>() // names
+        val interConnected = HashSet<Tuple3<String, String, String>>() // names
 
         for (midComputer in network.computers) {
             val ok1 = midComputer.name.startsWith("t")

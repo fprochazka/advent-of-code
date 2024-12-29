@@ -22,15 +22,21 @@ class CircularBufferFixedSize4Short {
     }
 
     // after we've inserted last number, the cursor resets to 0, so 0 is naively 1,2,3,4 and from there it shifts
-    fun get(): Tuple4<Short> = get(::Tuple4)
+    fun get() = get(::Tuple4)
 
     // after we've inserted last number, the cursor resets to 0, so 0 is naively 1,2,3,4 and from there it shifts
-    fun <R : Any> get(factory: (Short, Short, Short, Short) -> R): R = when (cursor) {
-        0 -> factory(value0, value1, value2, value3)
-        1 -> factory(value1, value2, value3, value0)
-        2 -> factory(value2, value3, value0, value1)
-        3 -> factory(value3, value0, value1, value2)
-        else -> error("Invalid cursor")
+    fun <R : Any> get(factory: (Short, Short, Short, Short) -> R): R {
+        return if (cursor == 0) {
+            factory(value0, value1, value2, value3)
+        } else if (cursor == 1) {
+            factory(value1, value2, value3, value0)
+        } else if (cursor == 2) {
+            factory(value2, value3, value0, value1)
+        } else if (cursor == 3) {
+            factory(value3, value0, value1, value2)
+        } else {
+            error("Invalid cursor")
+        }
     }
 
     fun value1(): Short = when (cursor) {

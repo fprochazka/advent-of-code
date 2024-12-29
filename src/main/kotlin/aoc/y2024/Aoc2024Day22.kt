@@ -86,12 +86,14 @@ data class Day22(val firstSecretNumbers: List<Long>) {
             var workerCountDown = iteration0.size
             while (workerCountDown > 0) {
                 val monkeySell = workerResults.take()
+
                 val hashCodesIterator = monkeySell.keys.iterator()
                 while (hashCodesIterator.hasNext()) {
                     val hashCode = hashCodesIterator.nextInt()
                     val bananas = monkeySell.getOrDefault(hashCode, 0).toInt()
                     bananasPerSequence.mergeInt(hashCode, bananas, Int::plus)
                 }
+
                 workerCountDown--
             }
 
