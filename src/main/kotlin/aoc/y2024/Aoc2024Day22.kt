@@ -1,8 +1,13 @@
 package aoc.y2024
 
 import aoc.utils.Resource
-import aoc.utils.containers.CircularBufferFixedSize4
-import java.util.*
+import aoc.utils.containers.CircularBufferFixedSize4Short
+import aoc.utils.ranges.chunksCount
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap
+import it.unimi.dsi.fastutil.ints.Int2ShortOpenHashMap
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
+import java.util.concurrent.LinkedBlockingQueue
 
 fun Resource.day22(): Day22 = Day22(
     nonBlankLines().map { it.trim().toLong() }
@@ -41,51 +46,61 @@ data class Day22(val firstSecretNumbers: List<Long>) {
             return r
         }
 
-        val bananasPerSequence = HashMap<Int, BananasPerMonkey>(1 shl 16, 1.0f) // sequence => [price]
+        val parallelism = 8
+        val executor = Executors.newFixedThreadPool(parallelism, Thread.ofVirtual().factory())
 
-        val numbers = iteration0.toMutableList()
-        for (monkeyId in numbers.indices) {
-            val monkeySequence = CircularBufferFixedSize4<Short>()
-            var monkeyNumber = numbers[monkeyId]
-            var previousBananasToSell = (monkeyNumber % 10).toShort()
+        val workerResults = LinkedBlockingQueue<Int2ShortOpenHashMap>()
 
-            for (iter in 1..2000) {
-                monkeyNumber = evolve(monkeyNumber)
+        val workers = iteration0.indices.chunksCount(7).map { monkeyRange ->
+            executor.submit {
+                for (monkeyId in monkeyRange) {
+                    var monkeyNumber = iteration0[monkeyId]
+                    var previousBananasToSell = (monkeyNumber % 10).toShort()
 
-                val bananasToSell = (monkeyNumber % 10).toShort()
-                val diff = (bananasToSell - previousBananasToSell).toShort()
-                monkeySequence.add(diff)
+                    val monkeySequence = CircularBufferFixedSize4Short()
+                    val monkeySell = Int2ShortOpenHashMap()
 
-                if (iter >= 4) { // at least 4 iterations to get first 4 diffs
-                    val hashCode = monkeySequence.get(::hash)
-                    bananasPerSequence
-                        .getOrPut(hashCode) { BananasPerMonkey(numbers.size) }
-                        .monkeyWillSell(monkeyId, bananasToSell)
+                    for (iter in 1..2000) {
+                        monkeyNumber = evolve(monkeyNumber)
+
+                        val bananasToSell = (monkeyNumber % 10).toShort()
+                        val diff = (bananasToSell - previousBananasToSell).toShort()
+                        monkeySequence.add(diff)
+
+                        if (iter >= 4) { // at least 4 iterations to get first 4 diffs
+                            val hashCode = monkeySequence.get(::hash)
+                            monkeySell.putIfAbsent(hashCode, bananasToSell)
+                        }
+
+                        previousBananasToSell = bananasToSell
+                    }
+
+                    workerResults.add(monkeySell)
                 }
-
-                previousBananasToSell = bananasToSell
             }
         }
 
-        val maxBananas = bananasPerSequence.map { it.value.sum }.max()
+        val maxBananas = executor.submit(Callable {
+            val bananasPerSequence = Int2IntOpenHashMap(1 shl 16, 0.9999f) // sequence => [price]
 
-        return maxBananas
-    }
-
-    class BananasPerMonkey(monkeys: Int) {
-
-        val buyers = BitSet(monkeys)
-        var sum = 0
-
-        fun monkeyWillSell(monkeyId: Int, bananas: Short) {
-            if (buyers[monkeyId] == false) {
-                sum += bananas
-                buyers[monkeyId] = true
+            var workerCountDown = iteration0.size
+            while (workerCountDown > 0) {
+                val monkeySell = workerResults.take()
+                val hashCodesIterator = monkeySell.keys.iterator()
+                while (hashCodesIterator.hasNext()) {
+                    val hashCode = hashCodesIterator.nextInt()
+                    val bananas = monkeySell.getOrDefault(hashCode, 0).toInt()
+                    bananasPerSequence.mergeInt(hashCode, bananas, Int::plus)
+                }
+                workerCountDown--
             }
-        }
 
-        override fun toString(): String = "sum=$sum"
+            return@Callable bananasPerSequence.values.max()
+        })
 
+        workers.map { it.get() }
+
+        return maxBananas.get()
     }
 
     // 1st and 2000th numbers in example:
