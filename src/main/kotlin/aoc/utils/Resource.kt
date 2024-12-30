@@ -55,26 +55,32 @@ data class Resource(val name: String) {
 
     override fun toString(): String = name
 
-    data class CharMatrix2d(
-        val entries: Sequence<Pair<aoc.utils.d2.Position, Char>>,
+    class CharMatrix2d(
+        val lines: List<String>,
         val dims: aoc.utils.d2.AreaDimensions
     ) {
+
+        val entries: Sequence<MatrixChar>
+            get() = lines.asSequence()
+                .flatMapIndexed { y, line ->
+                    line.mapIndexed { x, char -> MatrixChar(x, y, char) }
+                }
+
+        inner class MatrixChar(val x: Int, val y: Int, val value: Char) {
+            val pos: aoc.utils.d2.Position
+                get() = dims.positionFor(x, y)
+        }
 
         companion object {
 
             fun fromContent(content: String): CharMatrix2d =
-                content.lines().let { fromLines(it) }
+                fromLines(content.lines())
 
             fun fromLines(lines: List<String>): CharMatrix2d =
-                aoc.utils.d2.AreaDimensions(lines.first().length, lines.size).let { dims ->
-                    CharMatrix2d(
-                        lines.asSequence()
-                            .flatMapIndexed { y, line ->
-                                line.mapIndexed { x, char -> dims.positionFor(x, y) to char }
-                            },
-                        dims
-                    )
-                }
+                CharMatrix2d(
+                    lines,
+                    aoc.utils.d2.AreaDimensions(lines.first().length, lines.size)
+                )
 
         }
 

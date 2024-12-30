@@ -127,7 +127,7 @@ open class Matrix<V : Any> protected constructor(
 
         fun <V : Any> of(cells: Resource.CharMatrix2d, valueClass: Class<V>, toValue: (Char) -> V): Matrix<V> =
             Matrix<V>(cells.dims, valueClass).apply {
-                cells.entries.forEach { (pos, char) -> this[pos] = toValue(char) }
+                cells.entries.forEach { entry -> this[entry.pos] = toValue(entry.value) }
             }
 
     }

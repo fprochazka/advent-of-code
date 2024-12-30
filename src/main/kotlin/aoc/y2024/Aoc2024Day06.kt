@@ -7,6 +7,7 @@ import aoc.utils.d2.DirectionBitSet
 import aoc.utils.d2.OrientedPosition
 import aoc.utils.d2.Position
 import aoc.utils.d2.matrix.Matrix
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
@@ -48,18 +49,19 @@ class Day06(
     }
 
     fun Matrix<Char>.isPatrolLooping(patrolStart: OrientedPosition): Boolean {
-        val patrolPath = PositionMap<DirectionBitSet>(dims)
+        val dims = this.dims
+        val patrolPath = Int2ObjectOpenHashMap<DirectionBitSet>(64)
 
         var (currentPosition, direction) = patrolStart
         while (true) {
-            val nextPosition = currentPosition + direction
+            val nextPosition = currentPosition.plus(direction.vector)
             when {
-                nextPosition !in this.dims -> {
+                nextPosition !in dims -> {
                     return false
                 }
 
                 isObstacle(this[nextPosition]) -> {
-                    val visitedDirections = patrolPath.getOrPut(currentPosition) { DirectionBitSet() }
+                    val visitedDirections = patrolPath.getOrPut(dims.matrixIndex(currentPosition)) { DirectionBitSet() }
                     if (!visitedDirections.add(direction)) {
                         return true
                     }
@@ -84,7 +86,7 @@ class Day06(
         try {
             this[obstaclePosition] = OBSTACLE
 
-            return if (this.isPatrolLooping(startingPoint)) true else false
+            return this.isPatrolLooping(startingPoint)
 
         } finally {
             this[obstaclePosition] = originalCellData

@@ -213,8 +213,8 @@ class MatrixGraph<V : Any>(
         ): MatrixGraph<V> {
             val result = MatrixGraph<V>(matrix.dims, neighbourSides, valueClass)
 
-            for ((position, value) in matrix.entries) {
-                result[position] = nodeValues(value)
+            for (entry in matrix.entries) {
+                result[entry.pos] = nodeValues(entry.value)
             }
 
             result.updateAllConnections(edges)
