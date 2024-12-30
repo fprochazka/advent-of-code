@@ -19,3 +19,6 @@ fun IntRange.chunksCount(countOfResultingChunks: Int): List<IntRange> {
         return@map start until end
     }
 }
+
+val IntRange.indices: Iterable<Int>
+    get() = 0 until length()

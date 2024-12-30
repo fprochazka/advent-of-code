@@ -1,6 +1,7 @@
 package aoc.y2024
 
 import aoc.utils.Resource
+import aoc.utils.ranges.indices
 import aoc.utils.ranges.length
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
@@ -197,7 +198,7 @@ class Day09(val diskMap: IntArray) {
         fun reindexGap(gap: IntRange, shorterBy: Int) {
             // remove the gap from the index
             for (size in gap.fittingSizes()) {
-                leftMostGapsIndex[size]!!.remove(gap.start)
+                leftMostGapsIndex[size]?.remove(gap.start)
             }
 
             val newStartIndex = gap.start + shorterBy
@@ -214,7 +215,7 @@ class Day09(val diskMap: IntArray) {
                 .mapIndexed { index, value -> "$index: " + (if (value < 0L) "." else value.toString()) }
                 .joinToString("\n")
 
-        fun IntRange.fittingSizes(): List<Int> = if (this.length() > 0) toList().indices.map { it + 1 } else emptyList()
+        fun IntRange.fittingSizes(): List<Int> = if (this.length() > 0) indices.map { it + 1 } else emptyList()
 
         data class File(val id: Long, val size: Int, val originalPosition: Int)
 
