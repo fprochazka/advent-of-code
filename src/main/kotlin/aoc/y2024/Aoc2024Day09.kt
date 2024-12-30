@@ -5,7 +5,6 @@ import aoc.utils.ranges.length
 import it.unimi.dsi.fastutil.ints.Int2ObjectRBTreeMap
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectRBTreeMap
-import java.util.*
 
 fun Resource.day09(): Day09 = Day09.parse(content().trim())
 
@@ -13,13 +12,13 @@ class Day09(val diskMap: IntArray) {
 
     val result1 by lazy {
         fragmentByFileSegments()
-            .mapIndexed { position, fileId -> position * fileId }
+            .mapIndexed { position, fileId -> (position * fileId).toLong() }
             .sum()
     }
 
     val result2 by lazy {
         optimizeByMovingWholeFiles()
-            .mapIndexed { position, fileId -> position * (fileId ?: 0) }
+            .mapIndexed { position, fileId -> (position * maxOf(0, fileId)).toLong() }
             .sum()
     }
 
@@ -30,11 +29,11 @@ class Day09(val diskMap: IntArray) {
 
     data class DiskMapBlock(val isFile: Boolean, val blockSize: Int)
 
-    fun fragmentByFileSegments(): List<Long> =
+    fun fragmentByFileSegments() =
         FileSegmentsCompactingOptimizer(diskSize, diskMapBlocks()).optimize()
 
-    fun optimizeByMovingWholeFiles(): List<Long?> =
-        WholeFilesMovingOptimizer(diskMapBlocks()).optimize()
+    fun optimizeByMovingWholeFiles() =
+        WholeFilesMovingOptimizer(diskSize, diskMapBlocks()).optimize()
 
     class FileSegmentsCompactingOptimizer(diskSize: Int, diskMapBlocks: Sequence<DiskMapBlock>) {
 
@@ -84,10 +83,10 @@ class Day09(val diskMap: IntArray) {
 
     }
 
-    class WholeFilesMovingOptimizer(diskMapBlocks: Sequence<DiskMapBlock>) {
+    class WholeFilesMovingOptimizer(diskSize: Int, diskMapBlocks: Sequence<DiskMapBlock>) {
 
         // [position => fileId]
-        val layout = mutableListOf<Long?>()
+        val layout = LongArray(diskSize)
 
         // [fileId => file]
         val fileMetadataByMaxId = Long2ObjectRBTreeMap<File>(Comparator.naturalOrder<Long>().reversed())
@@ -97,22 +96,22 @@ class Day09(val diskMap: IntArray) {
             var fileId = 0L
             for ((isFile, blockSize) in diskMapBlocks) {
                 if (isFile) {
-                    fileMetadataByMaxId[fileId] = File(fileId, blockSize, layout.size)
+                    fileMetadataByMaxId[fileId] = File(fileId, blockSize, layoutIndex)
 
                     repeat(blockSize) {
-                        layout.add(fileId)
+                        layout[layoutIndex++] = fileId
                     }
                     fileId++
 
                 } else {
                     repeat(blockSize) {
-                        layout.add(null)
+                        layout[layoutIndex++] = -1L
                     }
                 }
             }
         }
 
-        fun optimize(): List<Long?> {
+        fun optimize(): LongArray {
             filesToMove.forEach { file ->
                 tryMoveToGapClosestToDiskStart(file)
             }
@@ -128,12 +127,12 @@ class Day09(val diskMap: IntArray) {
             get() = sequence {
                 val iterator = layout.indices.iterator()
                 for (gapStartIncl in iterator) {
-                    if (layout[gapStartIncl] != null) continue
+                    if (layout[gapStartIncl] != -1L) continue
 
                     var gapEndExcl = gapStartIncl + 1;
                     for (j in iterator) {
                         gapEndExcl = j
-                        if (layout[j] != null) break
+                        if (layout[j] != -1L) break
                     }
 
                     yield(gapStartIncl until gapEndExcl)
@@ -176,7 +175,7 @@ class Day09(val diskMap: IntArray) {
 
             for (i in 0 until file.size) {
                 layout[gap.start + i] = layout[file.originalPosition + i]
-                layout[file.originalPosition + i] = null
+                layout[file.originalPosition + i] = -1L
             }
 
             reindexGap(gap, file.size)
@@ -199,7 +198,7 @@ class Day09(val diskMap: IntArray) {
 
         override fun toString(): String =
             layout
-                .mapIndexed { index, value -> "$index: " + (value?.toString() ?: ".") }
+                .mapIndexed { index, value -> "$index: " + (if (value < 0L) "." else value.toString()) }
                 .joinToString("\n")
 
         fun IntRange.fittingSizes(): List<Int> = if (this.length() > 0) toList().indices.map { it + 1 } else emptyList()
