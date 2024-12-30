@@ -8,13 +8,11 @@ import aoc.utils.d2.matrix.Matrix
 import aoc.utils.d2.matrix.anyShortest.anyShortestPathBfs
 import aoc.utils.d2.path.GraphConnection
 import aoc.utils.d2.path.GraphPathStep
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.util.concurrent.Executors
 import kotlin.math.absoluteValue
 
 fun Resource.day20(): Day20 = Day20.parse(nonBlankLines())
 
-@OptIn(ExperimentalCoroutinesApi::class)
 data class Day20(
     val saveAtLeastPicoseconds: Int,
     val racetrack: Matrix<Char>
