@@ -30,13 +30,13 @@ data class Day12(val fieldGraph: MatrixGraph<Char>) {
 
     val result1 by lazy {
         fencedAreas.sumOf { (area, fenceBetweenPositions) ->
-            (area.size * fenceBetweenPositions.size).toLong()
+            area.size.toLong() * fenceBetweenPositions.size
         }
     }
 
     val result2 by lazy {
         fencedAreas.sumOf { (area, fenceBetweenPositions) ->
-            (area.size * uniqueFenceSides(fenceBetweenPositions)).toLong()
+            area.size.toLong() * uniqueFenceSides(fenceBetweenPositions)
         }
     }
 
