@@ -1,13 +1,15 @@
 package aoc.y2024
 
 import aoc.utils.Resource
+import aoc.utils.concurrency.parMap
 import aoc.utils.containers.headTail
 import aoc.utils.d2.Position
 import aoc.utils.d2.matrix.Matrix
 import aoc.utils.d2.matrix.anyShortest.anyShortestPathBfs
 import aoc.utils.d2.path.GraphConnection
 import aoc.utils.d2.path.GraphPathStep
-import kotlinx.coroutines.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import java.util.concurrent.Executors
 import kotlin.math.absoluteValue
 
 fun Resource.day20(): Day20 = Day20.parse(nonBlankLines())
@@ -30,7 +32,7 @@ data class Day20(
             .let { (start, end) -> racetrack.howManyUpTo20StepCheatsWouldSaveAtLeastNTime(start, end, saveAtLeastPicoseconds) }
     }
 
-    fun Matrix<Char>.howMany2StepCheatsWouldSaveAtLeastNTime(start: Position, end: Position, saveAtLeast: Int): Long {
+    fun Matrix<Char>.howMany2StepCheatsWouldSaveAtLeastNTime(start: Position, end: Position, saveAtLeast: Int): Int {
         val honorableShortestPath = findShortestPathPositions(start, end)
         // start => 0, first step => 1, ...
         val honorablePathPosTime = honorableShortestPath.withIndex().associate { it.value to it.index }
@@ -66,7 +68,7 @@ data class Day20(
             return result
         }
 
-        var cheatsCounter = 0L
+        var cheatsCounter = 0
         for (currentIndex in 0..(honorableShortestPath.lastIndex - 1)) {
             val walkedPathLength = currentIndex
 
@@ -91,47 +93,46 @@ data class Day20(
         return cheatsCounter
     }
 
-    fun Matrix<Char>.howManyUpTo20StepCheatsWouldSaveAtLeastNTime(start: Position, end: Position, saveAtLeast: Int): Long = runBlocking {
+    fun Matrix<Char>.howManyUpTo20StepCheatsWouldSaveAtLeastNTime(start: Position, end: Position, saveAtLeast: Int): Int {
         fun Position.cheatingDistanceTo(other: Position): Int =
             this.distanceTo(other).let { (xDiff, yDiff) -> (xDiff.absoluteValue + yDiff.absoluteValue).toInt() }
 
         val honorableShortestPath = findShortestPathPositions(start, end)
 
         val parallelism = 8
-        return@runBlocking withContext(Dispatchers.Default.limitedParallelism(parallelism)) {
-            var countsForSubRanges = honorableShortestPath.indices.map { currentIndex ->
-                async {
-                    val current = honorableShortestPath[currentIndex]
-                    val walkedPathLength = currentIndex
+        val executor = Executors.newFixedThreadPool(parallelism, Thread.ofVirtual().factory())
 
-                    var cheatsCounter = 0L
-                    for (cheatEndIndex in (currentIndex + saveAtLeast - 1)..honorableShortestPath.lastIndex) {
-                        val cheatEnd = honorableShortestPath[cheatEndIndex]
+        return honorableShortestPath.indices
+            .parMap(executor) { currentIndex ->
+                val current = honorableShortestPath[currentIndex]
+                val walkedPathLength = currentIndex
 
-                        val cheatDistance = current.cheatingDistanceTo(cheatEnd)
-                        if (cheatDistance > 20) continue
+                var cheatsCounter = 0
+                for (cheatEndIndex in (currentIndex + saveAtLeast - 1)..honorableShortestPath.lastIndex) {
+                    val cheatEnd = honorableShortestPath[cheatEndIndex]
 
-                        val timeAtCheat = walkedPathLength + cheatDistance
-                        val originalTimeAtPosition = cheatEndIndex
-                        val savedSteps = originalTimeAtPosition - timeAtCheat
+                    val cheatDistance = current.cheatingDistanceTo(cheatEnd)
+                    if (cheatDistance > 20) continue
+
+                    val timeAtCheat = walkedPathLength + cheatDistance
+                    val originalTimeAtPosition = cheatEndIndex
+                    val savedSteps = originalTimeAtPosition - timeAtCheat
 
 //                         racetrack.printPath(walkedPath + current, anyShortestPathBfs(current, cheatEnd) { _, _ -> true }!!)
 //                         println("Saved $savedSteps steps")
 //                         println()
 
-                        if (savedSteps < saveAtLeast) {
-                            continue
-                        }
-
-                        cheatsCounter++
+                    if (savedSteps < saveAtLeast) {
+                        continue
                     }
 
-                    return@async cheatsCounter
+                    cheatsCounter++
                 }
-            }
 
-            return@withContext countsForSubRanges.sumOf { it.await() }
-        }
+                return@parMap cheatsCounter
+            }
+            .sum()
+            .also { executor.shutdown() }
     }
 
     fun printDetails(relevantCheats: List<Pair<Int, Int>>) {
