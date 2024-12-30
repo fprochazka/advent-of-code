@@ -14,31 +14,23 @@ fun Resource.day07(): Day07 = Day07.parse(nonBlankLines())
 
 class Day07(val inputEquations: List<Equation>) {
 
-    val solvableEquationsWithBasicOperators by lazy(LazyThreadSafetyMode.PUBLICATION) { solvableEquationsWithBasicOperators() }
-
-
     // the total calibration result, which is the sum of the test values from just the equations that could possibly be true.
     val result1: Long by lazy {
         solvableEquationsWithBasicOperators.sumOf { it.result }
     }
 
-    val equationsSolvableWithAlsoConcatenation by lazy(LazyThreadSafetyMode.PUBLICATION) { equationsSolvableWithAlsoConcatenation() }
-
     val result2: Long by lazy {
-        result1 + equationsSolvableWithAlsoConcatenation.sumOf { it.result }
+        result1 + equationsSolvableWithAlsoConcatenation().sumOf { it.result }
     }
 
-    fun solvableEquationsWithBasicOperators(): List<Equation> =
+    val solvableEquationsWithBasicOperators by lazy(LazyThreadSafetyMode.PUBLICATION) {
         findSolutions(listOf(Operator.PLUS, Operator.TIMES), inputEquations)
-
-    fun equationsSolvableWithAlsoConcatenation(): List<Equation> {
-        val solvedEquations = solvableEquationsWithBasicOperators.toSet()
-        val equationsUnsolvableByFirstMethod = inputEquations.filter { it !in solvedEquations }
-
-        return findSolutions(listOf(Operator.PLUS, Operator.TIMES, Operator.CONCATENATE), equationsUnsolvableByFirstMethod)
     }
 
-    private fun findSolutions(allowedOperators: List<Operator>, equations: List<Equation>): List<Equation> {
+    fun equationsSolvableWithAlsoConcatenation() =
+        findSolutions(listOf(Operator.PLUS, Operator.TIMES, Operator.CONCATENATE), inputEquations.subtract(solvableEquationsWithBasicOperators))
+
+    private fun findSolutions(allowedOperators: List<Operator>, equations: Collection<Equation>): List<Equation> {
         val parallelism = 8
         val executor = Executors.newFixedThreadPool(parallelism, Thread.ofVirtual().factory())
 
@@ -55,7 +47,7 @@ class Day07(val inputEquations: List<Equation>) {
             .also { executor.shutdown() }
     }
 
-    data class Equation(val result: Long, val components: LongArray) {
+    class Equation(val id: Int, val result: Long, val components: LongArray) {
 
         fun findFirstSolution(allowedOperators: List<Operator>): List<Operator>? =
             dfsOperatorVariants(allowedOperators, components.first())
@@ -90,11 +82,11 @@ class Day07(val inputEquations: List<Equation>) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
             if (other !is Equation) return false
-            return result == other.result && components.contentEquals(other.components)
+            return id == other.id
         }
 
         override fun hashCode(): Int =
-            31 * (result.hashCode()) + components.contentHashCode()
+            id.hashCode()
 
     }
 
@@ -115,9 +107,9 @@ class Day07(val inputEquations: List<Equation>) {
     companion object {
 
         fun parse(lines: List<String>): Day07 {
-            val equations = lines.map {
-                it.toLongs().headTail().let { (result, components) ->
-                    Equation(result, components.toLongArray())
+            val equations = lines.mapIndexed { index, line ->
+                line.toLongs().headTail().let { (result, components) ->
+                    Equation(index, result, components.toLongArray())
                 }
             }
 
