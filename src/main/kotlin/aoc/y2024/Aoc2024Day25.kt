@@ -24,9 +24,9 @@ data class Day25(
         return result
     }
 
-    data class DoorLock(val pins: List<Int>, val height: Int)
+    class DoorLock(val pins: IntArray, val height: Int)
 
-    data class DoorKey(val heights: List<Int>) {
+    class DoorKey(val heights: IntArray) {
 
         fun overlapsWith(lock: DoorLock): Boolean {
             for ((i, h) in heights.withIndex()) {
@@ -50,26 +50,28 @@ data class Day25(
             for (matrix in schemas) {
                 val dims = matrix.dims
                 if (matrix[dims.positionFor(0, 0)] == '#') { // lock
-                    val pins = ArrayList<Int>(5)
+                    val pins = IntArray(5)
+                    var pinsIndex = 0
                     for (x in 0..dims.maxX) {
                         var pin = 0
                         for (y in 0..dims.maxY) {
                             if (matrix[dims.positionFor(x, y)] != '#') break
                             pin = maxOf(pin, y.toInt())
                         }
-                        pins.add(pin)
+                        pins[pinsIndex++] = pin
                     }
                     locks.add(DoorLock(pins, dims.maxY.toInt()))
 
                 } else { // key
-                    val heights = ArrayList<Int>(5)
+                    val heights = IntArray(5)
+                    var heightsIndex = 0
                     for (x in 0..dims.maxX) {
                         var height = 0
                         for (y in dims.maxY downTo 0) {
                             if (matrix[dims.positionFor(x, y)] != '#') break
                             height = maxOf(height, (dims.maxY - y).toInt())
                         }
-                        heights.add(height)
+                        heights[heightsIndex++] = height
                     }
                     keys.add(DoorKey(heights))
                 }
