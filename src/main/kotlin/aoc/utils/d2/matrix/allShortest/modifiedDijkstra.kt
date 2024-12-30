@@ -1,8 +1,8 @@
 package aoc.utils.d2.matrix.allShortest
 
-import aoc.utils.d2.Matrix
-import aoc.utils.d2.MatrixGraph.Companion.INFINITE_COST
 import aoc.utils.d2.Position
+import aoc.utils.d2.graph.MatrixGraph.Companion.INFINITE_COST
+import aoc.utils.d2.matrix.Matrix
 import aoc.utils.d2.path.GraphConnection
 import aoc.utils.d2.path.GraphPathStep
 import java.util.*

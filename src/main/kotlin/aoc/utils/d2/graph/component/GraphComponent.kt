@@ -1,7 +1,7 @@
 package aoc.utils.d2.graph.component
 
-import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
+import aoc.utils.d2.graph.MatrixGraph
 
 class GraphComponent<V : Any>(
     private val graph: MatrixGraph<V>,

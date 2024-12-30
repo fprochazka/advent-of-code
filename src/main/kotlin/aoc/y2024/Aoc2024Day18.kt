@@ -3,10 +3,10 @@ package aoc.y2024
 import aoc.utils.Resource
 import aoc.utils.d2.AreaDimensions
 import aoc.utils.d2.Direction
-import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
-import aoc.utils.d2.graph.createDeadEndEliminator
+import aoc.utils.d2.graph.MatrixGraph
 import aoc.utils.d2.graph.anyShortest.anyShortestPathBfs
+import aoc.utils.d2.graph.createDeadEndEliminator
 import aoc.utils.strings.toLongs
 
 fun Resource.day18(): Day18 = day18Custom(

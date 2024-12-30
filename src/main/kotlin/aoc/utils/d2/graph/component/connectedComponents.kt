@@ -1,9 +1,9 @@
 package aoc.utils.d2.graph.component
 
 import aoc.utils.containers.popAny
-import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
 import aoc.utils.d2.PositionBitSet
+import aoc.utils.d2.graph.MatrixGraph
 
 fun <V : Any> MatrixGraph<V>.groupToConnectedComponents(): Sequence<GraphComponent<V>> = sequence {
     val remainingPositions = nodes.positions.toMutableSet()

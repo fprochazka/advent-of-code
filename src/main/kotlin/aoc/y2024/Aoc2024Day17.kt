@@ -4,7 +4,6 @@ import aoc.utils.AocDebug
 import aoc.utils.Resource
 import aoc.utils.containers.isEqualTo
 import aoc.utils.math.deMod
-import aoc.utils.math.deModCandidates
 import aoc.utils.math.pow2
 import aoc.utils.strings.toInts
 import aoc.utils.strings.toLongs
@@ -505,6 +504,9 @@ data class Day17(val debugger: Debugger) {
         fun deMod8(result: Int, i: Long = 0): Long = deMod8(result.toLong(), i)
         fun deMod8Candidates(result: Long): Sequence<Long> = deModCandidates(result, 8)
         fun deMod8Candidates(result: Int): Sequence<Long> = deMod8Candidates(result.toLong())
+
+        fun deModCandidates(result: Long, mod: Int): Sequence<Long> =
+            naturalNumbers.asSequence().map { deMod(result, mod, i = it) }
 
         fun mod8(a: Long): Long = a.mod(8).toLong()
 

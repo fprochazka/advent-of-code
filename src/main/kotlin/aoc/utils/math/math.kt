@@ -1,6 +1,5 @@
 package aoc.utils.math
 
-import aoc.y2024.Day17.Companion.naturalNumbers
 import kotlin.math.absoluteValue
 import kotlin.math.pow
 
@@ -40,9 +39,6 @@ fun deMod(result: Long, mod: Int, i: Long = 0): Long =
 
 fun deMod(result: Int, mod: Int, i: Long = 0): Long =
     deMod(result.toLong(), mod, i)
-
-fun deModCandidates(result: Long, mod: Int): Sequence<Long> =
-    naturalNumbers.asSequence().map { deMod(result, mod, i = it) }
 
 /**
  * a^b

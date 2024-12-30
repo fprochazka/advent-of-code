@@ -4,8 +4,8 @@ import aoc.utils.Resource
 import aoc.utils.containers.addAllNotNull
 import aoc.utils.d2.AreaDimensions
 import aoc.utils.d2.Direction
-import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
+import aoc.utils.d2.matrix.Matrix
 
 fun Resource.day15(): Day15 = Day15.parse(content())
 

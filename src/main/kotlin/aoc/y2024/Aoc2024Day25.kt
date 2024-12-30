@@ -1,7 +1,7 @@
 package aoc.y2024
 
 import aoc.utils.Resource
-import aoc.utils.d2.Matrix
+import aoc.utils.d2.matrix.Matrix
 
 fun Resource.day25(): Day25 = Day25.parse(content())
 

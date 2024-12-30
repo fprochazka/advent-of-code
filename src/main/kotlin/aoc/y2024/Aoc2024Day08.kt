@@ -2,9 +2,9 @@ package aoc.y2024
 
 import aoc.utils.Resource
 import aoc.utils.combinatorics.variationsWithoutRepetition
-import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
 import aoc.utils.d2.PositionBitSet
+import aoc.utils.d2.matrix.Matrix
 
 fun Resource.day08(): Day08 = Day08(
     Matrix.ofChars(matrix2d())

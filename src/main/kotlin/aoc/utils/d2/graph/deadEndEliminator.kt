@@ -1,6 +1,5 @@
 package aoc.utils.d2.graph
 
-import aoc.utils.d2.MatrixGraph
 import aoc.utils.d2.Position
 import aoc.utils.d2.PositionBitSet
 

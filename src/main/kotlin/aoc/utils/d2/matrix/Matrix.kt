@@ -1,6 +1,9 @@
-package aoc.utils.d2
+package aoc.utils.d2.matrix
 
 import aoc.utils.Resource
+import aoc.utils.d2.AreaDimensions
+import aoc.utils.d2.Direction
+import aoc.utils.d2.Position
 import java.awt.Color
 import java.awt.image.BufferedImage
 import java.nio.file.Path

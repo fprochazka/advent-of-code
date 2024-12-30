@@ -1,6 +1,8 @@
-package aoc.utils.d2
+package aoc.utils.d2.graph
 
 import aoc.utils.Resource
+import aoc.utils.d2.*
+import aoc.utils.d2.matrix.Matrix
 
 class MatrixGraph<V : Any>(
     dims: AreaDimensions,

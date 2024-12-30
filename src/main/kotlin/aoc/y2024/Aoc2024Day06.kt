@@ -2,7 +2,11 @@ package aoc.y2024
 
 import aoc.utils.Resource
 import aoc.utils.containers.chunksCount
-import aoc.utils.d2.*
+import aoc.utils.d2.Direction
+import aoc.utils.d2.DirectionBitSet
+import aoc.utils.d2.OrientedPosition
+import aoc.utils.d2.Position
+import aoc.utils.d2.matrix.Matrix
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
@@ -17,8 +21,8 @@ class Day06(
 
     val patrolPrediction by lazy { floorPlan.predictPatrol(startingPoint) }
 
-    val result1 by lazy { patrolPrediction.map { it.position }.toSet().size }
-    val result2 by lazy { findObstaclePlacementToCreateLoops().size }
+    val result1 by lazy { patrolPrediction.mapTo(HashSet()) { it.position }.size }
+    val result2 by lazy { findObstaclePlacementsCountToCreateLoops() }
 
     fun Matrix<Char>.predictPatrol(patrolStart: OrientedPosition): List<OrientedPosition> {
         val patrolPath = mutableListOf<OrientedPosition>()
@@ -87,7 +91,7 @@ class Day06(
         }
     }
 
-    fun findObstaclePlacementToCreateLoops(): Set<Position> {
+    fun findObstaclePlacementsCountToCreateLoops(): Int {
         // we can't place an obstacle on were the guard is standing
         val originalPatrol = patrolPrediction.let { it.subList(1, it.size) }
 
@@ -98,17 +102,18 @@ class Day06(
 
         return workloads
             .map { workChunk ->
-                executor.submit(Callable<java.util.HashSet<Position>> {
+                executor.submit(Callable {
                     val workerSpecificFloorPlan = floorPlan.copy()
 
                     return@Callable workChunk
-                        .mapNotNullTo(HashSet()) { (nextPosition, _) ->
+                        .mapNotNull { (nextPosition, _) ->
                             if (workerSpecificFloorPlan.isObstaclePlacementCauseLoop(nextPosition)) nextPosition else null
                         }
                 })
             }
             .flatMapTo(HashSet()) { it.get() }
             .also { executor.shutdown() }
+            .size
     }
 
     companion object {

@@ -4,8 +4,8 @@ import aoc.utils.Resource
 import aoc.utils.containers.headTail
 import aoc.utils.d2.AreaDimensions
 import aoc.utils.d2.Distance
-import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
+import aoc.utils.d2.matrix.Matrix
 import aoc.utils.strings.matchEntire
 import aoc.y2024.Day14.Room.Robot
 import java.awt.Color

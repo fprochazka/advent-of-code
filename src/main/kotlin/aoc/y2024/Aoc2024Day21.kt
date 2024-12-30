@@ -3,8 +3,8 @@ package aoc.y2024
 import aoc.utils.Resource
 import aoc.utils.containers.allMinOf
 import aoc.utils.d2.Direction
-import aoc.utils.d2.Matrix
 import aoc.utils.d2.Position
+import aoc.utils.d2.matrix.Matrix
 import aoc.utils.d2.matrix.allShortest.allShortestPathsModifiedDijkstra
 import aoc.utils.d2.path.GraphConnection
 import aoc.utils.d2.path.GraphPathStep

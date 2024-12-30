@@ -2,8 +2,8 @@ package aoc.utils.d2.path
 
 import aoc.utils.d2.AreaDimensions
 import aoc.utils.d2.Direction
-import aoc.utils.d2.Matrix
-import aoc.utils.d2.MatrixGraph.Companion.INFINITE_COST
+import aoc.utils.d2.graph.MatrixGraph.Companion.INFINITE_COST
+import aoc.utils.d2.matrix.Matrix
 
 class GraphPathOrientedMinCostsMatrix(dims: AreaDimensions) {
 

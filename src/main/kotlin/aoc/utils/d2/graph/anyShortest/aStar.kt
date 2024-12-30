@@ -1,10 +1,9 @@
 package aoc.utils.d2.graph.anyShortest
 
 import aoc.utils.containers.PriorityQueueSet
-import aoc.utils.d2.Matrix
-import aoc.utils.d2.MatrixGraph
-import aoc.utils.d2.MatrixGraph.Companion.INFINITE_COST
 import aoc.utils.d2.Position
+import aoc.utils.d2.graph.MatrixGraph
+import aoc.utils.d2.matrix.Matrix
 import aoc.utils.d2.path.GraphPathParents
 
 fun <V : Any> MatrixGraph<V>.anyShortestPathAStar(
@@ -29,11 +28,11 @@ fun <V : Any> MatrixGraph<V>.anyShortestPathAStar(
             return cameFrom.getPathOf(currentPos)
         }
 
-        val currentDistance = distanceFromStart.getOrDefault(currentPos, INFINITE_COST)
+        val currentDistance = distanceFromStart.getOrDefault(currentPos, MatrixGraph.INFINITE_COST)
 
         for (neighborPos in connectionsFrom(currentPos)) {
             val stepCost = currentDistance + (connectionWeight(currentPos, neighborPos) ?: 1)
-            if (stepCost >= distanceFromStart.getOrDefault(neighborPos, INFINITE_COST)) {
+            if (stepCost >= distanceFromStart.getOrDefault(neighborPos, MatrixGraph.INFINITE_COST)) {
                 continue
             }
 
