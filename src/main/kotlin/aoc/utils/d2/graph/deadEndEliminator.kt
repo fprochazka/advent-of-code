@@ -75,9 +75,11 @@ class DeadEndEliminator<V : Any>(
     }
 
     fun updateNodeAndMutuals(node: MatrixGraph<V>.Node, updater: (MatrixGraph<V>.Node) -> Unit) {
-        val previousConnectionsWithSizes = node.neighbourPositions
-            .mapNotNull { graph.nodes[it] }
-            .map { it to it.weightedConnections.size }
+        val previousConnectionsWithSizes = node.neighbourPositions.let { positions ->
+            positions.mapNotNullTo(ArrayList(positions.size)) {
+                graph.nodes[it]?.let { it to it.weightedConnections.size }
+            }
+        }
 
         updateNode(node, updater)
 

@@ -35,7 +35,7 @@ class MatrixGraph<V : Any>(
     operator fun get(position: Position): Node? =
         nodes[position]
 
-    fun connectionsFrom(pos: Position): List<Position> =
+    fun connectionsFrom(pos: Position): Collection<Position> =
         nodes[pos]?.connections ?: emptyList()
 
     fun connectionWeight(from: Position, to: Position): Long? =
@@ -101,11 +101,11 @@ class MatrixGraph<V : Any>(
          */
         val weightedConnections: MutableMap<Position, Long> = HashMap<Position, Long>(neighbourSides.size, 1.0f)
 
-        val connections
-            get() = weightedConnections.keys.toList()
+        val connections: Collection<Position>
+            get() = weightedConnections.keys
 
-        val connectedNodes
-            get() = weightedConnections.keys.mapNotNullTo(HashSet<Node>(neighbourSides.size, 1.0f)) { nodes[it] }
+        val connectedNodes: Set<MatrixGraph<V>.Node>
+            get() = connections.mapNotNullTo(HashSet<Node>(neighbourSides.size, 1.0f)) { nodes[it] }
 
         fun disconnectAll() {
             disconnectAll(this)
