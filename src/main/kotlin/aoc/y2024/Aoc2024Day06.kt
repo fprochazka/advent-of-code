@@ -1,14 +1,16 @@
 package aoc.y2024
 
 import aoc.utils.Resource
+import aoc.utils.containers.chunksCount
 import aoc.utils.d2.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
 
-fun Resource.day06(): Day06 =
-    Day06.parse(matrix2d()).let { (floorPlan, startingPoint) -> Day06(floorPlan, startingPoint) }
+fun Resource.day06(): Day06 = Day06.parse(matrix2d())
 
 @OptIn(ExperimentalCoroutinesApi::class)
-data class Day06(
+class Day06(
     val floorPlan: Matrix<Char>,
     val startingPoint: OrientedPosition,
 ) {
@@ -69,45 +71,44 @@ data class Day06(
         return false
     }
 
-    fun findObstaclePlacementToCreateLoops(): Set<Position> = runBlocking {
+    fun Matrix<Char>.isObstaclePlacementCauseLoop(obstaclePosition: Position): Boolean {
+        val originalCellData = this[obstaclePosition]!!
+        if (isObstacle(originalCellData)) {
+            return false // no point in replacing existing obstacles
+        }
+
+        try {
+            this[obstaclePosition] = OBSTACLE
+
+            return if (this.isPatrolLooping(startingPoint)) true else false
+
+        } finally {
+            this[obstaclePosition] = originalCellData
+        }
+    }
+
+    fun findObstaclePlacementToCreateLoops(): Set<Position> {
         // we can't place an obstacle on were the guard is standing
         val originalPatrol = patrolPrediction.let { it.subList(1, it.size) }
 
         val parallelism = 8
-        val workloads = originalPatrol.chunked(originalPatrol.size / parallelism)
+        val workloads = originalPatrol.chunksCount(parallelism)
 
-        return@runBlocking withContext(Dispatchers.Default.limitedParallelism(parallelism)) {
-            val chunkResults = workloads.map { workChunk ->
-                async {
-                    val taskSpecificFloorPlan = floorPlan.copy()
+        val executor = Executors.newFixedThreadPool(parallelism, Thread.ofVirtual().factory())
 
-                    return@async workChunk
-                        .map { (nextPosition, _) ->
-                            val originalCellData = taskSpecificFloorPlan[nextPosition]!!
-                            if (isObstacle(originalCellData)) {
-                                return@map null // no point in replacing existing obstacles
-                            }
+        return workloads
+            .map { workChunk ->
+                executor.submit(Callable<java.util.HashSet<Position>> {
+                    val workerSpecificFloorPlan = floorPlan.copy()
 
-                            try {
-                                taskSpecificFloorPlan[nextPosition] = OBSTACLE
-
-                                return@map if (taskSpecificFloorPlan.isPatrolLooping(startingPoint)) nextPosition else null
-
-                            } finally {
-                                taskSpecificFloorPlan[nextPosition] = originalCellData
-                            }
+                    return@Callable workChunk
+                        .mapNotNullTo(HashSet()) { (nextPosition, _) ->
+                            if (workerSpecificFloorPlan.isObstaclePlacementCauseLoop(nextPosition)) nextPosition else null
                         }
-                        .filterNotNull()
-                        .toSet()
-                }
+                })
             }
-
-            // Await all results and add to the thread-safe set
-            return@withContext chunkResults
-                .map { it.await() }
-                .flatten()
-                .toSet()
-        }
+            .flatMapTo(HashSet()) { it.get() }
+            .also { executor.shutdown() }
     }
 
     companion object {
@@ -115,13 +116,13 @@ data class Day06(
         const val OBSTACLE = '#'
         const val GUARD_UP = '^'
 
-        fun parse(matrix: Resource.CharMatrix2d): Pair<Matrix<Char>, OrientedPosition> {
+        fun parse(matrix: Resource.CharMatrix2d): Day06 {
             val floorPlan = Matrix.ofChars(matrix)
 
             val startingPos = OrientedPosition(floorPlan.allPositionsOfValue(GUARD_UP).single(), Direction.UP)
             floorPlan[startingPos.position] = '.'
 
-            return floorPlan to startingPos
+            return Day06(floorPlan, startingPos)
         }
 
         fun isObstacle(char: Char?): Boolean = char == OBSTACLE
