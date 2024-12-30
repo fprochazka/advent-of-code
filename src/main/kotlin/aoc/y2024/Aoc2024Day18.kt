@@ -7,6 +7,7 @@ import aoc.utils.d2.Position
 import aoc.utils.d2.graph.MatrixGraph
 import aoc.utils.d2.graph.anyShortest.anyShortestPathBfs
 import aoc.utils.d2.graph.createDeadEndEliminator
+import aoc.utils.d2.path.GraphConnection
 import aoc.utils.strings.toLongs
 
 fun Resource.day18(): Day18 = day18Custom(
@@ -102,8 +103,8 @@ data class Day18(
 
         memory.updateAllConnections { a, b ->
             when {
-                a.value == EMPTY && b.value == EMPTY -> true to 1
-                else -> false to MatrixGraph.INFINITE_COST
+                a.value == EMPTY && b.value == EMPTY -> GraphConnection.edge()
+                else -> GraphConnection.none()
             }
         }
 

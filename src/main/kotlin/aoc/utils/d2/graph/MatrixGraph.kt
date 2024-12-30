@@ -3,6 +3,7 @@ package aoc.utils.d2.graph
 import aoc.utils.Resource
 import aoc.utils.d2.*
 import aoc.utils.d2.matrix.Matrix
+import aoc.utils.d2.path.GraphConnection
 
 class MatrixGraph<V : Any>(
     dims: AreaDimensions,
@@ -62,16 +63,16 @@ class MatrixGraph<V : Any>(
         node.weightedConnections.clear()
     }
 
-    fun updateAllConnections(edges: (MatrixGraph<V>.Node, MatrixGraph<V>.Node) -> Pair<Boolean, Long>) {
+    fun updateAllConnections(edges: (MatrixGraph<V>.Node, MatrixGraph<V>.Node) -> GraphConnection) {
         for (position in positions) {
             val node = this[position]!!
             node.weightedConnections.clear()
 
             for (neighbourPos in node.neighbourPositions) {
                 val candidate = this[neighbourPos]!!
-                val (isConnected, weight) = edges(node, candidate)
-                if (isConnected) {
-                    node.weightedConnections[candidate.position] = weight
+                when (val edgeResult = edges(node, candidate)) {
+                    is GraphConnection.None -> continue
+                    is GraphConnection.Edge -> node.weightedConnections[candidate.position] = edgeResult.cost
                 }
             }
         }
@@ -191,8 +192,8 @@ class MatrixGraph<V : Any>(
         ): MatrixGraph<V> =
             withWeights(matrix, neighbourSides, valueClass, nodeValues) { node, neighbour ->
                 when (edges(node, neighbour)) {
-                    true -> true to 1L
-                    false -> false to INFINITE_COST
+                    true -> GraphConnection.edge()
+                    false -> GraphConnection.none()
                 }
             }
 
@@ -200,7 +201,7 @@ class MatrixGraph<V : Any>(
             matrix: Resource.CharMatrix2d,
             neighbourSides: Set<Direction>,
             noinline nodeValues: (Char) -> V,
-            noinline edges: (MatrixGraph<V>.Node, MatrixGraph<V>.Node) -> Pair<Boolean, Long>,
+            noinline edges: (MatrixGraph<V>.Node, MatrixGraph<V>.Node) -> GraphConnection,
         ): MatrixGraph<V> =
             withWeights(matrix, neighbourSides, V::class.java, nodeValues, edges)
 
@@ -209,7 +210,7 @@ class MatrixGraph<V : Any>(
             neighbourSides: Set<Direction>,
             valueClass: Class<V>,
             nodeValues: (Char) -> V,
-            edges: (MatrixGraph<V>.Node, MatrixGraph<V>.Node) -> Pair<Boolean, Long>,
+            edges: (MatrixGraph<V>.Node, MatrixGraph<V>.Node) -> GraphConnection,
         ): MatrixGraph<V> {
             val result = MatrixGraph<V>(matrix.dims, neighbourSides, valueClass)
 

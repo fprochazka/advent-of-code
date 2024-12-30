@@ -4,7 +4,8 @@ sealed interface GraphConnection {
 
     class None internal constructor() : GraphConnection
 
-    data class Edge(val cost: Long) : GraphConnection {
+    @JvmInline
+    value class Edge(val cost: Long) : GraphConnection {
         init {
             require(cost >= 0) { "Cost must be non-negative" }
         }
