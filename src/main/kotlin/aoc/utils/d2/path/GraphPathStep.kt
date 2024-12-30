@@ -12,8 +12,16 @@ data class GraphPathStep(
     fun next(pos: Position, stepCost: Long = 1): GraphPathStep =
         GraphPathStep(pos, this.pathCost + stepCost, this)
 
+    fun toReverseSteps(): Sequence<GraphPathStep> =
+        generateSequence(this) { it.prev }
+
     fun toList(): List<GraphPathStep> =
-        generateSequence(this) { it.prev }.toList().reversed()
+        ArrayList<GraphPathStep>().apply {
+            for (step in toReverseSteps()) {
+                add(step)
+            }
+            reverse()
+        }
 
     fun toPositions(): List<Position> =
         toList().map { it.pos }

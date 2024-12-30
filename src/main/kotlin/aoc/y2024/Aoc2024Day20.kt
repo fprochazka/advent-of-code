@@ -6,6 +6,7 @@ import aoc.utils.d2.Position
 import aoc.utils.d2.matrix.Matrix
 import aoc.utils.d2.matrix.anyShortest.anyShortestPathBfs
 import aoc.utils.d2.path.GraphConnection
+import aoc.utils.d2.path.GraphPathStep
 import kotlinx.coroutines.*
 import kotlin.math.absoluteValue
 
@@ -30,7 +31,7 @@ data class Day20(
     }
 
     fun Matrix<Char>.howMany2StepCheatsWouldSaveAtLeastNTime(start: Position, end: Position, saveAtLeast: Int): Long {
-        val honorableShortestPath = findShortestPath(start, end)
+        val honorableShortestPath = findShortestPathPositions(start, end)
         // start => 0, first step => 1, ...
         val honorablePathPosTime = honorableShortestPath.withIndex().associate { it.value to it.index }
 
@@ -94,7 +95,7 @@ data class Day20(
         fun Position.cheatingDistanceTo(other: Position): Int =
             this.distanceTo(other).let { (xDiff, yDiff) -> (xDiff.absoluteValue + yDiff.absoluteValue).toInt() }
 
-        val honorableShortestPath = findShortestPath(start, end)
+        val honorableShortestPath = findShortestPathPositions(start, end)
 
         val parallelism = 8
         return@runBlocking withContext(Dispatchers.Default.limitedParallelism(parallelism)) {
@@ -142,8 +143,11 @@ data class Day20(
         println(cheatsSummary)
     }
 
-    fun Matrix<Char>.findShortestPath(start: Position, end: Position): List<Position> =
-        anyShortestPathBfs(start, end) { a, b -> GraphConnection.edgeIf(this[b]!! != WALL) }?.toPositions() ?: error("No honorable path found")
+    fun Matrix<Char>.findShortestPathPositions(start: Position, end: Position): List<Position> =
+        findShortestPath(start, end).toPositions()
+
+    fun Matrix<Char>.findShortestPath(start: Position, end: Position): GraphPathStep =
+        anyShortestPathBfs(start, end) { a, b -> GraphConnection.edgeIf(this[b]!! != WALL) } ?: error("No honorable path found")
 
     fun Matrix<Char>.isOnRim(pos: Position): Boolean {
         if (pos.x == 0L || pos.y == 0L) return true
