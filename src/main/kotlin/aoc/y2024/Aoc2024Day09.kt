@@ -2,6 +2,8 @@ package aoc.y2024
 
 import aoc.utils.Resource
 import aoc.utils.ranges.length
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.ints.Int2ObjectRBTreeMap
 import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectRBTreeMap
@@ -12,13 +14,13 @@ class Day09(val diskMap: IntArray) {
 
     val result1 by lazy {
         fragmentByFileSegments()
-            .mapIndexed { position, fileId -> (position * fileId).toLong() }
+            .mapIndexed { position, fileId -> position.toLong() * fileId }
             .sum()
     }
 
     val result2 by lazy {
         optimizeByMovingWholeFiles()
-            .mapIndexed { position, fileId -> (position * maxOf(0, fileId)).toLong() }
+            .mapIndexed { position, fileId -> position.toLong() * maxOf(0, fileId) }
             .sum()
     }
 
@@ -38,17 +40,19 @@ class Day09(val diskMap: IntArray) {
     class FileSegmentsCompactingOptimizer(diskSize: Int, diskMapBlocks: Sequence<DiskMapBlock>) {
 
         // [position => fileId]
-        val layout = LongArray(diskSize)
+        val layout = IntArray(diskSize)
+        var usedSpace = 0
 
         init {
             var layoutIndex = 0
-            var fileId = 0L
+            var fileId = 0
             for ((isFile, blockSize) in diskMapBlocks) {
                 if (isFile) {
                     repeat(blockSize) {
                         layout[layoutIndex++] = fileId
                     }
                     fileId++
+                    usedSpace += blockSize
 
                 } else {
                     repeat(blockSize) {
@@ -58,7 +62,10 @@ class Day09(val diskMap: IntArray) {
             }
         }
 
-        fun optimize(): List<Long> = buildList {
+        fun optimize(): IntArray {
+            val result = IntArray(usedSpace + 1)
+            var resultIndex = 0
+
             val fromStart = layout.indices.iterator()
             val fromEnd = layout.indices.reversed().iterator()
 
@@ -67,18 +74,20 @@ class Day09(val diskMap: IntArray) {
                 if (i >= maxResultIndex) break
 
                 if (layout[i] >= 0) {
-                    add(layout[i])
+                    result[resultIndex++] = layout[i]
                     continue
                 }
 
                 for (j in fromEnd) {
                     maxResultIndex = j
                     if (layout[j] >= 0) {
-                        add(layout[j])
+                        result[resultIndex++] = layout[j]
                         break
                     }
                 }
             }
+
+            return result
         }
 
     }
@@ -124,24 +133,28 @@ class Day09(val diskMap: IntArray) {
                 .takeWhile { file -> (leftMostGap?.start ?: 0) < file.originalPosition }
 
         val gaps: Sequence<IntRange>
-            get() = sequence {
-                val iterator = layout.indices.iterator()
-                for (gapStartIncl in iterator) {
-                    if (layout[gapStartIncl] != -1L) continue
+            get() = layout.indices.iterator().let { iterator ->
+                generateSequence {
+                    while (iterator.hasNext()) {
+                        val gapStartIncl = iterator.nextInt()
+                        if (layout[gapStartIncl] != -1L) continue
 
-                    var gapEndExcl = gapStartIncl + 1;
-                    for (j in iterator) {
-                        gapEndExcl = j
-                        if (layout[j] != -1L) break
+                        var gapEndExcl = gapStartIncl + 1;
+                        for (j in iterator) {
+                            gapEndExcl = j
+                            if (layout[j] != -1L) break
+                        }
+
+                        return@generateSequence gapStartIncl until gapEndExcl
                     }
 
-                    yield(gapStartIncl until gapEndExcl)
+                    return@generateSequence null
                 }
             }
 
         // [size => [gaps]]
-        val leftMostGapsIndex: MutableMap<Int, Int2ObjectSortedMap<IntRange>> by lazy(LazyThreadSafetyMode.PUBLICATION) {
-            val result = mutableMapOf<Int, Int2ObjectSortedMap<IntRange>>()
+        val leftMostGapsIndex: Int2ObjectMap<Int2ObjectSortedMap<IntRange>> by lazy(LazyThreadSafetyMode.PUBLICATION) {
+            val result = Int2ObjectOpenHashMap<Int2ObjectSortedMap<IntRange>>()
 
             for (gap in gaps) {
                 for (size in gap.fittingSizes()) {
