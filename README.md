@@ -5,60 +5,56 @@
 ```
 # 2024
 
- day  task                   [average]        [worst]         [best]
-  1.    1.       input:         0.64ms         0.66ms         0.63ms
-  1.    2.       input:         0.77ms         0.79ms         0.76ms
-  2.    1.       input:         0.63ms         0.65ms         0.60ms
-  2.    2.       input:         1.00ms         1.03ms         0.97ms
-  3.    1.       input:         0.36ms         0.37ms         0.36ms
-  3.    2.       input:         0.44ms         0.46ms         0.43ms
-  4.    1.       input:         6.94ms         9.03ms         6.06ms
-  4.    2.       input:         2.23ms         2.59ms         1.99ms
-  5.    1.       input:         0.81ms         0.83ms         0.78ms
-  5.    2.       input:         1.16ms         1.20ms         1.12ms
-  6.    1.       input:         0.72ms         0.90ms         0.64ms
-  6.    2.       input:        33.09ms        37.74ms        30.97ms
-  7.    1.       input:         1.82ms         2.12ms         1.53ms
-  7.    2.       input:        18.43ms        20.03ms        16.90ms
-  8.    1.       input:         0.56ms         0.66ms         0.46ms
-  8.    2.       input:         0.64ms         0.86ms         0.46ms
-  9.    1.       input:         1.49ms         1.62ms         1.15ms
-  9.    1. perf_test_1:         1.72ms         1.80ms         1.66ms
-  9.    1. perf_test_2:         7.51ms         7.79ms         7.31ms
-  9.    2.       input:         9.84ms        10.68ms         9.06ms
-  9.    2. perf_test_1:        19.95ms        21.12ms        18.78ms
-  9.    2. perf_test_2:       111.34ms       112.74ms       108.35ms
- 10.    1.       input:         0.80ms         1.02ms         0.73ms
- 10.    2.       input:         0.68ms         0.78ms         0.64ms
- 11.    1.       input:         0.25ms         0.26ms         0.24ms
- 11.    2.       input:        13.19ms        19.43ms        11.04ms
- 12.    1.       input:        12.46ms        15.06ms        11.56ms
- 12.    2.       input:        13.84ms        15.82ms        12.84ms
- 13.    1.       input:         0.28ms         0.29ms         0.26ms
- 13.    2.       input:         0.25ms         0.27ms         0.24ms
- 14.    1.       input:         0.36ms         0.36ms         0.36ms
- 15.    1.       input:         0.82ms         0.91ms         0.77ms
- 15.    2.       input:         1.33ms         1.49ms         1.22ms
- 16.    1.       input:         6.27ms         7.31ms         5.20ms
- 16.    2.       input:        29.30ms        35.64ms        23.37ms
- 17.    1.       input:         0.13ms         0.15ms         0.12ms
- 17.    2.       input:         0.13ms         0.17ms         0.10ms
- 18.    1.       input:         1.93ms         2.58ms         1.38ms
- 18.    2.       input:         9.18ms        10.07ms         8.53ms
- 19.    1.       input:         5.36ms         6.89ms         4.81ms
- 19.    2.       input:         5.57ms         6.11ms         5.34ms
- 20.    1.       input:         4.56ms         5.82ms         3.96ms
- 20.    2.       input:        14.56ms        18.43ms        12.88ms
- 21.    1.       input:         0.35ms         0.40ms         0.33ms
- 21.    2.       input:         0.26ms         0.29ms         0.23ms
- 22.    1.       input:         0.84ms         0.87ms         0.82ms
- 22.    2.       input:        60.09ms        61.21ms        58.90ms
- 23.    1.       input:         2.78ms         3.00ms         2.53ms
- 23.    2.       input:         6.28ms         6.30ms         6.22ms
- 24.    1.      input1:         0.33ms         0.36ms         0.31ms
- 24.    2.      input1:         0.57ms         0.62ms         0.54ms
- 25.    1.       input:         1.59ms         1.61ms         1.55ms
+ day  task       [average]        [worst]         [best]
+  1.    1.         0.47ms         0.48ms         0.47ms
+  1.    2.         0.45ms         0.47ms         0.44ms
+  2.    1.         0.58ms         0.61ms         0.52ms
+  2.    2.         0.95ms         0.97ms         0.91ms
+  3.    1.         0.37ms         0.37ms         0.36ms
+  3.    2.         0.44ms         0.45ms         0.42ms
+  4.    1.         6.24ms         6.27ms         6.20ms
+  4.    2.         2.00ms         2.28ms         1.22ms
+  5.    1.         0.81ms         0.84ms         0.78ms
+  5.    2.         1.31ms         1.77ms         1.11ms
+  6.    1.         0.74ms         0.96ms         0.65ms
+  6.    2.        31.35ms        31.85ms        30.64ms
+  7.    1.         1.63ms         1.78ms         1.51ms
+  7.    2.        15.71ms        17.53ms        14.85ms
+  8.    1.         0.43ms         0.60ms         0.36ms
+  8.    2.         0.38ms         0.41ms         0.36ms
+  9.    1.         1.66ms         1.97ms         1.40ms
+  9.    2.         9.88ms        10.81ms         8.91ms
+ 10.    1.         0.70ms         0.78ms         0.65ms
+ 10.    2.         0.66ms         0.75ms         0.62ms
+ 11.    1.         0.25ms         0.26ms         0.24ms
+ 11.    2.        13.05ms        15.25ms        11.62ms
+ 12.    1.        12.96ms        14.27ms        11.72ms
+ 12.    2.        14.43ms        15.39ms        13.62ms
+ 13.    1.         0.28ms         0.29ms         0.27ms
+ 13.    2.         0.25ms         0.25ms         0.24ms
+ 14.    1.         0.31ms         0.31ms         0.30ms
+ 15.    1.         0.85ms         0.89ms         0.80ms
+ 15.    2.         1.43ms         1.88ms         1.19ms
+ 16.    1.         6.78ms         7.82ms         5.61ms
+ 16.    2.        26.86ms        36.00ms        22.52ms
+ 17.    1.         0.13ms         0.13ms         0.12ms
+ 17.    2.         0.14ms         0.19ms         0.11ms
+ 18.    1.         1.63ms         2.20ms         1.39ms
+ 18.    2.         8.79ms         9.47ms         8.50ms
+ 19.    1.         5.26ms         6.28ms         4.90ms
+ 19.    2.         5.27ms         5.29ms         5.24ms
+ 20.    1.         3.90ms         3.94ms         3.84ms
+ 20.    2.        14.76ms        15.07ms        14.31ms
+ 21.    1.         0.31ms         0.36ms         0.28ms
+ 21.    2.         0.21ms         0.22ms         0.20ms
+ 22.    1.         0.83ms         0.89ms         0.79ms
+ 22.    2.        66.20ms        68.09ms        64.47ms
+ 23.    1.         2.78ms         3.09ms         2.46ms
+ 23.    2.         6.33ms         6.40ms         6.25ms
+ 24.    1.         0.29ms         0.30ms         0.29ms
+ 24.    2.         0.48ms         0.49ms         0.47ms
+ 25.    1.         1.53ms         1.56ms         1.52ms
 
-Sum of average times for normal inputs: 275.91ms
-Sum of best    times for normal inputs: 251.88ms
+Sum of average times for normal inputs: 273.07ms
+Sum of best    times for normal inputs: 255.65ms
 ```

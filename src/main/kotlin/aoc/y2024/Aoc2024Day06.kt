@@ -1,6 +1,7 @@
 package aoc.y2024
 
 import aoc.utils.Resource
+import aoc.utils.concurrency.parFlatMapTo
 import aoc.utils.containers.chunksCount
 import aoc.utils.d2.Direction
 import aoc.utils.d2.DirectionBitSet
@@ -9,7 +10,7 @@ import aoc.utils.d2.Position
 import aoc.utils.d2.matrix.Matrix
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import java.util.concurrent.Callable
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 fun Resource.day06(): Day06 = Day06.parse(matrix2d())
@@ -36,7 +37,7 @@ class Day06(
 
                 current = when {
                     next.position !in this.dims -> break
-                    isObstacle(this[next.position]) -> current.turnRight90()
+                    this[next.position] == OBSTACLE -> current.turnRight90()
                     else -> next
                 }
 
@@ -50,17 +51,17 @@ class Day06(
 
     fun Matrix<Char>.isPatrolLooping(patrolStart: OrientedPosition): Boolean {
         val dims = this.dims
-        val patrolPath = Int2ObjectOpenHashMap<DirectionBitSet>(64)
+        val patrolPath = Int2ObjectOpenHashMap<DirectionBitSet>()
 
         var (currentPosition, direction) = patrolStart
         while (true) {
-            val nextPosition = currentPosition.plus(direction.vector)
+            val nextPosition = currentPosition + direction
             when {
                 nextPosition !in dims -> {
                     return false
                 }
 
-                isObstacle(this[nextPosition]) -> {
+                this[nextPosition] == OBSTACLE -> {
                     val visitedDirections = patrolPath.getOrPut(dims.matrixIndex(currentPosition)) { DirectionBitSet() }
                     if (!visitedDirections.add(direction)) {
                         return true
@@ -79,7 +80,7 @@ class Day06(
 
     fun Matrix<Char>.isObstaclePlacementCauseLoop(obstaclePosition: Position): Boolean {
         val originalCellData = this[obstaclePosition]!!
-        if (isObstacle(originalCellData)) {
+        if (originalCellData == OBSTACLE) {
             return false // no point in replacing existing obstacles
         }
 
@@ -100,22 +101,19 @@ class Day06(
         val parallelism = 8
         val workloads = originalPatrol.chunksCount(parallelism)
 
-        val executor = Executors.newFixedThreadPool(parallelism, Thread.ofVirtual().factory())
+        val executor: ExecutorService = Executors.newFixedThreadPool(parallelism, Thread.ofVirtual().factory())
 
         return workloads
-            .map { workChunk ->
-                executor.submit(Callable {
-                    val workerSpecificFloorPlan = floorPlan.copy()
+            .parFlatMapTo(executor, HashSet<Position>()) { workChunk ->
+                val workerSpecificFloorPlan = floorPlan.copy()
 
-                    return@Callable workChunk
-                        .mapNotNull { (nextPosition, _) ->
-                            if (workerSpecificFloorPlan.isObstaclePlacementCauseLoop(nextPosition)) nextPosition else null
-                        }
-                })
+                return@parFlatMapTo workChunk
+                    .mapNotNull { (nextPosition, _) ->
+                        if (workerSpecificFloorPlan.isObstaclePlacementCauseLoop(nextPosition)) nextPosition else null
+                    }
             }
-            .flatMapTo(HashSet()) { it.get() }
-            .also { executor.shutdown() }
             .size
+            .also { executor.shutdown() }
     }
 
     companion object {
@@ -131,8 +129,6 @@ class Day06(
 
             return Day06(floorPlan, startingPos)
         }
-
-        fun isObstacle(char: Char?): Boolean = char == OBSTACLE
 
     }
 

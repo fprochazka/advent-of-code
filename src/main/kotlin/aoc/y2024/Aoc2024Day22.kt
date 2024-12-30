@@ -1,6 +1,7 @@
 package aoc.y2024
 
 import aoc.utils.Resource
+import aoc.utils.concurrency.submitAll
 import aoc.utils.containers.CircularBufferFixedSize4Short
 import aoc.utils.ranges.chunksCount
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap
@@ -49,32 +50,30 @@ class Day22(val firstSecretNumbers: LongArray) {
 
         val workerResults = LinkedBlockingQueue<Int2ShortOpenHashMap>()
 
-        val workers = iteration0.indices.chunksCount(7).map { monkeyRange ->
-            executor.submit {
-                for (monkeyId in monkeyRange) {
-                    var monkeyNumber = iteration0[monkeyId]
-                    var previousBananasToSell = (monkeyNumber % 10).toShort()
+        val workers = executor.submitAll(iteration0.indices.chunksCount(7)) { monkeyRange: IntRange ->
+            for (monkeyId in monkeyRange) {
+                var monkeyNumber = iteration0[monkeyId]
+                var previousBananasToSell = (monkeyNumber % 10).toShort()
 
-                    val monkeySequence = CircularBufferFixedSize4Short()
-                    val monkeySell = Int2ShortOpenHashMap(1 shl 11, 0.9999f)
+                val monkeySequence = CircularBufferFixedSize4Short()
+                val monkeySell = Int2ShortOpenHashMap(1 shl 11, 0.9999f)
 
-                    for (iter in 1..2000) {
-                        monkeyNumber = evolve(monkeyNumber)
+                for (iter in 1..2000) {
+                    monkeyNumber = evolve(monkeyNumber)
 
-                        val bananasToSell = (monkeyNumber % 10).toShort()
-                        val diff = (bananasToSell - previousBananasToSell).toShort()
-                        monkeySequence.add(diff)
+                    val bananasToSell = (monkeyNumber % 10).toShort()
+                    val diff = (bananasToSell - previousBananasToSell).toShort()
+                    monkeySequence.add(diff)
 
-                        if (iter >= 4) { // at least 4 iterations to get first 4 diffs
-                            val hashCode = monkeySequence.get(::hash)
-                            monkeySell.putIfAbsent(hashCode, bananasToSell)
-                        }
-
-                        previousBananasToSell = bananasToSell
+                    if (iter >= 4) { // at least 4 iterations to get first 4 diffs
+                        val hashCode = monkeySequence.get(::hash)
+                        monkeySell.putIfAbsent(hashCode, bananasToSell)
                     }
 
-                    workerResults.add(monkeySell)
+                    previousBananasToSell = bananasToSell
                 }
+
+                workerResults.add(monkeySell)
             }
         }
 

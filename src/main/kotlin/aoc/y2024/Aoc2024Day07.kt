@@ -1,13 +1,13 @@
 package aoc.y2024
 
 import aoc.utils.Resource
+import aoc.utils.concurrency.parFlatMapTo
 import aoc.utils.containers.chunksCount
 import aoc.utils.containers.headTail
 import aoc.utils.containers.toLongArray
 import aoc.utils.math.digitCount
 import aoc.utils.math.scale10
 import aoc.utils.strings.toLongs
-import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 
 fun Resource.day07(): Day07 = Day07.parse(nonBlankLines())
@@ -43,18 +43,15 @@ class Day07(val inputEquations: List<Equation>) {
         val executor = Executors.newFixedThreadPool(parallelism, Thread.ofVirtual().factory())
 
         return equations.chunksCount(parallelism)
-            .map { workChunk ->
-                executor.submit(Callable {
-                    val chunkResult = ArrayList<Equation>()
-                    for (equation in workChunk) {
-                        equation.findFirstSolution(allowedOperators)?.let {
-                            chunkResult.add(equation)
-                        }
+            .parFlatMapTo(executor, ArrayList<Equation>(equations.size)) { workChunk ->
+                val chunkResult = ArrayList<Equation>()
+                for (equation in workChunk) {
+                    equation.findFirstSolution(allowedOperators)?.let {
+                        chunkResult.add(equation)
                     }
-                    return@Callable chunkResult
-                })
+                }
+                return@parFlatMapTo chunkResult
             }
-            .flatMapTo(ArrayList<Equation>(equations.size)) { it.get() }
             .also { executor.shutdown() }
     }
 

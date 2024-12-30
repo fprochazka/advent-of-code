@@ -95,14 +95,6 @@ object Aoc2024 {
                 task(1) { input.day09().result1 }
                 task(2) { input.day09().result2 }
             }
-            input("perf_test_1", addUpInTotal = false) { input ->
-                task(1) { input.day09().result1 }
-                task(2) { input.day09().result2 }
-            }
-            input("perf_test_2", addUpInTotal = false) { input ->
-                task(1) { input.day09().result1 }
-                task(2) { input.day09().result2 }
-            }
         }
 
         day(10) {
@@ -227,7 +219,7 @@ object Aoc2024 {
         val executor = Executors.newVirtualThreadPerTaskExecutor()!!
 
         println("Warmup:")
-        for (i in 1..20) {
+        for (i in 1..40) {
             measureIteration(i, executor)
         }
         resultsByConfig.clear()
@@ -281,15 +273,12 @@ object Aoc2024 {
         var totalBestRuntime = Duration.ZERO
 
         val taskColumnWidth = resultsByConfig.keys.map { it.taskName }.maxOf { it.length }.coerceAtLeast(4)
-        val inputColumnWidth = resultsByConfig.keys.map { it.inputName.toString() }.maxOf { it.length }.coerceAtLeast(5)
-        println(" day  ${"task".padStart(taskColumnWidth)} ${"".padStart(inputColumnWidth)}       [average]        [worst]         [best]")
+        println(" day  ${"task".padStart(taskColumnWidth)}       [average]        [worst]         [best]")
 
         for ((config, runs) in resultsByConfig) {
             var line = ""
             line += "${config.day.toString().padStart(3)}."
             line += " ${config.taskName.padStart(taskColumnWidth)}."
-            line += " ${config.inputName.padStart(inputColumnWidth)}"
-            line += ":"
             line += runs.avgTime.toFormattedString().padStart(15)
             line += runs.worstTime.toFormattedString().padStart(15)
             line += runs.bestTime.toFormattedString().padStart(15)
