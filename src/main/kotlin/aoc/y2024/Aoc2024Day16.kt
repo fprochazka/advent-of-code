@@ -8,6 +8,7 @@ import aoc.utils.d2.graph.allShortest.allShortestOrientedPathsModifiedDijkstra
 import aoc.utils.d2.graph.anyShortest.anyShortestOrientedPathDijkstra
 import aoc.utils.d2.graph.createDeadEndEliminator
 import aoc.utils.d2.path.GraphPathStepOriented
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet
 
 fun Resource.day16(): Day16 = Day16(
     Day16.toGraph(matrix2d())
@@ -32,13 +33,15 @@ data class Day16(val maze: MatrixGraph<Char>) {
             ?.pathCost
             ?: error("No path found")
 
-    fun MatrixGraph<Char>.countOfAllPositionsOnAllShortestPaths(): Long {
+    fun MatrixGraph<Char>.countOfAllPositionsOnAllShortestPaths(): Int {
+        val allPositionsOnAllShortestPaths = IntOpenHashSet()
+        val dims = this.dims
+
         val positionsOnShortestPaths = mazeStartAndEnd
             .let { (start, end) -> allShortestOrientedPathsModifiedDijkstra(start, Direction.RIGHT, end, ::edgeCost) }
-            .flatMap { it.toList().map { it.pos } }
-            .toSet()
+            .flatMapTo(allPositionsOnAllShortestPaths) { it.toReverseSteps().map { dims.matrixIndex(it.pos) } }
 
-        return positionsOnShortestPaths.size.toLong()
+        return positionsOnShortestPaths.size
     }
 
     fun MatrixGraph<Char>.startAndEnd(): Pair<Position, Position> =

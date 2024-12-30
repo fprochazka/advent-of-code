@@ -13,8 +13,16 @@ data class GraphPathStepOriented(
     fun next(pos: Position, inDir: Direction, stepCost: Long): GraphPathStepOriented =
         GraphPathStepOriented(pos, inDir, this.pathCost + stepCost, this)
 
-    fun toList(): List<GraphPathStepOriented> =
-        generateSequence(this) { it.prev }.toList().reversed()
+    fun toReverseSteps() = generateSequence(this) { it.prev }
+
+    fun toList(): List<GraphPathStepOriented> {
+        val result = ArrayList<GraphPathStepOriented>()
+        for (step in toReverseSteps()) {
+            result.add(step)
+        }
+        result.reverse()
+        return result
+    }
 
     override fun compareTo(other: GraphPathStepOriented): Int =
         this.pathCost.compareTo(other.pathCost)
