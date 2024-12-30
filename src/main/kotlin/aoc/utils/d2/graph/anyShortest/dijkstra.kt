@@ -5,7 +5,7 @@ import aoc.utils.d2.Position
 import aoc.utils.d2.PositionBitSet
 import aoc.utils.d2.graph.MatrixGraph
 import aoc.utils.d2.path.GraphPathStepOriented
-import java.util.*
+import it.unimi.dsi.fastutil.objects.ObjectHeapPriorityQueue
 
 fun <V : Any> MatrixGraph<V>.anyShortestOrientedPathDijkstra(
     start: Position,
@@ -13,23 +13,28 @@ fun <V : Any> MatrixGraph<V>.anyShortestOrientedPathDijkstra(
     end: Position,
     edgeCost: (GraphPathStepOriented, Direction) -> Long,
 ): GraphPathStepOriented? {
-    val queue = PriorityQueue<GraphPathStepOriented>(compareBy { it.pathCost }).apply {
-        add(GraphPathStepOriented(start, startDir, 0))
+    val queue = ObjectHeapPriorityQueue<GraphPathStepOriented>(compareBy { it.pathCost }).apply {
+        enqueue(GraphPathStepOriented(start, startDir, 0))
     }
     val visited = PositionBitSet(dims)
 
-    while (queue.isNotEmpty()) {
-        val currentStep = queue.poll()!!
+    while (queue.size() > 0) {
+        val currentStep = queue.dequeue()!!
         visited.add(currentStep.pos)
 
         if (currentStep.pos == end) {
             return currentStep
         }
 
-        val neighbours = connectionsFrom(currentStep.pos)
-            .filter { it != currentStep.prev?.pos } // no 180 flips
-            .filter { it !in visited }
-            .map { currentStep.pos.relativeDirectionTo(it)!! to it }
+        val neighbours = connectionsFrom(currentStep.pos).let { connections ->
+            connections.mapNotNullTo(ArrayList(connections.size)) {
+                if (it != currentStep.prev?.pos && it !in visited) {
+                    currentStep.pos.relativeDirectionTo(it)!! to it
+                } else {
+                    null
+                }
+            }
+        }
 
         for ((neighbourDir, neighbourPos) in neighbours) {
             val nextStep = currentStep.next(
@@ -37,7 +42,7 @@ fun <V : Any> MatrixGraph<V>.anyShortestOrientedPathDijkstra(
                 neighbourDir,
                 stepCost = edgeCost(currentStep, neighbourDir),
             )
-            queue.add(nextStep)
+            queue.enqueue(nextStep)
         }
     }
 
