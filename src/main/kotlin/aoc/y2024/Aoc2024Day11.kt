@@ -1,8 +1,10 @@
 package aoc.y2024
 
 import aoc.utils.Resource
+import aoc.utils.math.digitCount
 import aoc.utils.numbers.digitHalfs
 import aoc.utils.strings.toLongs
+import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap
 
 fun Resource.day11(): Day11 = Day11(
     content().toLongs()
@@ -54,21 +56,28 @@ data class Day11(
         val initialCapacity = 1 shl (13 + maxOf(0, (iterations - 25) / 10))
 
         // [(number, iterations) => parts]
-        val cache = HashMap<Pair<Long, Int>, Long>(initialCapacity, 1f)
+        val cache = Long2LongOpenHashMap(initialCapacity, 0.9999999f)
         // println("using cache size capacity=${initialCapacity}")
 
-        fun countAfterExpansion(number: Long, remaining: Int): Long =
-            cache.getOrPut(number to remaining) {
-                when {
-                    remaining == 0 -> 1
-                    number == 0L -> countAfterExpansion(1L, remaining - 1)
-                    number.toString().length % 2 == 0 -> number.digitHalfs().let { (left, right) -> countAfterExpansion(left, remaining - 1) + countAfterExpansion(right, remaining - 1) }
-                    else -> countAfterExpansion(number * 2024, remaining - 1)
-                }
+        fun countAfterExpansion(number: Long, remaining: Long): Long {
+            // decimal 100 => 7bits
+            val cacheKey = (number shl 7) or remaining
+
+            cache.getOrDefault(cacheKey, -1L).let { if (it != -1L) return it }
+
+            val result = when {
+                remaining == 0L -> 1
+                number == 0L -> countAfterExpansion(1L, remaining - 1)
+                number.digitCount() % 2 == 0 -> number.digitHalfs().let { (left, right) -> countAfterExpansion(left, remaining - 1) + countAfterExpansion(right, remaining - 1) }
+                else -> countAfterExpansion(number * 2024, remaining - 1)
             }
 
-        val sum = numbers.sumOf { countAfterExpansion(it, iterations) }
-        // println("$iterations iters => cache size ${cache.size}")
+            cache.put(cacheKey, result)
+
+            return result
+        }
+
+        val sum = numbers.sumOf { countAfterExpansion(it, iterations.toLong()) }
 
         return sum
     }

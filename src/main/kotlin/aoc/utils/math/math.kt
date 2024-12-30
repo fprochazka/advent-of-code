@@ -76,6 +76,12 @@ fun Long.digitCount(): Int {
         n < 10_000L -> 4
         n < 100_000L -> 5
         n < 1_000_000L -> 6
+        n < 10_000_000L -> 7
+        n < 100_000_000L -> 8
+        n < 1_000_000_000L -> 9
+        n < 10_000_000_000L -> 10
+        n < 100_000_000_000L -> 11
+        n < 1_000_000_000_000L -> 12
         else -> Math.log10(n.toDouble()).toInt() + 1 // Fallback for large numbers
     }
 }
